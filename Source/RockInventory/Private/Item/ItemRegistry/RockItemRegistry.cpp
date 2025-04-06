@@ -131,5 +131,5 @@ void URockItemRegistry::GetAllDefinitions(TArray<URockItemDefinition*>& OutDefin
         OutDefinitions.Empty();
         return;
     }
-    ItemDefinitionMap.GenerateValueArray(OutDefinitions); // Efficiently get all values from the map
+    // ItemDefinitionMap.GenerateValueArray(OutDefinitions); // Efficiently get all values from the map
 }
