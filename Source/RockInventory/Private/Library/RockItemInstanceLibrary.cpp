@@ -13,7 +13,7 @@ bool URockItemInstanceLibrary::FindItemStackForInstance(const URockItemInstance*
 		return false;
 	}
 
-	const URockInventory* OwningInventory = InstanceToFind->GetOwner();
+	const URockInventory* OwningInventory = InstanceToFind->GetOwningInventory();
 	if (!OwningInventory)
 	{
 		return false;
@@ -37,7 +37,7 @@ bool URockItemInstanceLibrary::FindItemSlotForInstance(const URockItemInstance* 
 		return false;
 	}
 
-	const URockInventory* OwningInventory = InstanceToFind->GetOwner();
+	const URockInventory* OwningInventory = InstanceToFind->GetOwningInventory();
 	if (!OwningInventory)
 	{
 		return false;

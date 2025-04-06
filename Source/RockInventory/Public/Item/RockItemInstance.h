@@ -19,8 +19,10 @@ class ROCKINVENTORY_API URockItemInstance : public UObject
 
 	
 protected:
+	// Make sure this gets updated if the item moves inventory! 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory")
-	TWeakObjectPtr<URockInventory> Owner = nullptr;
+	TWeakObjectPtr<URockInventory> OwningInventory = nullptr;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory")
 	TObjectPtr<URockItemDefinition> CachedDefinition = nullptr;
 	///////////////////////////////////////////////////////////////////////////
@@ -29,7 +31,7 @@ protected:
 	//~ End UObject interface
 	///////////////////////////////////////////////////////////////////////////
 public:
-	URockInventory* GetOwner() const { return Owner.Get(); }
+	URockInventory* GetOwningInventory() const { return OwningInventory.Get(); }
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	const URockItemDefinition* GetItemDefinition() const;
 	UFUNCTION(BlueprintCallable)
