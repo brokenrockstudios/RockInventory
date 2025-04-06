@@ -1,109 +1,17 @@
-// Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
+// Copyright Broken Rock Studios LLC. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "Net/Serialization/FastArraySerializer.h"
-#include "UObject/Object.h"
+#include "Engine/DataAsset.h"
+#include "RockItemDefinition.generated.h"
 
-#include "RockItem.generated.h"
-//test
-
-class URockItemInstance;
-class URockItemDefinition;
-
-// a stack of items
-USTRUCT(BlueprintType)
-struct ROCKINVENTORY_API FRockItemStack : public FFastArraySerializerItem
-{
-	GENERATED_BODY()
-
-	// ID to look up the definition in your registry
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FName ItemID;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 StackSize = 1;
-
-	// CustomValue is a generic value that can be used for anything. To avoid needing a Runtime Instance
-	// e.g. Durability, ChargeCount, Seed for RNG, Bitmask, progress, timer reference, variant id, or level
-	// If you want or need more than one of these, you should probably use a runtime instance or modify for a 2nd CustomValue. 
-	// Generally I imagine most of the time it should just be Durability, ChargeCount, or something like that.
-	// though we probably don't need the full int32, so consider masking it to a smaller value. 
-	UPROPERTY()
-	int32 CustomValue1 = 0;
-	// We might add a second custom value if we feel there is a justifable reason for it instead of the RuntimeInstance
-	// Otherwise want to try and keep this as simple as possible.
-
-	UPROPERTY()
-	TObjectPtr<URockItemInstance> RuntimeInstance = nullptr;
-
-	/** Resolve and cache the item definition */
-	const URockItemDefinition* GetDefinition() const;
-	UPROPERTY(Transient)
-	TObjectPtr<URockItemDefinition> CachedDefinition = nullptr;
-};
-
-// FRockItemStackContainer
-USTRUCT()
-struct ROCKINVENTORY_API FRockItemStackContainer : public FFastArraySerializer
-{
-	GENERATED_BODY()
-public:
-	// holds an array of items for a given container
-
-	// SlotID?
-	// index or x/y/rot? (tab?)
-	
-};
-
-
-UENUM(BlueprintType)
-enum class ERockItemRotation : uint8
-{
-	Horizontal = 0,
-	Vertical = 1
-};
-
-// SpecialSlot types? Only consider special designated slots for hotswap
-
-
-// Base class for all item instances
-UCLASS(BlueprintType)
-class ROCKINVENTORY_API URockItemInstance : public UObject
-{
-	GENERATED_BODY()
-
-public:
-	// We probably want a pointer to the actual struct instead, otherwise it's a copy.
-	// UPROPERTY() ? 
-	TSharedPtr<FRockItemStack> ItemBase = nullptr;
-
-	UFUNCTION(BlueprintCallable, Category = "Item")
-	const URockItemDefinition* GetItemDefinition() const;
-	
-	//~UObject interface
-	virtual bool IsSupportedForNetworking() const override { return true; }
-	//~End of UObject interface
-
-	// FGameplayTagStackContainer StatTags;
-	
-	// TODO: Should all ItemInstances have nested inventories?
-	// TODO: Should all ItemInstances have Fragments?	
-};
-
-inline const URockItemDefinition* URockItemInstance::GetItemDefinition() const
-{
-	if (ensureMsgf(ItemBase, TEXT("ItemBase is null!")))
-	{
-		return ItemBase->GetDefinition();
-	}
-	return nullptr;
-}
-
+/**
+ * 
+ */
 UCLASS(Blueprintable)
-class URockItemDefinition : public UPrimaryDataAsset
+class ROCKINVENTORY_API URockItemDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
