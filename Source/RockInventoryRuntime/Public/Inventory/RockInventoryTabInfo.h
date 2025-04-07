@@ -8,20 +8,20 @@
 #include "RockInventoryTabInfo.generated.h"
 
 /**
- *
+ * Tab dimension info
+ *  his struct is used to define the dimensions of a tab or collection in a single inventory system.
  */
-// Tab dimension info
 USTRUCT(BlueprintType)
-struct ROCKINVENTORY_API FRockInventoryTabInfo
+struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
 {
 	GENERATED_BODY()
 	
 	// Grid dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Width = 0;
+	uint8 Width = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Height = 0;
+	uint8 Height = 0;
 
 	// Optional name for debugging/UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

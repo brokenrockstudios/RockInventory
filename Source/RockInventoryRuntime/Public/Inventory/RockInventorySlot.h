@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "RockItemOrientation.h"
+#include "RockSlotHandle.h"
 #include "Item/RockItemStack.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
@@ -11,7 +12,7 @@
 #include "RockInventorySlot.generated.h"
 
 USTRUCT(BlueprintType)
-struct ROCKINVENTORY_API FRockInventorySlot : public FFastArraySerializerItem
+struct ROCKINVENTORYRUNTIME_API FRockInventorySlot : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
@@ -26,15 +27,9 @@ struct ROCKINVENTORY_API FRockInventorySlot : public FFastArraySerializerItem
 	bool bIsLocked = false;
 
 	//////////////////////////////////////////////////////////////////////////
-	// NOTE: Consider removing. This is somewhat redundant?
-	// Which tab this slot belongs to. 0-255
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	uint8 TabIndex = 0;
-	// Position within the tab grid, 0-255
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	uint8 GridX = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	uint8 GridY = 0;
+	// Which slot this is in the inventory
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	// FRockSlotHandle SlotHandle;
 	//////////////////////////////////////////////////////////////////////////
 
 	// Required for FFastArraySerializerItem
@@ -42,4 +37,3 @@ struct ROCKINVENTORY_API FRockInventorySlot : public FFastArraySerializerItem
 	void PostReplicatedAdd(const struct FRockInventoryData& InArraySerializer);
 	void PostReplicatedChange(const struct FRockInventoryData& InArraySerializer);
 };
-

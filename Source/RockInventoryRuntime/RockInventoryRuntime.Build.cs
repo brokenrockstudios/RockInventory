@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class RockInventory : ModuleRules
+public class RockInventoryRuntime : ModuleRules
 {
-	public RockInventory(ReadOnlyTargetRules Target) : base(Target)
+	public RockInventoryRuntime(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 

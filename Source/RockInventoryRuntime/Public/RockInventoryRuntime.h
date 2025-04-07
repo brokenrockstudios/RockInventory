@@ -4,7 +4,7 @@
 
 #include "Modules/ModuleManager.h"
 
-class FRockInventoryModule : public IModuleInterface
+class FRockInventoryRuntimeModule : public IModuleInterface
 {
 public:
 

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "RockItemDefinitionFragment.h"
 #include "Engine/DataAsset.h"
 #include "RockItemDefinition.generated.h"
 
@@ -11,7 +12,7 @@
  * 
  */
 UCLASS(Blueprintable)
-class ROCKINVENTORY_API URockItemDefinition : public UPrimaryDataAsset
+class ROCKINVENTORYRUNTIME_API URockItemDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
@@ -116,7 +117,7 @@ public:
 	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	//TArray<TSubclassOf<UObject>> ItemFragments;
 
-	
+	TArray<FRockItemDefinitionFragmentInstance > ItemComponents;
 
 	// EquipmentFragment
 	// Supports Attachment

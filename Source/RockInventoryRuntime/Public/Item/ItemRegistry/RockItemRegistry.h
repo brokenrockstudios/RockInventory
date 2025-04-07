@@ -11,7 +11,7 @@ class URockItemDefinition;
  * 
  */
 UCLASS()
-class ROCKINVENTORY_API URockItemRegistry : public UGameInstanceSubsystem
+class ROCKINVENTORYRUNTIME_API URockItemRegistry : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 public:
@@ -46,7 +46,7 @@ private:
 
 	/** Primary Asset Type for URockItemDefinition as configured in Project Settings. */
 	UPROPERTY() // Allow configuration via DefaultGame.ini if needed
-	FName ItemDefinitionAssetType = FName("RockItemDefinition"); // Default to "RockItem", matches step 1
+	FName ItemDefinitionAssetType = FName("/Script/RockInventory.RockItemDefinition"); // Default to "RockItem", matches step 1
 
 	/** Flag to track if the registry has been successfully initialized. */
 	bool bIsInitialized = false;

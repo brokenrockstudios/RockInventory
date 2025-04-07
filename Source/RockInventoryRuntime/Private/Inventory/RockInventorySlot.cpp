@@ -2,6 +2,8 @@
 
 #include "Inventory/RockInventorySlot.h"
 
+
+
 void FRockInventorySlot::PreReplicatedRemove(const struct FRockInventoryData& InArraySerializer)
 {
 }

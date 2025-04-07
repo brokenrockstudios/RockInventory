@@ -11,7 +11,7 @@
  * 
  */
 UCLASS()
-class ROCKINVENTORY_API URockItemStackLibrary : public UBlueprintFunctionLibrary
+class ROCKINVENTORYRUNTIME_API URockItemStackLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
