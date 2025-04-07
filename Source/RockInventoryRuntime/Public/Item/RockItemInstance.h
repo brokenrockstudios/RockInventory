@@ -20,16 +20,15 @@ class ROCKINVENTORYRUNTIME_API URockItemInstance : public UObject
 {
 	GENERATED_BODY()
 
-	
 protected:
 	// Make sure this gets updated if the item moves inventory! 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory")
 	TWeakObjectPtr<URockInventory> OwningInventory = nullptr;
-	
+
 	// Slot of the corresponding item in the inventory
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory")
 	FRockSlotHandle SlotHandle;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory")
 	TObjectPtr<URockItemDefinition> CachedDefinition = nullptr;
 
@@ -44,16 +43,17 @@ public:
 	void SetSlotHandle(FRockSlotHandle SlotHandle);
 	FRockSlotHandle GetSlotHandle() const { return SlotHandle; }
 	FRockInventorySlot* GetItemSlot() const { return GetOwningInventory()->GetSlotByHandle(GetSlotHandle()); }
+	FRockItemStack* GetItemStack() const { return &GetOwningInventory()->GetSlotByHandle(GetSlotHandle())->Item; }
 
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	const URockItemDefinition* GetItemDefinition() const;
 
 	UFUNCTION(BlueprintCallable)
 	bool FindItemStackForThisInstance(FRockItemStack& OutItemStack) const;
-	
+
 	UFUNCTION(BlueprintCallable)
 	bool FindItemSlotForThisInstance(FRockInventorySlot& OutItemStack) const;
-	
+
 
 	// TODO: FGameplayTagStackContainer StatTags;
 	// TODO: Should all ItemInstances have nested inventories?
