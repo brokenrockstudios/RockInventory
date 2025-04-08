@@ -23,7 +23,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, URockInventory
 
 // The root class for the RockInventory system
 // This class manages the inventory data and tab configuration
-UCLASS()
+UCLASS(Blueprintable, BlueprintType)
 class ROCKINVENTORYRUNTIME_API URockInventory : public UObject
 {
 	GENERATED_BODY()

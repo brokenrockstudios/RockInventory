@@ -4,6 +4,8 @@
 #include "World/RockInventoryWorldItem.h"
 #include "Misc/DataValidation.h"
 
+#define LOCTEXT_NAMESPACE "RockInventory"
+
 URockInventoryDeveloperSettings::URockInventoryDeveloperSettings(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
 {
 }
@@ -16,9 +18,12 @@ EDataValidationResult URockInventoryDeveloperSettings::IsDataValid(FDataValidati
 	if (DefaultWorldItemClass == nullptr)
 	{
 		Result = EDataValidationResult::Invalid;
-		Context.AddError(FText::Format(NSLOCTEXT("RockInventory", "DefaultWorldItemClass", "DefaultWorldItemClass is not set.")));
+		Context.AddError(FText(LOCTEXT("DefaultWorldItemClass", "DefaultWorldItemClass is not set.")));
 	}
 
 	return Result;
 }
 #endif
+
+
+#undef LOCTEXT_NAMESPACE
