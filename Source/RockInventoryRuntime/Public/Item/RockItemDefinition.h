@@ -57,7 +57,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	TObjectPtr<UTexture2D> Icon;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	TSoftClassPtr<UStaticMesh> ItemMesh;
+	TSoftObjectPtr<UStaticMesh> ItemMesh;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	TSoftObjectPtr<UStaticMeshComponent> ItemMesh2;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	TWeakObjectPtr<UStaticMeshComponent> ItemMesh3;
+	//TSoftClassPtr<UStaticMesh> ItemMesh;  // NOT this one
 	// Always prefer SM over Skeletal, but allow for both.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	TSoftClassPtr<USkeletalMesh> ItemSkeletalMesh;
