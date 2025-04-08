@@ -29,7 +29,7 @@ bool URockItemInstance::FindItemSlotForThisInstance(FRockInventorySlot& OutItemS
 	return URockItemInstanceLibrary::FindItemSlotForInstance(this, OutItemStack);
 }
 
-void URockItemInstance::SetSlotHandle(FRockSlotHandle InSlotHandle)
+void URockItemInstance::SetSlotHandle(FRockInventorySlotHandle InSlotHandle)
 {
 	SlotHandle = InSlotHandle;
 }

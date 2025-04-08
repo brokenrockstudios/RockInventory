@@ -34,4 +34,15 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
 	// Total number of slots in this tab
 	UPROPERTY()
 	int32 NumSlots = 0;
+
+	
+	int32 GetWidth() const
+	{
+		return Width;
+	}
+
+	int32 GetHeight() const
+	{
+		return Height;
+	}
 };

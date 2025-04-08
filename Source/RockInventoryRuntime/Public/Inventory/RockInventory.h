@@ -7,7 +7,7 @@
 #include "UObject/Object.h"
 #include "RockInventory.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, URockInventory*, Inventory, const FRockSlotHandle&, SlotHandle);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, URockInventory*, Inventory, const FRockInventorySlotHandle&, SlotHandle);
 
 
 /*
@@ -38,7 +38,7 @@ public:
 
 	// Get tab info by index
 	const FRockInventoryTabInfo* GetTabInfo(int32 TabIndex) const;
-	FRockInventorySlot* GetSlotByHandle(FRockSlotHandle SlotHandle);
+	FRockInventorySlot* GetSlotByHandle(FRockInventorySlotHandle SlotHandle);
 	// Get slot index in the AllSlots array
 	int32 GetSlotIndex(int32 TabIndex, int32 X, int32 Y) const;
 	// Get slot at specific coordinates in a tab
@@ -50,7 +50,7 @@ public:
 	// Find tab index by name (for UI/scripting)
 	int32 GetTabIndexByID(FName TabID) const;
 
-	bool MoveItem(URockInventory* SourceInventory, FRockSlotHandle SourceSlotHandle, URockInventory* TargetInventory, FRockSlotHandle TargetSlotHandle);
+	bool MoveItem(URockInventory* SourceInventory, FRockInventorySlotHandle SourceSlotHandle, URockInventory* TargetInventory, FRockInventorySlotHandle TargetSlotHandle);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

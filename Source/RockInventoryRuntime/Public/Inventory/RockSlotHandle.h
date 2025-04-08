@@ -11,13 +11,13 @@
  *
  */
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockSlotHandle
+struct ROCKINVENTORYRUNTIME_API FRockInventorySlotHandle
 {
 	GENERATED_BODY()
 
-	FRockSlotHandle() = default;
+	FRockInventorySlotHandle() = default;
 
-	FRockSlotHandle(uint8 InTabIndex, uint8 InX, uint8 InY)
+	FRockInventorySlotHandle(uint8 InTabIndex, uint8 InX, uint8 InY)
 		: TabIndex(InTabIndex)
 		  , X(InX)
 		  , Y(InY)
@@ -36,7 +36,7 @@ struct ROCKINVENTORYRUNTIME_API FRockSlotHandle
 
 	UPROPERTY()
 	bool bInitialized = false;
-	bool operator==(const FRockSlotHandle& Other) const;
+	bool operator==(const FRockInventorySlotHandle& Other) const;
 	bool IsValid() const;
 };
 

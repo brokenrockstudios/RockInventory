@@ -16,7 +16,7 @@ const FRockInventoryTabInfo* URockInventory::GetTabInfo(int32 TabIndex) const
 	return nullptr;
 }
 
-FRockInventorySlot* URockInventory::GetSlotByHandle(FRockSlotHandle SlotHandle)
+FRockInventorySlot* URockInventory::GetSlotByHandle(FRockInventorySlotHandle SlotHandle)
 {
 	if (SlotHandle.IsValid())
 	{
@@ -72,7 +72,7 @@ int32 URockInventory::AddTab(FName TabID, int32 Width, int32 Height)
 	// 	const int32 X = i % Width;
 	// 	const int32 Y = i / Width;
 	//
-	// 	FRockSlotHandle SlotHandle = FRockSlotHandle(TabIndex, X, Y);
+	// 	FRockInventorySlotHandle SlotHandle = FRockInventorySlotHandle(TabIndex, X, Y);
 	// 	//FRockInventorySlot& Slot =
 	// 	//InventoryData[SlotArrayIndex] = FRockInventorySlot(SlotHandle);
 	// }
@@ -112,7 +112,7 @@ void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 }
 
 
-bool URockInventory::MoveItem(URockInventory* SourceInventory, FRockSlotHandle SourceSlotHandle, URockInventory* TargetInventory, FRockSlotHandle TargetSlotHandle)
+bool URockInventory::MoveItem(URockInventory* SourceInventory, FRockInventorySlotHandle SourceSlotHandle, URockInventory* TargetInventory, FRockInventorySlotHandle TargetSlotHandle)
 {
 	if (false //GetOwnerRole() != ROLE_Authority
 		)

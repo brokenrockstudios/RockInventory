@@ -115,5 +115,8 @@ void FRockItemStack::Reset()
 }
 
 
+
+
+
 // UE_OBJPTR_DEPRECATED(5.0, "Conversion to a mutable pointer is deprecated.  Please pass a TObjectPtr<T>& instead so that assignment can be tracked accurately.")
 // explicit FORCEINLINE operator T*& () { return GetInternalRef(); }

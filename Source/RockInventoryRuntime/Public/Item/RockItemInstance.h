@@ -27,7 +27,7 @@ protected:
 
 	// Slot of the corresponding item in the inventory
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory")
-	FRockSlotHandle SlotHandle;
+	FRockInventorySlotHandle SlotHandle;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory")
 	TObjectPtr<URockItemDefinition> CachedDefinition = nullptr;
@@ -40,8 +40,8 @@ protected:
 public:
 	void SetOwningInventory(URockInventory* InOwningInventory) { OwningInventory = InOwningInventory; }
 	URockInventory* GetOwningInventory() const { return OwningInventory.Get(); }
-	void SetSlotHandle(FRockSlotHandle SlotHandle);
-	FRockSlotHandle GetSlotHandle() const { return SlotHandle; }
+	void SetSlotHandle(FRockInventorySlotHandle SlotHandle);
+	FRockInventorySlotHandle GetSlotHandle() const { return SlotHandle; }
 	FRockInventorySlot* GetItemSlot() const { return GetOwningInventory()->GetSlotByHandle(GetSlotHandle()); }
 	FRockItemStack* GetItemStack() const { return &GetOwningInventory()->GetSlotByHandle(GetSlotHandle())->Item; }
 

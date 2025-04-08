@@ -16,7 +16,8 @@ public class RockInventoryRuntime : ModuleRules
 
 				"GameplayAbilities",
 				"GameplayTags",
-				"GameplayTasks"
+				"GameplayTasks",
+				"UMG"
 			}
 		);
 

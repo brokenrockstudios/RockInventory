@@ -2,12 +2,12 @@
 
 #include "Inventory/RockSlotHandle.h"
 
-bool FRockSlotHandle::operator==(const FRockSlotHandle& Other) const
+bool FRockInventorySlotHandle::operator==(const FRockInventorySlotHandle& Other) const
 {
 	return TabIndex == Other.TabIndex && X == Other.X && Y == Other.Y && bInitialized == Other.bInitialized;
 }
 
-bool FRockSlotHandle::IsValid() const
+bool FRockInventorySlotHandle::IsValid() const
 {
 	return bInitialized;
 }
