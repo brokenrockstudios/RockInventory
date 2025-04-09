@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 
 #include "RockInventoryTabInfo.generated.h"
@@ -15,7 +16,7 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
 {
 	GENERATED_BODY()
-	
+
 	// Grid dimensions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	uint8 Width = 0;
@@ -35,7 +36,7 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
 	UPROPERTY()
 	int32 NumSlots = 0;
 
-	
+
 	int32 GetWidth() const
 	{
 		return Width;
@@ -45,4 +46,14 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
 	{
 		return Height;
 	}
+
+
+	// Optional tags to filter items in this tab.
+	// e.g. a Head Slot only accepts hat items, or weapons only accept weapons, Keychain only accepts keys. 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTagQuery TabFilter;
+
+	// Should we restrict how many stacks the item can be?
+	// For example, maybe you want to limit the number of stacks in a tab to 1?
+	
 };

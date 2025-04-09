@@ -16,6 +16,18 @@ const FRockInventoryTabInfo* URockInventory::GetTabInfo(int32 TabIndex) const
 	return nullptr;
 }
 
+int32 URockInventory::FindTabIndex(const FName& TabName) const
+{
+    for (int32 i = 0; i < Tabs.Num(); i++)
+    {
+        if (Tabs[i].TabID == TabName)
+        {
+            return i;
+        }
+    }
+    return INDEX_NONE;
+}
+
 FRockInventorySlot* URockInventory::GetSlotByHandle(FRockInventorySlotHandle SlotHandle)
 {
 	if (SlotHandle.IsValid())

@@ -6,7 +6,6 @@
 #include "UObject/Object.h"
 
 #include "RockItemStack.generated.h"
-//test
 
 class URockItemInstance;
 class URockItemDefinition;
@@ -20,10 +19,12 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack
 	FRockItemStack();
 	FRockItemStack(const FName& InItemId, int32 InStackSize = 1);
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
+	
 	// Is an ItemID even needed if we have a definition?
-	// If we assume a definition has to be provided to spawn the item, 
+	// If we assume a definition has to be provided to spawn the item,
 	// ID to look up the definition in your registry
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	// If we were to provide both a definition and item, which should take priority? 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName ItemId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -33,17 +34,18 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack
 	// e.g. Durability, ChargeCount, Seed for RNG, Bitmask, progress, timer reference, variant id, or level
 	// If you want or need more than one of these, you should probably use a runtime instance or modify for a 2nd CustomValue. 
 	// Generally I imagine most of the time it should just be Durability, ChargeCount, or something like that.
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	int32 CustomValue1 = 0;
-	//UPROPERTY()
-	//ERockItemStackCustomValueType CustomValue1Type = ERockItemStackCustomValueType::None;
+	
+	// UPROPERTY()
+	// ERockItemStackCustomValueType CustomValue1Type = ERockItemStackCustomValueType::None;
 	// Durability/Quality/Charges/Ammo/ VariantID?
 	// Bitmask/
 
 	UPROPERTY()
 	int32 CustomValue2 = 0;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<URockItemInstance> RuntimeInstance = nullptr;
 
 	/** Resolve and cache the item definition */

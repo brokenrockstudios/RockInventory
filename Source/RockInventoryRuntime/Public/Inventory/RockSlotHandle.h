@@ -16,14 +16,7 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotHandle
 	GENERATED_BODY()
 
 	FRockInventorySlotHandle() = default;
-
-	FRockInventorySlotHandle(uint8 InTabIndex, uint8 InX, uint8 InY)
-		: TabIndex(InTabIndex)
-		  , X(InX)
-		  , Y(InY)
-	{
-		bInitialized = true;
-	}
+	FRockInventorySlotHandle(uint8 InTabIndex, uint8 InX, uint8 InY);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	uint8 TabIndex = 0;
@@ -37,6 +30,9 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotHandle
 	UPROPERTY()
 	bool bInitialized = false;
 	bool operator==(const FRockInventorySlotHandle& Other) const;
+	friend uint32 GetTypeHash(const FRockInventorySlotHandle& Handle);
 	bool IsValid() const;
+		
+	// Generate Invalid Entry
+	static inline FRockInventorySlotHandle Invalid();
 };
-

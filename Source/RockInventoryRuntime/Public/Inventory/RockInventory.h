@@ -37,7 +37,11 @@ public:
 	TArray<FRockInventoryTabInfo> Tabs;
 
 	// Get tab info by index
+	// Best
 	const FRockInventoryTabInfo* GetTabInfo(int32 TabIndex) const;
+	// Slower versions	
+	int32 FindTabIndex(const FName& TabName) const;
+	
 	FRockInventorySlot* GetSlotByHandle(FRockInventorySlotHandle SlotHandle);
 	// Get slot index in the AllSlots array
 	int32 GetSlotIndex(int32 TabIndex, int32 X, int32 Y) const;

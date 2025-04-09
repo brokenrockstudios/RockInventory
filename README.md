@@ -27,3 +27,16 @@ Other notable mentions
 Heavily influenced designs by games like Diablo, Path of Exile, Escape from Tarkov, Subnautica, Minecraft, Dyson Sphere Program, and many more.
 
 
+## Credit
+
+Special acknowledgement and sincere gratitude to MajorTomAW (https://github.com/MajorTomAW) for their fantastic work on the ItemizationCore system, 
+and for letting me borrow snippets and ideas as reference from it. Their work has helped accelerate this project's early development.
+
+
+
+
+
+
+
+
+

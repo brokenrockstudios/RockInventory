@@ -8,6 +8,7 @@
 #include "Engine/DataAsset.h"
 #include "RockItemDefinition.generated.h"
 
+class URockInventoryConfig;
 /**
  * 
  */
@@ -17,82 +18,89 @@ class ROCKINVENTORYRUNTIME_API URockItemDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	//////////////////////////////////////////////////////////////////////////	
+	// Item ID
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FName ItemId;
 	// Do we want a unique FGuid for any purpose? e.g. UniqueServerID
 	// Might be useful beyond ItemID?
 
-	// Short name
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	//////////////////////////////////////////////////////////////////////////
+	// Display (Tooltips)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText Name;
-	
-	// Long name
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText DisplayName;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText Description;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+
+	//////////////////////////////////////////////////////////////////////////
+	// Core (Inventory)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	int32 MaxStackSize = 1;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	FVector2D SlotDimensions;
-		
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
+	TSoftObjectPtr<UTexture2D> Icon;
+	
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	//////////////////////////////////////////////////////////////////////////
+	/// Information
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag ItemType; 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag ItemSubType;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag ItemRarity;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	float Weight = 0.0f;
-
-	// Not necessarily a price per-se, but a value for the item.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
     float ItemValue = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	TObjectPtr<UTexture2D> Icon;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	TSoftObjectPtr<UStaticMesh> ItemMesh;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	TSoftObjectPtr<UStaticMeshComponent> ItemMesh2;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	TWeakObjectPtr<UStaticMeshComponent> ItemMesh3;
-	//TSoftClassPtr<UStaticMesh> ItemMesh;  // NOT this one
-	// Always prefer SM over Skeletal, but allow for both.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	TSoftClassPtr<USkeletalMesh> ItemSkeletalMesh;
 	
-	UPROPERTY(EditAnywhere, Category=Equipment)
+	
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	FGameplayTagContainer ItemTags;
+
+
+	//////////////////////////////////////////////////////////////////////////
+	/// World
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|World")
+	TSoftObjectPtr<UStaticMesh> ItemMesh;
+	// Always prefer SM over Skeletal, but allow for both.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|World")
+	TSoftObjectPtr<USkeletalMesh> ItemSkeletalMesh;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Item|World")
 	TSoftClassPtr<AActor> ActorClass;
 
+
+
+	//////////////////////////////////////////////////////////////////////////
+	/// Advanced
 	// Used to identify the purpose or functionality of the item's CustomValue1.
 	// Is it used for durability, charge, etc..
 	// Build a system to use this to determine what the value is used for.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag CustomValue1Tag;
-	// Durability, charges, etc..
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	FGameplayTagContainer ItemTags;
-
-	UPROPERTY(EditDefaultsOnly)
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	bool bRequiresRuntimeInstance = false;
 
-	// Should we just remove this in favor of RuntimeInstance?
-	UPROPERTY(EditDefaultsOnly)
-	bool bCanContainItems = false;
+	// Runtime Instances nested inventory.
+	// e.g. If this Item was a Backpack, this should be set
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
+	TSoftObjectPtr<URockInventoryConfig> InventoryConfig = nullptr;
 
-	// drag/drop sound for UI?
+
+	//////////////////////////////////////////////////////////////////////////
+	/// Misc
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc")
+	TSoftObjectPtr<USoundBase> PickupSoundOverride = nullptr;
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc")
+	TSoftObjectPtr<USoundBase> DropSoundOverride = nullptr;
 	
-	//UPROPERTY(EditDefaultsOnly)
-	//int32 MaxContainedItems = 24; // optional grid/weight limit
-	// bool IsContainer = false;
-	// bool IsStackable = false;
+	
 
 	// Add Fragments for things regarding 3D model or sounds?
 	
@@ -109,9 +117,8 @@ public:
 	// UsableFragment "Use" item
 	// GA to occur on use or GameplayEffect?
 
-
 	// Directly access if they are valid!
-	// These may be 'null', depending if the item supports it.
+	// These may be 'null', depending on if the item supports it.
 	//UPROPERTY()
 	//TObjectPtr<URockEquipmentFragment> EquipmentFragment = nullptr;
 	//UPROPERTY()
@@ -122,6 +129,7 @@ public:
 	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	//TArray<TSubclassOf<UObject>> ItemFragments;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	TArray<FRockItemDefinitionFragmentInstance > ItemComponents;
 
 	// EquipmentFragment
