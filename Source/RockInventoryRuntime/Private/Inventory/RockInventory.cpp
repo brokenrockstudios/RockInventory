@@ -192,6 +192,12 @@ void URockInventory::BroadcastInventoryChanged()
 	OnInventoryChanged.Broadcast(this, FRockInventorySlotHandle::Invalid());
 }
 
+FString URockInventory::GetDebugString() const
+{
+	// Is there a better 'name' for this inventory?
+	return GetName();
+}
+
 bool URockInventory::MoveItem(
 	URockInventory* SourceInventory, FRockInventorySlotHandle SourceSlotHandle, URockInventory* TargetInventory,
 	FRockInventorySlotHandle TargetSlotHandle)

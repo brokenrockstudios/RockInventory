@@ -68,6 +68,7 @@ public:
 	 
 
 	void BroadcastInventoryChanged();
+	FString GetDebugString() const;
 
 	/** Called when the inventory changes */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
