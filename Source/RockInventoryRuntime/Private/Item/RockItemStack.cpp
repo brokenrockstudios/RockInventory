@@ -44,18 +44,13 @@ FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackS
 	}
 }
 
-void FRockItemStack::SetDefinition(URockItemDefinition* InDefinition)
+FName FRockItemStack::GetItemId() const
 {
-	Definition = InDefinition;
+	return ItemId;
 }
 
 const URockItemDefinition* FRockItemStack::GetDefinition() const
 {
-	if (!Definition)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ItemStack %s has no definition set!"), *GetDebugString());
-		//ItemDefinition = UMyItemRegistry::Get()->FindDefinition(ItemID);
-	}
 	return Definition;
 }
 

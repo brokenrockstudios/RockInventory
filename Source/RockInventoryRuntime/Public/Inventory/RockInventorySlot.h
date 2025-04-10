@@ -15,7 +15,7 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySlot : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
-
+	
 	// The actual item in this slot
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockItemStack Item;
@@ -28,10 +28,13 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlot : public FFastArraySerializer
 
 	//////////////////////////////////////////////////////////////////////////
 	// Which slot this is in the inventory
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	// FRockSlotHandle SlotHandle;
+	// Do we also want to have a reference to the inventory?
+	UPROPERTY()
+	FRockInventorySlotHandle SlotHandle;
 	//////////////////////////////////////////////////////////////////////////
 
+	void Reset();
+	
 	// Required for FFastArraySerializerItem
 	void PreReplicatedRemove(const struct FRockInventoryData& InArraySerializer);
 	void PostReplicatedAdd(const struct FRockInventoryData& InArraySerializer);

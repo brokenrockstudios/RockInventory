@@ -19,7 +19,7 @@ bool URockItemInstanceLibrary::FindItemStackForInstance(const URockItemInstance*
 		return false;
 	}
 
-	for (const FRockInventorySlot& Slot : OwningInventory->InventoryData.AllSlots)
+	for (const FRockInventorySlot& Slot : OwningInventory->InventoryData)
 	{
 		if (Slot.Item.RuntimeInstance == InstanceToFind)
 		{
@@ -43,7 +43,7 @@ bool URockItemInstanceLibrary::FindItemSlotForInstance(const URockItemInstance* 
 		return false;
 	}
 
-	for (const FRockInventorySlot& Slot : OwningInventory->InventoryData.AllSlots)
+	for (const FRockInventorySlot& Slot : OwningInventory->InventoryData)
 	{
 		if (Slot.Item.RuntimeInstance == InstanceToFind)
 		{

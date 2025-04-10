@@ -3,9 +3,62 @@
 
 #include "Inventory/RockInventory.h"
 
+#include "RockInventoryLogging.h"
 #include "Item/RockItemInstance.h"
 #include "Net/UnrealNetwork.h"
 
+
+void URockInventory::Init(const URockInventoryConfig* config)
+{
+	if (!config)
+	{
+		UE_LOG(LogRockInventory, Error, TEXT("URockInventory::Init - Invalid config object"));
+		return;
+	}
+	if (config->InventoryTabs.Num() == 0)
+	{
+		UE_LOG(LogRockInventory, Error, TEXT("URockInventory::Init - No inventory tabs defined"));
+		return;
+	}
+	
+	// Initialize the inventory data
+	int32 totalInventorySlots = 0;
+	InventoryData.Empty();
+	Tabs.Empty();
+	Tabs.Reserve(config->InventoryTabs.Num()); // Reserve space for the inventory data
+	for (const FRockInventoryTabInfo& TabInfo : config->InventoryTabs)
+	{
+		FRockInventoryTabInfo NewTab = TabInfo;
+		NewTab.FirstSlotIndex = totalInventorySlots;
+		NewTab.NumSlots = TabInfo.Width * TabInfo.Height;
+		Tabs.Add(NewTab);
+		totalInventorySlots += NewTab.NumSlots;
+	}
+	InventoryData.SetNum(totalInventorySlots);
+	if (InventoryData.Num() == 0)
+	{
+		UE_LOG(LogRockInventory, Error, TEXT("URockInventory::Init - No inventory slots defined"));
+		return;
+	}
+	
+	// Initialize each slot's SlotHandle
+	for (int32 tabIndex = 0; tabIndex < Tabs.Num(); tabIndex++)
+	{
+		const FRockInventoryTabInfo& TabInfo = Tabs[tabIndex];
+		for (int32 Y = 0; Y < TabInfo.Height; Y++)
+		{
+			for (int32 X = 0; X < TabInfo.Width; X++)
+			{
+				const int32 SlotIndex = TabInfo.FirstSlotIndex + (Y * TabInfo.Width + X);
+				checkf(0 <= SlotIndex && SlotIndex < InventoryData.Num(),
+					TEXT("Slot index out of range: %d (max: %d)"), SlotIndex, InventoryData.Num() - 1);
+				
+				const FRockInventorySlotHandle SlotHandle(tabIndex, X, Y);
+				InventoryData[SlotIndex].SlotHandle = SlotHandle;
+			}
+		}
+	}
+}
 
 const FRockInventoryTabInfo* URockInventory::GetTabInfo(int32 TabIndex) const
 {
@@ -18,14 +71,14 @@ const FRockInventoryTabInfo* URockInventory::GetTabInfo(int32 TabIndex) const
 
 int32 URockInventory::FindTabIndex(const FName& TabName) const
 {
-    for (int32 i = 0; i < Tabs.Num(); i++)
-    {
-        if (Tabs[i].TabID == TabName)
-        {
-            return i;
-        }
-    }
-    return INDEX_NONE;
+	for (int32 i = 0; i < Tabs.Num(); i++)
+	{
+		if (Tabs[i].TabID == TabName)
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
 }
 
 FRockInventorySlot* URockInventory::GetSlotByHandle(FRockInventorySlotHandle SlotHandle)
@@ -39,6 +92,16 @@ FRockInventorySlot* URockInventory::GetSlotByHandle(FRockInventorySlotHandle Slo
 		return GetSlotAt(TabIndex, X, Y);
 	}
 	return nullptr;
+}
+
+FRockInventorySlot URockInventory::K2_GetSlotByHandle(FRockInventorySlotHandle SlotHandle)
+{
+	FRockInventorySlot* Slot = GetSlotByHandle(SlotHandle);
+	if (Slot)
+	{
+		return *Slot;
+	}
+	return FRockInventorySlot();
 }
 
 FRockInventorySlot* URockInventory::GetSlotAt(int32 TabIndex, int32 X, int32 Y)
@@ -74,7 +137,7 @@ int32 URockInventory::AddTab(FName TabID, int32 Width, int32 Height)
 
 	// Reserve space for the new tab's slots
 	const int32 OldSize = InventoryData.Num();
-	InventoryData.AllSlots.AddUninitialized(NewTab.NumSlots);
+	InventoryData.AddUninitialized(NewTab.NumSlots);
 
 	// We don't have anything to initialize yet, but we could do it here if needed.
 	// Initialize each slot
@@ -97,7 +160,7 @@ TArrayView<FRockInventorySlot> URockInventory::GetTabSlots(int32 TabIndex)
 	const FRockInventoryTabInfo* TabInfo = GetTabInfo(TabIndex);
 	if (TabInfo && TabInfo->NumSlots > 0)
 	{
-		return TArrayView<FRockInventorySlot>(&InventoryData.AllSlots[TabInfo->FirstSlotIndex], TabInfo->NumSlots);
+		return TArrayView<FRockInventorySlot>(&InventoryData[TabInfo->FirstSlotIndex], TabInfo->NumSlots);
 	}
 	return TArrayView<FRockInventorySlot>();
 }
@@ -115,7 +178,6 @@ int32 URockInventory::GetTabIndexByID(FName TabID) const
 }
 
 
-
 void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -123,11 +185,18 @@ void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(URockInventory, Tabs);
 }
 
+void URockInventory::BroadcastInventoryChanged()
+{
+	// TODO: This is just placeholder, will need to be updated to use the actual slot handle
+	OnInventoryChanged.Broadcast(this, FRockInventorySlotHandle::Invalid());
+}
 
-bool URockInventory::MoveItem(URockInventory* SourceInventory, FRockInventorySlotHandle SourceSlotHandle, URockInventory* TargetInventory, FRockInventorySlotHandle TargetSlotHandle)
+bool URockInventory::MoveItem(
+	URockInventory* SourceInventory, FRockInventorySlotHandle SourceSlotHandle, URockInventory* TargetInventory,
+	FRockInventorySlotHandle TargetSlotHandle)
 {
 	if (false //GetOwnerRole() != ROLE_Authority
-		)
+	)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("MoveItem called on non-authoritative client"));
 		// TODO: Maybe we can support 'predictive moves' later on. 
@@ -148,7 +217,7 @@ bool URockInventory::MoveItem(URockInventory* SourceInventory, FRockInventorySlo
 		UE_LOG(LogTemp, Warning, TEXT("Invalid slot handle"));
 		return false;
 	}
-	
+
 	FRockInventorySlot* SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
 	if (!SourceSlot)
 	{
@@ -175,7 +244,7 @@ bool URockInventory::MoveItem(URockInventory* SourceInventory, FRockInventorySlo
 	//	return false;
 	// }
 
-	
+
 	if (SourceSlot->Item.RuntimeInstance)
 	{
 		SourceSlot->Item.RuntimeInstance->SetOwningInventory(TargetInventory);
@@ -188,7 +257,7 @@ bool URockInventory::MoveItem(URockInventory* SourceInventory, FRockInventorySlo
 
 	TargetInventory->OnInventoryChanged.Broadcast(TargetInventory, TargetSlotHandle);
 	SourceInventory->OnInventoryChanged.Broadcast(SourceInventory, SourceSlotHandle);
-	
+
 	// TargetSlot->Item.StackSize = SourceSlot->Item.StackSize;
 	// SourceSlot->Item.StackSize = 0;
 	// TargetSlot->Item.RuntimeInstance = SourceSlot->Item.RuntimeInstance;
@@ -210,7 +279,6 @@ bool URockInventory::MoveItem(URockInventory* SourceInventory, FRockInventorySlo
 	// 	SourceSlot->SlotHandle = SourceSlotHandle;
 	//
 	// 	return true;
-	
+
 	return true;
 }
-

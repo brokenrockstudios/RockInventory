@@ -13,11 +13,12 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventoryData : public FFastArraySerializer
 {
 	GENERATED_BODY()
-
+protected:
+	// Force usage of the helpers, and not this array directly. 
 	// Replicated list of inventory slots
 	UPROPERTY()
 	TArray<FRockInventorySlot> AllSlots;
-
+public:
 
 	// FFastArraySerializer implementation
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
@@ -26,8 +27,18 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryData : public FFastArraySerializer
 	}
 
 	// ~Begin of TArray interface
-	auto& operator[](int32 Index) { return AllSlots[Index]; }
-	const auto& operator[](int32 Index) const { return AllSlots[Index]; }
+	auto& operator[](int32 Index)
+	{
+		checkf(0 <= Index && Index < AllSlots.Num(), TEXT("SlotIndex is out of range: %d (Num: %d)"), Index, AllSlots.Num());
+		return AllSlots[Index];
+	}
+
+	const auto& operator[](int32 Index) const
+	{
+		checkf(0 <= Index && Index < AllSlots.Num(), TEXT("SlotIndex is out of range: %d (Num: %d)"), Index, AllSlots.Num());
+		return AllSlots[Index];
+	}
+
 	int32 Num() const { return AllSlots.Num(); }
 	/**
 	 * DO NOT USE DIRECTLY
@@ -41,6 +52,9 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryData : public FFastArraySerializer
 	auto rbegin() const { return AllSlots.rbegin(); }
 	auto rend() { return AllSlots.rend(); }
 	auto rend() const { return AllSlots.rend(); }
+	void Empty() { AllSlots.Empty(); }
+	void SetNum(int32 int32) { AllSlots.SetNum(int32); }
+	void AddUninitialized(int32 int32) { AllSlots.AddUninitialized(int32); }
 	// ~End of TArray interface
 };
 

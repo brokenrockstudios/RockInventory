@@ -23,7 +23,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack
 	// Is an ItemID even needed if we have a definition?
 	// If we assume a definition has to be provided to spawn the item,
 	// ID to look up the definition in your registry
-	// If we were to provide both a definition and item, which should take priority? 
+	// If we were to provide both a definition and item, which should take priority?
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName ItemId = NAME_None;
 
@@ -48,20 +48,20 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<URockItemInstance> RuntimeInstance = nullptr;
 
-	/** Resolve and cache the item definition */
-	void SetDefinition(URockItemDefinition* InDefinition);
-	// Lazy load the definition from the ItemId?
+	// LazyLoad
+	FName GetItemId() const;
 	const URockItemDefinition* GetDefinition() const;
-	UPROPERTY(Transient, NotReplicated)
+	
+	/** Resolve and cache the item definition */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, NotReplicated)
 	TObjectPtr<URockItemDefinition> Definition = nullptr;
-
+	
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 	bool operator==(const FRockItemStack& Other) const;
 	FString GetDebugString() const;
 	bool IsValid() const;
 	void SetStackSize(int32 InStackSize);
 	void Reset();
-
 
 	// Do we want to have a reference to the inventory component that owns this item stack?
 	// It might be useful for 'ChangedEvents' ? 

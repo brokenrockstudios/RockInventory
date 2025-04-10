@@ -4,11 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "RockContainerExperiment.h"
+#include "RockInventoryConfig.h"
+#include "RockSlotHandle.h"
 #include "UObject/Object.h"
 #include "RockInventory.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, URockInventory*, Inventory, const FRockInventorySlotHandle&, SlotHandle);
 
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, URockInventory*, Inventory, const FRockInventorySlotHandle&, SlotHandle);
 
 /*
  * This class is the root class for the Rock Inventory System
@@ -27,22 +31,26 @@ UCLASS(Blueprintable, BlueprintType)
 class ROCKINVENTORYRUNTIME_API URockInventory : public UObject
 {
 	GENERATED_BODY()
-
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	FRockInventoryData InventoryData;
 
 	// Tab configuration
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = true))
 	TArray<FRockInventoryTabInfo> Tabs;
 
+	void Init(const URockInventoryConfig* config);
 	// Get tab info by index
 	// Best
 	const FRockInventoryTabInfo* GetTabInfo(int32 TabIndex) const;
 	// Slower versions	
 	int32 FindTabIndex(const FName& TabName) const;
-	
+
 	FRockInventorySlot* GetSlotByHandle(FRockInventorySlotHandle SlotHandle);
+	UFUNCTION(BlueprintCallable, Category = "RockInventory", Meta = (DisplayName = "Get Slot By Handle"))
+	FRockInventorySlot K2_GetSlotByHandle(FRockInventorySlotHandle SlotHandle);
+	
+	
 	// Get slot index in the AllSlots array
 	int32 GetSlotIndex(int32 TabIndex, int32 X, int32 Y) const;
 	// Get slot at specific coordinates in a tab
@@ -57,9 +65,13 @@ public:
 	bool MoveItem(URockInventory* SourceInventory, FRockInventorySlotHandle SourceSlotHandle, URockInventory* TargetInventory, FRockInventorySlotHandle TargetSlotHandle);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	 
 
-    
+	void BroadcastInventoryChanged();
+
 	/** Called when the inventory changes */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
 	FOnInventoryChanged OnInventoryChanged;
 };
+
+

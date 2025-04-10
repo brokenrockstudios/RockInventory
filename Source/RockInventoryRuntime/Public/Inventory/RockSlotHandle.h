@@ -32,7 +32,8 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotHandle
 	bool operator==(const FRockInventorySlotHandle& Other) const;
 	friend uint32 GetTypeHash(const FRockInventorySlotHandle& Handle);
 	bool IsValid() const;
+	FString GetDebugString() const;
 		
 	// Generate Invalid Entry
-	static inline FRockInventorySlotHandle Invalid();
+	static FRockInventorySlotHandle Invalid();
 };

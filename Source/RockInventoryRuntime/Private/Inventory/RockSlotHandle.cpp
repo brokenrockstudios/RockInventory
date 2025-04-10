@@ -28,6 +28,11 @@ bool FRockInventorySlotHandle::IsValid() const
 	return bInitialized;
 }
 
+FString FRockInventorySlotHandle::GetDebugString() const
+{
+	return FString::Printf(TEXT("TabIndex: %d, X: %d, Y: %d"), TabIndex, X, Y);
+}
+
 uint32 GetTypeHash(const FRockInventorySlotHandle& Handle)
 {
 	uint32 Hash = 0;

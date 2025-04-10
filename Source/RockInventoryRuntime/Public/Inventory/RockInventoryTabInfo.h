@@ -18,14 +18,14 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
 	GENERATED_BODY()
 
 	// Grid dimensions
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	uint8 Width = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	uint8 Height = 0;
 
 	// Optional name for debugging/UI
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName TabID;
 
 	// First slot index in the AllSlots array
@@ -36,17 +36,8 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
 	UPROPERTY()
 	int32 NumSlots = 0;
 
-
-	int32 GetWidth() const
-	{
-		return Width;
-	}
-
-	int32 GetHeight() const
-	{
-		return Height;
-	}
-
+	int32 GetWidth() const;
+	int32 GetHeight() const;
 
 	// Optional tags to filter items in this tab.
 	// e.g. a Head Slot only accepts hat items, or weapons only accept weapons, Keychain only accepts keys. 
