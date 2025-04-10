@@ -245,8 +245,8 @@ bool URockInventoryLibrary::MoveItem(
 			FRockInventorySlotHandle OutHandle;
 			if (PlaceItemAtLocation(TargetInventory, TargetSlotHandle, itemToMove, DesiredOrientation))
 			{
-				//SourceInventory->BroadcastInventoryChanged();
-				//TargetInventory->BroadcastInventoryChanged();
+				SourceInventory->BroadcastInventoryChanged();
+				TargetInventory->BroadcastInventoryChanged();
 				return true;
 			}
 		}
@@ -263,3 +263,10 @@ bool URockInventoryLibrary::MoveItem(
 
 	return true;
 }
+
+// bool URockInventoryLibrary::DropItem(URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle)
+// {
+// 	// Should we just call RemoveItem for 'drop' instead?
+// 	// Since this Library shouldn't be responsible for 'spawning' the item, because who knows where we want to spawn it.
+// 	
+// }

@@ -21,21 +21,22 @@ class ROCKINVENTORYRUNTIME_API URockInventoryLibrary : public UBlueprintFunction
 {
 	GENERATED_BODY()
 public:
-
-	static void PrecomputeOccupancyGrids(const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid);
+	// Core Item
 	static bool AddItemToInventory(URockInventory* Inventory, FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess);
-	static bool CanItemFitInGridPosition(const TArray<bool>& OccupancyGrid, const FRockInventoryTabInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
 
+	//////////////////////////////////////////////////////////////////////////
+	/// Inventory Location Manipulation
+	UFUNCTION(BlueprintCallable)
 	static bool PlaceItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, FRockItemStack& ItemStack, ERockItemOrientation DesiredOrientation);
-	// static bool PlaceItemAtLocation(URockInventory* Inventory, const FRockItemStack& ItemStack, int32 TabIndex, int32 StartX, int32 StartY, FRockInventorySlotHandle& OutHandle);
+	UFUNCTION(BlueprintCallable)
 	static bool RemoveItemAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle);
-
-
 	UFUNCTION(BlueprintCallable)
 	static bool MoveItem(URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 		URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
 		ERockItemOrientation DesiredOrientation = ERockItemOrientation::Horizontal);
 
-	
-	// static bool CanItemFitInTab(const URockInventory* Inventory, const FRockItemStack& ItemStack, int32 TabIndex, int32 StartX, int32 StartY);
+	//////////////////////////////////////////////////////////////////////////
+	// Utility functions
+	static void PrecomputeOccupancyGrids(const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid);
+	static bool CanItemFitInGridPosition(const TArray<bool>& OccupancyGrid, const FRockInventoryTabInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
 };

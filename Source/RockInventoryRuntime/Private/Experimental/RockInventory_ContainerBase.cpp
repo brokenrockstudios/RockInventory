@@ -45,18 +45,19 @@ void URockInventory_ContainerBase::GenerateGrid()
 {
 	GridPanel->ClearChildren();
 
-	for (int32 slotIndex = TabInfo.FirstSlotIndex; slotIndex < TabInfo.FirstSlotIndex + TabInfo.NumSlots; ++slotIndex)
+	
+	for (int32 slotIndex = 0; slotIndex < TabInfo.NumSlots; ++slotIndex)
 	{
-		const FRockInventorySlot& TempSlot = Inventory->InventoryData[slotIndex];
+		const int32 X = slotIndex % TabInfo.Width;
+		const int32 Y = slotIndex / TabInfo.Width;
 
-		UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass_Empty,
-			FName(*FString::Printf(TEXT("ItemSlot_%d_%d"), TempSlot.SlotHandle.Y, TempSlot.SlotHandle.X)));
+		UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass_Empty, FName(*FString::Printf(TEXT("ItemSlot_%d"), slotIndex)));
 		if (URockInventory_Slot_BackgroundBase* SlotBackground = Cast<URockInventory_Slot_BackgroundBase>(newWidget))
 		{
 			SlotBackground->Inventory = Inventory;
-			SlotBackground->SlotHandle = TempSlot.SlotHandle;
+			SlotBackground->SlotHandle = FRockInventorySlotHandle(TabIndex, X, Y);
 		}
-		UGridSlot* GridSlotWidget = GridPanel->AddChildToGrid(newWidget, TempSlot.SlotHandle.Y, TempSlot.SlotHandle.X);
+		UGridSlot* GridSlotWidget = GridPanel->AddChildToGrid(newWidget, Y, X);
 		if (GridSlotWidget)
 		{
 			GridSlotWidget->SetHorizontalAlignment(HAlign_Fill);
@@ -130,7 +131,8 @@ void URockInventory_ContainerBase::GenerateItems()
 			UGridSlot* GridSlot = GridPanel->AddChildToGrid(newWidget, TempSlot.SlotHandle.Y, TempSlot.SlotHandle.X);
 			if (GridSlot)
 			{
-				GridSlot->SetPadding(FMargin(4));
+				// Setting this more than 0 breaks things. Find another way to do 'padding' or internal spacing
+				GridSlot->SetPadding(FMargin(0));
 
 				int32 ColumnSpan = TempSlot.Item.GetDefinition()->SlotDimensions.X;
 				int32 RowSpan = TempSlot.Item.GetDefinition()->SlotDimensions.Y;
