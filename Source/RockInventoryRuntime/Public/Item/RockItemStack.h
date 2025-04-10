@@ -10,7 +10,11 @@
 class URockItemInstance;
 class URockItemDefinition;
 
-// a stack of items
+/**
+ * Represents a stack of items in the inventory system.
+ * This struct handles the core functionality of item stacking, including stack size,
+ * custom values, and runtime instance management.
+ */
 USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockItemStack
 {
@@ -20,42 +24,36 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack
 	FRockItemStack(const FName& InItemId, int32 InStackSize = 1);
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
 	
-	// Is an ItemID even needed if we have a definition?
-	// If we assume a definition has to be provided to spawn the item,
-	// ID to look up the definition in your registry
-	// If we were to provide both a definition and item, which should take priority?
+	/** Unique identifier for the item type */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName ItemId = NAME_None;
 
+	/** Current number of items in the stack */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 StackSize = 0;
 
-	// CustomValues are a generic value that can be used for anything. To avoid needing a Runtime Instance
-	// e.g. Durability, ChargeCount, Seed for RNG, Bitmask, progress, timer reference, variant id, or level
-	// If you want or need more than one of these, you should probably use a runtime instance or modify for a 2nd CustomValue. 
-	// Generally I imagine most of the time it should just be Durability, ChargeCount, or something like that.
+	/** 
+	 * Generic value that can be used for various purposes (durability, charges, etc.)
+	 * The meaning of this value is determined by the item's definition
+	 */
 	UPROPERTY(EditAnywhere)
 	int32 CustomValue1 = 0;
 	
-	// UPROPERTY()
-	// ERockItemStackCustomValueType CustomValue1Type = ERockItemStackCustomValueType::None;
-	// Durability/Quality/Charges/Ammo/ VariantID?
-	// Bitmask/
-
+	/** Additional generic value for extended functionality */
 	UPROPERTY()
 	int32 CustomValue2 = 0;
 
+	/** Runtime instance of the item, if required by the definition */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<URockItemInstance> RuntimeInstance = nullptr;
 
-	// LazyLoad
+	/** Cached item definition for quick access */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<URockItemDefinition> Definition = nullptr;
+
+	// Core functionality
 	FName GetItemId() const;
 	const URockItemDefinition* GetDefinition() const;
-	
-	/** Resolve and cache the item definition */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, NotReplicated)
-	TObjectPtr<URockItemDefinition> Definition = nullptr;
-	
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 	bool operator==(const FRockItemStack& Other) const;
 	FString GetDebugString() const;
@@ -63,8 +61,21 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack
 	void SetStackSize(int32 InStackSize);
 	void Reset();
 
-	// Do we want to have a reference to the inventory component that owns this item stack?
-	// It might be useful for 'ChangedEvents' ? 
+	/** Returns true if the stack is empty (StackSize <= 0) */
+	inline bool IsEmpty() const;
+	/** Returns true if this stack can be combined with another stack */
+	bool CanStackWith(const FRockItemStack& Other) const;
+	/** Returns the maximum stack size allowed for this item */
+	int32 GetMaxStackSize() const;
+	/** Returns true if the stack is at its maximum size */
+	bool IsFull() const;
+	/** Safely modifies CustomValue1 with bounds checking */
+	void SetCustomValue1(int32 NewValue);
+	/** Safely modifies CustomValue2 with bounds checking */
+	void SetCustomValue2(int32 NewValue);
+private:
+	/** Internal validation for stack size changes */
+	void ValidateStackSize(int32 NewSize);
 };
 
 template <>

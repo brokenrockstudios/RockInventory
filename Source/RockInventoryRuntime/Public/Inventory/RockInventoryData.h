@@ -16,7 +16,7 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventoryData : public FFastArraySerializer
 {
 	GENERATED_BODY()
-protected:
+private:
 	// Force usage of the helpers, and not this array directly. 
 	// Replicated list of inventory slots
 	UPROPERTY()
@@ -56,8 +56,8 @@ public:
 	auto rend() { return AllSlots.rend(); }
 	auto rend() const { return AllSlots.rend(); }
 	void Empty() { AllSlots.Empty(); }
-	void SetNum(int32 int32) { AllSlots.SetNum(int32); }
-	void AddUninitialized(int32 int32) { AllSlots.AddUninitialized(int32); }
+	void SetNum(int32 NewNum) { AllSlots.SetNum(NewNum); }
+	void AddUninitialized(int32 Count) { AllSlots.AddUninitialized(Count); }
 	// ~End of TArray interface
 };
 

@@ -109,9 +109,88 @@ void FRockItemStack::Reset()
 	Definition = nullptr;
 }
 
+bool FRockItemStack::IsEmpty() const
+{
+	return StackSize <= 0;
+}
 
+bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
+{
+	if (!IsValid() || !Other.IsValid())
+	{
+		return false;
+	}
+	if (ItemId != Other.ItemId)
+	{
+		return false;
+	}
+	// TODO: We might be able to support this later. But for now, disallow stacking when we have RuntimeInstances
+	if (RuntimeInstance || Other.RuntimeInstance)
+	{
+		return false;
+	}
+	// TODO: We might be able to support this later. But for now, disallow stacking when we have different CustomValues
+	if (CustomValue1 != Other.CustomValue1 || CustomValue2 != Other.CustomValue2)
+	{
+		return false;
+	}
 
+	// Check if we have room to stack
+	const int32 MaxStackSize = GetMaxStackSize();
+	if (MaxStackSize <= 0)
+	{
+		return false;
+	}
+	return (StackSize + Other.StackSize) <= MaxStackSize;
+}
 
+int32 FRockItemStack::GetMaxStackSize() const
+{
+	if (const URockItemDefinition* Def = GetDefinition())
+	{
+		return Def->MaxStackSize;
+	}
+	return 1; // Default to 1 if no definition
+}
+
+bool FRockItemStack::IsFull() const
+{
+	return StackSize >= GetMaxStackSize();
+}
+
+void FRockItemStack::SetCustomValue1(int32 NewValue)
+{
+	CustomValue1 = NewValue;
+	// Add any additional validation or side effects here
+}
+
+void FRockItemStack::SetCustomValue2(int32 NewValue)
+{
+	CustomValue2 = NewValue;
+	// Add any additional validation or side effects here
+}
+
+void FRockItemStack::ValidateStackSize(int32 NewSize)
+{
+	if (NewSize < 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Attempted to set negative stack size for item %s"), *ItemId.ToString());
+		NewSize = 0;
+	}
+
+	const int32 MaxStackSize = GetMaxStackSize();
+	if (MaxStackSize > 0 && NewSize > MaxStackSize)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Attempted to exceed max stack size for item %s"), *ItemId.ToString());
+		NewSize = MaxStackSize;
+	}
+
+	StackSize = NewSize;
+	if (StackSize <= 0)
+	{
+		Reset();
+	}
+}
 
 // UE_OBJPTR_DEPRECATED(5.0, "Conversion to a mutable pointer is deprecated.  Please pass a TObjectPtr<T>& instead so that assignment can be tracked accurately.")
 // explicit FORCEINLINE operator T*& () { return GetInternalRef(); }
