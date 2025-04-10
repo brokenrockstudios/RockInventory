@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RockContainerExperiment.h"
 #include "RockInventoryConfig.h"
+#include "RockInventoryData.h"
 #include "RockSlotHandle.h"
 #include "UObject/Object.h"
 #include "RockInventory.generated.h"

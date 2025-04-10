@@ -4,6 +4,7 @@
 #include "Inventory/RockInventory.h"
 
 #include "RockInventoryLogging.h"
+#include "Inventory/RockInventoryTabInfo.h"
 #include "Item/RockItemInstance.h"
 #include "Net/UnrealNetwork.h"
 

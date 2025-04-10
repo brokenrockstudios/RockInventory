@@ -1,9 +1,8 @@
 // Copyright Broken Rock Studios LLC. All Rights Reserved.
 
-
 #include "Library/RockItemInstanceLibrary.h"
 
-#include "Inventory/RockContainerExperiment.h"
+#include "Inventory/RockInventoryData.h"
 #include "Item/RockItemInstance.h"
 
 bool URockItemInstanceLibrary::FindItemStackForInstance(const URockItemInstance* InstanceToFind, FRockItemStack& OutItemStack)

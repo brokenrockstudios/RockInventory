@@ -1,14 +1,17 @@
-// Copyright Broken Rock Studios LLC. All Rights Reserved.
+// Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "RockInventorySlot.h"
-#include "RockInventoryTabInfo.h"
-#include "GameFramework/Actor.h"
 #include "Net/Serialization/FastArraySerializer.h"
-#include "RockContainerExperiment.generated.h"
+#include "UObject/Object.h"
 
+#include "RockInventoryData.generated.h"
+
+/**
+ *
+ */
 USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventoryData : public FFastArraySerializer
 {
