@@ -10,6 +10,9 @@
 class URockItemInstance;
 class URockItemDefinition;
 
+/** Default maximum stack size when no definition is available */
+constexpr int32 DEFAULT_MAX_STACK_SIZE = 1;
+
 /**
  * Represents a stack of items in the inventory system.
  * This struct handles the core functionality of item stacking, including stack size,

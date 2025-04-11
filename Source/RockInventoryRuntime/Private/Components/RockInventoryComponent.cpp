@@ -3,6 +3,7 @@
 
 #include "Components/RockInventoryComponent.h"
 
+#include "RockInventoryLogging.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Library/RockItemStackLibrary.h"
 #include "Misc/DataValidation.h"
@@ -12,17 +13,17 @@
 // Sets default values for this component's properties
 URockInventoryComponent::URockInventoryComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
+	// Set this component to be initialized when the game starts, and to be ticked every frame.
 	PrimaryComponentTick.bCanEverTick = true;
-	//Inventory->Tabs
-	// Set up initial inventory stuff?
+	// You can turn off ticking to improve performance if not needed
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void URockInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Initialize inventory from config
 	if (InventoryConfig)
 	{
 		Inventory = NewObject<URockInventory>(this, TEXT("Inventory"), RF_Transient);
@@ -39,9 +40,67 @@ bool URockInventoryComponent::K2_AddItem(const FRockItemStack& InItemStack, FRoc
 	return URockInventoryLibrary::AddItemToInventory(Inventory, ItemStack, outHandle, OutExcess);
 }
 
-bool URockInventoryComponent::K2_RemoveItem(const FRockItemStack& ItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess)
+
+bool URockInventoryComponent::K2_RemoveItem(const FRockInventorySlotHandle& InHandle, FRockItemStack& OutItemStack)
 {
-	return false;
+	if (!Inventory)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItem: Invalid Inventory"));
+		OutItemStack = FRockItemStack();
+		return false;
+	}
+	
+	if (!URockInventoryLibrary::GetItemAtLocation(Inventory, InHandle, OutItemStack))
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItem: Invalid SlotHandle: %s"), *InHandle.ToString());
+		OutItemStack = FRockItemStack();
+		return false;
+	}
+
+	if (!URockInventoryLibrary::RemoveItemAtLocation(Inventory, InHandle))
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItem: Failed to remove item at location"));
+		OutItemStack = FRockItemStack();
+		return false;
+	}
+	
+	return true;
+}
+
+bool URockInventoryComponent::K2_HasItem(const FName ItemId, int32 MinQuantity)
+{
+	if (MinQuantity <= 0)
+	{
+		return false;
+	}
+	int32 TotalQuantity = K2_GetItemCount(ItemId);
+	return TotalQuantity >= MinQuantity;
+}
+
+int32 URockInventoryComponent::K2_GetItemCount(const FName ItemId)
+{
+	if (!Inventory || ItemId != NAME_None)
+	{
+		return 0;
+	}
+
+	return URockInventoryLibrary::GetItemCount(Inventory, ItemId);
+	//
+	// // Iterate through all slots and sum quantities of matching items
+	// int32 TotalQuantity = 0;
+	//
+	// TArray<URockInventorySlot*> AllSlots;
+	// Inventory->GetAllSlots(AllSlots);
+	//
+	// for (URockInventorySlot* Slot : AllSlots)
+	// {
+	// 	if (Slot && Slot->ItemStack.Item && Slot->ItemStack.Item->IsA(ItemType))
+	// 	{
+	// 		TotalQuantity += Slot->ItemStack.Quantity;
+	// 	}
+	// }
+	//
+	//return TotalQuantity;
 }
 
 #if WITH_EDITOR

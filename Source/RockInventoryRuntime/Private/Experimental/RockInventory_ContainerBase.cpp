@@ -124,6 +124,9 @@ void URockInventory_ContainerBase::GenerateItems()
 				
 				WidgetItem->ItemIcon->SetBrushFromTexture(TempSlot.Item.GetDefinition()->Icon.LoadSynchronous());
 				
+				// Initialize the item count display
+				WidgetItem->UpdateItemCount();
+				
 				// Additional Setup
 				// SlotBackground->ItemStack = TempSlot.Item;
 			}

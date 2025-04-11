@@ -8,7 +8,9 @@
 
 class URockItemDefinition;
 /**
- * 
+ * A central registry system that manages all available item definitions in the game.
+ * This subsystem loads and provides access to all URockItemDefinition assets,
+ * allowing for efficient lookup by ItemID throughout the game.
  */
 UCLASS()
 class ROCKINVENTORYRUNTIME_API URockItemRegistry : public UGameInstanceSubsystem

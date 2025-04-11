@@ -8,15 +8,17 @@
 #include "RockSlotHandle.generated.h"
 
 /**
- *
+ * Handle for an inventory slot position.
  */
 USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySlotHandle
 {
 	GENERATED_BODY()
 
-	FRockInventorySlotHandle() = default;
+	// Default constructor is an invalid handle
+	FRockInventorySlotHandle();
 	FRockInventorySlotHandle(uint8 InTabIndex, uint8 InX, uint8 InY);
+	virtual ~FRockInventorySlotHandle() = default;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	uint8 TabIndex = 0;
@@ -27,13 +29,11 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotHandle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	uint8 Y = 0;
 
-	UPROPERTY()
-	bool bInitialized = false;
-	bool operator==(const FRockInventorySlotHandle& Other) const;
-	friend uint32 GetTypeHash(const FRockInventorySlotHandle& Handle);
 	bool IsValid() const;
-	FString GetDebugString() const;
-		
-	// Generate Invalid Entry
-	static FRockInventorySlotHandle Invalid();
+
+	// Helper Utility functions
+	friend uint32 GetTypeHash(const FRockInventorySlotHandle& Handle);
+	virtual uint32 GetHash() const;
+	FString ToString() const;
+	bool operator==(const FRockInventorySlotHandle& OtherSlotHandle) const = default;
 };

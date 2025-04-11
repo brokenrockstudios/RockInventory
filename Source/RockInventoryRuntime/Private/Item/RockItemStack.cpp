@@ -150,7 +150,7 @@ int32 FRockItemStack::GetMaxStackSize() const
 	{
 		return Def->MaxStackSize;
 	}
-	return 1; // Default to 1 if no definition
+	return DEFAULT_MAX_STACK_SIZE;
 }
 
 bool FRockItemStack::IsFull() const

@@ -11,21 +11,35 @@ UCLASS()
 class ROCKINVENTORYRUNTIME_API ARockInventoryWorldItem : public AActor
 {
 	GENERATED_BODY()
-
 public:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
+
 	// Sets default values for this actor's properties
 	ARockInventoryWorldItem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	void SetItemStack(const FRockItemStack& InItemStack);
 	
-	UFUNCTION(BlueprintCallable, Category = "RockInventory")
-	FRockItemStack& GetItemStack();
-
+	UFUNCTION(BlueprintCallable, Category = "RockInventory", BlueprintPure)
+	FRockItemStack GetItemStack() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "RockInventory", BlueprintPure)
+	const FRockItemStack& GetItemStack2() const;
 	
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing=OnRep_ItemStack)
 	FRockItemStack ItemStack;
+	UFUNCTION()
+	void OnRep_ItemStack();
+
+#if WITH_EDITOR
+public:
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };
 

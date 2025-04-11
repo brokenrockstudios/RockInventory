@@ -8,6 +8,7 @@
 #include "RockInventory_Slot_ItemBase.generated.h"
 
 class UImage;
+class UTextBlock;
 class URockInventory;
 /**
  * 
@@ -32,4 +33,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
 	TObjectPtr<UImage> ItemIcon;
 	
+	// Text widget for displaying item count
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
+	TObjectPtr<UTextBlock> ItemCount;
+	
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+	
+	// Updates the ItemCount text based on current stack size
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void UpdateItemCount();
+	
+	// Callback for when the inventory changes
+	UFUNCTION()
+	void OnInventoryChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle);
 };

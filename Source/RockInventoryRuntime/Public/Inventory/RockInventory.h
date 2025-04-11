@@ -62,20 +62,20 @@ public:
 	int32 FindTabIndex(const FName& TabName) const;
 
 	/**
-	 * Get a slot by its handle
-	 * @param SlotHandle - The handle of the slot to retrieve
-	 * @return Pointer to the slot, or nullptr if handle is invalid
-	 */
-	FRockInventorySlot* GetSlotByHandle(FRockInventorySlotHandle SlotHandle);
-	
-	/**
 	 * Blueprint-friendly version of GetSlotByHandle
-	 * @param SlotHandle - The handle of the slot to retrieve
+	 * @param InSlotHandle - The handle of the slot to retrieve
 	 * @return The slot, or an empty slot if handle is invalid
 	 */
-	UFUNCTION(BlueprintCallable, Category = "RockInventory", Meta = (DisplayName = "Get Slot By Handle"))
-	FRockInventorySlot K2_GetSlotByHandle(FRockInventorySlotHandle SlotHandle) const;
-	
+	UFUNCTION(BlueprintCallable, Category = "RockInventory")
+	FRockInventorySlot GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
+
+	/**
+	 * Set the slot at the given handle
+	 * @param InSlotHandle - The handle of the slot to set
+	 * @param InSlot - The slot to set
+	 */
+	void SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlot& InSlot);
+
 	/**
 	 * Get the slot index in the AllSlots array
 	 * @param TabIndex - The tab index
@@ -92,7 +92,8 @@ public:
 	 * @param Y - The Y coordinate in the tab
 	 * @return Pointer to the slot, or nullptr if coordinates are invalid
 	 */
-	FRockInventorySlot* GetSlotAt(int32 TabIndex, int32 X, int32 Y);
+	FRockInventorySlot GetSlotAt(int32 TabIndex, int32 X, int32 Y) const;
+	
 
 	/**
 	 * Add a new tab and initialize its slots
@@ -131,7 +132,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Broadcast the inventory changed event */
-	void BroadcastInventoryChanged();
+	void BroadcastInventoryChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());
 
 	/** Get a debug string representation of the inventory */
 	FString GetDebugString() const;

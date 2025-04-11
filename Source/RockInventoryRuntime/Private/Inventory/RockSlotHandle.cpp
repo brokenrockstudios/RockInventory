@@ -2,12 +2,11 @@
 
 #include "Inventory/RockSlotHandle.h"
 
-FRockInventorySlotHandle FRockInventorySlotHandle::Invalid()
+FRockInventorySlotHandle::FRockInventorySlotHandle()
+	: TabIndex(INDEX_NONE)
+	  , X(INDEX_NONE)
+	  , Y(INDEX_NONE)
 {
-	static FRockInventorySlotHandle InvalidHandle;
-	// Force Initialized as false for an invalid handle.
-	InvalidHandle.bInitialized = false;
-	return InvalidHandle;
 }
 
 FRockInventorySlotHandle::FRockInventorySlotHandle(uint8 InTabIndex, uint8 InX, uint8 InY)
@@ -15,22 +14,17 @@ FRockInventorySlotHandle::FRockInventorySlotHandle(uint8 InTabIndex, uint8 InX, 
 	  , X(InX)
 	  , Y(InY)
 {
-	bInitialized = true;
-}
-
-bool FRockInventorySlotHandle::operator==(const FRockInventorySlotHandle& Other) const
-{
-	return TabIndex == Other.TabIndex && X == Other.X && Y == Other.Y && bInitialized == Other.bInitialized;
 }
 
 bool FRockInventorySlotHandle::IsValid() const
 {
-	return bInitialized;
+	return TabIndex != INDEX_NONE || X != INDEX_NONE || Y != INDEX_NONE;
 }
 
-FString FRockInventorySlotHandle::GetDebugString() const
+FString FRockInventorySlotHandle::ToString() const
 {
-	return FString::Printf(TEXT("TabIndex: %d, X: %d, Y: %d"), TabIndex, X, Y);
+	return FString::Printf(TEXT("SlotHandle(Tab=%d, X=%d, Y=%d, Valid=%s)"), 
+		TabIndex, X, Y, IsValid() ? TEXT("true") : TEXT("false"));
 }
 
 uint32 GetTypeHash(const FRockInventorySlotHandle& Handle)
@@ -40,4 +34,9 @@ uint32 GetTypeHash(const FRockInventorySlotHandle& Handle)
 	Hash = HashCombine(Hash, GetTypeHash(Handle.X));
 	Hash = HashCombine(Hash, GetTypeHash(Handle.Y));
 	return Hash;
+}
+
+uint32 FRockInventorySlotHandle::GetHash() const
+{
+	return GetTypeHash(*this);
 }
