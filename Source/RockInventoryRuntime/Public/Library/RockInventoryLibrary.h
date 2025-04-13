@@ -12,7 +12,7 @@
 #include "RockInventoryLibrary.generated.h"
 
 enum class ERockItemOrientation : uint8;
-struct FRockInventorySlot;
+
 class URockInventory;
 /**
  * 

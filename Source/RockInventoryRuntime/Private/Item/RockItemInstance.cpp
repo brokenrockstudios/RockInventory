@@ -42,7 +42,7 @@ bool URockItemInstance::FindItemStackForThisInstance(FRockItemStack& OutItemStac
 	return URockItemInstanceLibrary::FindItemStackForInstance(this, OutItemStack);
 }
 
-bool URockItemInstance::FindItemSlotForThisInstance(FRockInventorySlot& OutItemSlot) const
+bool URockItemInstance::FindItemSlotForThisInstance(FRockInventorySlotEntry& OutItemSlot) const
 {
 	return URockItemInstanceLibrary::FindItemSlotForInstance(this, OutItemSlot);
 }
@@ -57,18 +57,18 @@ void URockItemInstance::SetSlotHandle(FRockInventorySlotHandle InSlotHandle)
 	SlotHandle = InSlotHandle;
 }
 
-FRockInventorySlot URockItemInstance::GetItemSlot() const
+FRockInventorySlotEntry URockItemInstance::GetItemSlot() const
 {
 	if (const URockInventory* Inventory = GetOwningInventory())
 	{
 		return Inventory->GetSlotByHandle(GetSlotHandle());
 	}
-	return FRockInventorySlot();
+	return FRockInventorySlotEntry();
 }
 
 FRockItemStack URockItemInstance::GetItemStack() const
 {
-	const FRockInventorySlot& Slot = GetItemSlot();
+	const FRockInventorySlotEntry& Slot = GetItemSlot();
 	if (Slot.IsValid())
 	{
 		return Slot.Item;

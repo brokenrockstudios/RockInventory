@@ -3,7 +3,6 @@
 
 #include "World/RockInventoryWorldItemSpawner.h"
 
-#include "IDetailTreeNode.h"
 #include "Item/RockItemDefinition.h"
 #include "Settings/RockInventoryDeveloperSettings.h"
 #include "World/RockInventoryWorldItem.h"

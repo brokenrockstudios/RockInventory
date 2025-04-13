@@ -20,13 +20,13 @@ private:
 	// Force usage of the helpers, and not this array directly. 
 	// Replicated list of inventory slots
 	UPROPERTY()
-	TArray<FRockInventorySlot> AllSlots;
+	TArray<FRockInventorySlotEntry> AllSlots;
 public:
 
 	// FFastArraySerializer implementation
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
-		return FFastArraySerializer::FastArrayDeltaSerialize<FRockInventorySlot, FRockInventoryData>(AllSlots, DeltaParms, *this);
+		return FFastArraySerializer::FastArrayDeltaSerialize<FRockInventorySlotEntry, FRockInventoryData>(AllSlots, DeltaParms, *this);
 	}
 
 	// ~Begin of TArray interface

@@ -21,5 +21,5 @@ public:
 	static bool FindItemStackForInstance(const URockItemInstance* InstanceToFind, FRockItemStack& OutItemStack);
 	
 	UFUNCTION(BlueprintCallable, Category = "Rock|Inventory|ItemInstance")
-	static bool FindItemSlotForInstance(const URockItemInstance* InstanceToFind, FRockInventorySlot& OutItemSlot);
+	static bool FindItemSlotForInstance(const URockItemInstance* InstanceToFind, FRockInventorySlotEntry& OutItemSlot);
 };

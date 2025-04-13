@@ -33,6 +33,7 @@ class ROCKINVENTORYRUNTIME_API URockInventory : public UObject
 	GENERATED_BODY()
 
 public:
+	URockInventory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	/** The inventory data containing all slots */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	FRockInventoryData InventoryData;
@@ -67,14 +68,14 @@ public:
 	 * @return The slot, or an empty slot if handle is invalid
 	 */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
-	FRockInventorySlot GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
+	FRockInventorySlotEntry GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 
 	/**
 	 * Set the slot at the given handle
 	 * @param InSlotHandle - The handle of the slot to set
 	 * @param InSlot - The slot to set
 	 */
-	void SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlot& InSlot);
+	void SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlot);
 
 	/**
 	 * Get the slot index in the AllSlots array
@@ -92,7 +93,7 @@ public:
 	 * @param Y - The Y coordinate in the tab
 	 * @return Pointer to the slot, or nullptr if coordinates are invalid
 	 */
-	FRockInventorySlot GetSlotAt(int32 TabIndex, int32 X, int32 Y) const;
+	FRockInventorySlotEntry GetSlotAt(int32 TabIndex, int32 X, int32 Y) const;
 	
 
 	/**
@@ -109,7 +110,7 @@ public:
 	 * @param TabIndex - The index of the tab
 	 * @return Array view of the slots in the tab
 	 */
-	TArrayView<FRockInventorySlot> GetTabSlots(int32 TabIndex);
+	TArrayView<FRockInventorySlotEntry> GetTabSlots(int32 TabIndex);
 
 	/**
 	 * Find tab index by ID

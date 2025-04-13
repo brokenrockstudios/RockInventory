@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
 
 #include "RockItemStack.generated.h"
@@ -19,7 +20,7 @@ constexpr int32 DEFAULT_MAX_STACK_SIZE = 1;
  * custom values, and runtime instance management.
  */
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockItemStack
+struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 

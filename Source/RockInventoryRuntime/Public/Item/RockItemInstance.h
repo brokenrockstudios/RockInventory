@@ -74,7 +74,7 @@ public:
 	FRockInventorySlotHandle GetSlotHandle() const { return SlotHandle; }
 
 	/** Gets the inventory slot associated with this item instance */
-	FRockInventorySlot GetItemSlot() const;
+	FRockInventorySlotEntry GetItemSlot() const;
 
 	/** Gets the item stack associated with this item instance */
 	FRockItemStack GetItemStack() const;
@@ -89,7 +89,7 @@ public:
 
 	/** Finds the inventory slot associated with this instance */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|Core")
-	bool FindItemSlotForThisInstance(FRockInventorySlot& OutItemSlot) const;
+	bool FindItemSlotForThisInstance(FRockInventorySlotEntry& OutItemSlot) const;
 
 protected:
 	///////////////////////////////////////////////////////////////////////////

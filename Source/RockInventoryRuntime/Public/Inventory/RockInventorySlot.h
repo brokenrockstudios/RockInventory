@@ -6,6 +6,7 @@
 #include "RockItemOrientation.h"
 #include "RockSlotHandle.h"
 #include "Item/RockItemStack.h"
+#include "Item/RockItemStackHandle.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
 
@@ -20,13 +21,16 @@
  * This struct is designed for efficient network replication and cache-friendly memory layout.
  */
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockInventorySlot : public FFastArraySerializerItem
+struct ROCKINVENTORYRUNTIME_API FRockInventorySlotEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 	
 	/** The actual item in this slot */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FRockItemStack Item;
+	FRockItemStackHandle Handle;
+	
+	//FRockItemStack Item;
+	
 
 	/** The orientation of the item in this slot */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

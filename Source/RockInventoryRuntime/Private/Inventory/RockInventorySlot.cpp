@@ -3,20 +3,20 @@
 #include "Inventory/RockInventorySlot.h"
 #include "RockInventoryLogging.h"
 
-void FRockInventorySlot::Reset()
+void FRockInventorySlotEntry::Reset()
 {
 	Item.Reset();
 	Orientation = ERockItemOrientation::Horizontal;
 	bIsLocked = false;
 }
 
-void FRockInventorySlot::PreReplicatedRemove(const struct FRockInventoryData& InArraySerializer)
+void FRockInventorySlotEntry::PreReplicatedRemove(const struct FRockInventoryData& InArraySerializer)
 {
 	// Notify any listeners that this slot is about to be removed
 	// This could be used to clean up any references or perform pre-removal validation
 }
 
-void FRockInventorySlot::PostReplicatedAdd(const struct FRockInventoryData& InArraySerializer)
+void FRockInventorySlotEntry::PostReplicatedAdd(const struct FRockInventoryData& InArraySerializer)
 {
 	// Validate the slot after replication
 	if (!IsValid())
@@ -26,7 +26,7 @@ void FRockInventorySlot::PostReplicatedAdd(const struct FRockInventoryData& InAr
 	}
 }
 
-void FRockInventorySlot::PostReplicatedChange(const struct FRockInventoryData& InArraySerializer)
+void FRockInventorySlotEntry::PostReplicatedChange(const struct FRockInventoryData& InArraySerializer)
 {
 	// Validate the slot after changes
 	if (!IsValid())
@@ -36,7 +36,7 @@ void FRockInventorySlot::PostReplicatedChange(const struct FRockInventoryData& I
 	}
 }
 
-bool FRockInventorySlot::IsValid() const
+bool FRockInventorySlotEntry::IsValid() const
 {
 	// A slot is valid if:
 	// 1. The slot handle is valid
@@ -53,12 +53,12 @@ bool FRockInventorySlot::IsValid() const
 	return true;
 }
 
-bool FRockInventorySlot::IsEmpty() const
+bool FRockInventorySlotEntry::IsEmpty() const
 {
 	return !Item.IsValid();
 }
 
-bool FRockInventorySlot::CanAcceptItem(const FRockItemStack& NewItem) const
+bool FRockInventorySlotEntry::CanAcceptItem(const FRockItemStack& NewItem) const
 {
 	// A slot can accept an item if:
 	// 1. The slot is not locked

@@ -112,7 +112,7 @@ void URockInventory_ContainerBase::GenerateItems()
 
 	for (int32 slotIndex = TabInfo.FirstSlotIndex; slotIndex < TabInfo.FirstSlotIndex + TabInfo.NumSlots; ++slotIndex)
 	{
-		const FRockInventorySlot& TempSlot = Inventory->InventoryData[slotIndex];
+		const FRockInventorySlotEntry& TempSlot = Inventory->InventoryData[slotIndex];
 		if (TempSlot.Item.IsValid())
 		{
 			UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass, FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
