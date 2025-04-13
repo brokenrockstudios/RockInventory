@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RockItemStackHandle.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
 
@@ -31,7 +32,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 	/** Unique identifier for the item type */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName ItemId = NAME_None;
-
+	
 	/** Current number of items in the stack */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 StackSize = 0;
@@ -46,6 +47,14 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 	/** Additional generic value for extended functionality */
 	UPROPERTY()
 	int32 CustomValue2 = 0;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	uint8 Generation = 0;
+	
+	// Handle for the item stack in the inventory
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FRockItemStackHandle Handle;
+
 
 	/** Runtime instance of the item, if required by the definition */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

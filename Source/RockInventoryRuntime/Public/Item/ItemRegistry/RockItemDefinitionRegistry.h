@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "RockItemRegistry.generated.h"
+#include "RockItemDefinitionRegistry.generated.h"
 
 class URockItemDefinition;
 /**
