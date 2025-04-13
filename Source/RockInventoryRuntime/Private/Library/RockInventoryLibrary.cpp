@@ -1,5 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 #include "Library/RockInventoryLibrary.h"
 
@@ -76,7 +75,7 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 			checkf(0 <= SlotIndex && SlotIndex < Inventory->InventoryData.Num(),
 				TEXT("SlotIndex is out of range: %d (max: %d)"), SlotIndex, Inventory->InventoryData.Num() - 1);
 
-			const FRockInventorySlot& ExistingItem = Inventory->InventoryData[SlotIndex];
+			const FRockInventorySlotEntry& ExistingItem = Inventory->InventoryData[SlotIndex];
 			if (ExistingItem.Item.IsValid())
 			{
 				const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ExistingItem.Item);
@@ -207,7 +206,7 @@ bool URockInventoryLibrary::MoveItem(
 	}
 
 
-	const FRockInventorySlot& SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+	const FRockInventorySlotEntry& SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
 	if (!SourceSlot.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Source Slot Handle"));
@@ -215,7 +214,7 @@ bool URockInventoryLibrary::MoveItem(
 	}
 
 	// Check TargetInventory if slot is empty
-	const FRockInventorySlot& TargetSlot = TargetInventory->GetSlotByHandle(TargetSlotHandle);
+	const FRockInventorySlotEntry& TargetSlot = TargetInventory->GetSlotByHandle(TargetSlotHandle);
 	if (!TargetSlot.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Target Slot Handle"));
@@ -275,7 +274,7 @@ int32 URockInventoryLibrary::GetItemCount(const URockInventory* Inventory, const
 	}
 
 	int32 ItemCount = 0;
-	for (const FRockInventorySlot& Slot : Inventory->InventoryData)
+	for (const FRockInventorySlotEntry& Slot : Inventory->InventoryData)
 	{
 		if (Slot.Item.IsValid() && Slot.Item.GetItemId() == ItemId)
 		{

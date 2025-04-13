@@ -1,7 +1,7 @@
 #include "Item/RockItemStackHandle.h"
 
 FRockItemStackHandle::FRockItemStackHandle() : 
-	Handle(INDEX_NONE)
+	Handle(INVALID_HANDLE)
 {
 }
 

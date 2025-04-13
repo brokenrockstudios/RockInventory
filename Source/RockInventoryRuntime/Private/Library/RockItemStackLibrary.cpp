@@ -5,7 +5,7 @@
 
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
-#include "Item/ItemRegistry/RockItemRegistry.h"
+#include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
 
 URockItemDefinition* URockItemStackLibrary::GetItemDefinition(const UObject* WorldContextObject, const FName& ItemId)
 {

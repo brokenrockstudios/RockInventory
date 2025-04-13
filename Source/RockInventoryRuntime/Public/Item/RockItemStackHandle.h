@@ -30,7 +30,6 @@ public:
 	// Compile-time check to ensure we don't exceed 32 bits
 	static_assert(INDEX_BITS + GENERATION_BITS == 32, "Bit allocation exceeds 32 bits");
 
-	
 	/** Default invalid handle constant */
 	static constexpr uint32 INVALID_HANDLE = INDEX_NONE;
 
@@ -43,6 +42,12 @@ public:
 	 * @param InGeneration - The generation component. 8 bits (0-255)
 	 */
 	static FRockItemStackHandle Create(uint32 InIndex, uint32 InGeneration);
+
+	/**
+	 * Creates an invalid handle
+	 * @return An invalid handle instance
+	 */
+	static FRockItemStackHandle Invalid() { return FRockItemStackHandle(); }
 
 	/** Returns true if this handle refers to a valid item stack */
 	bool IsValid() const { return Handle != INVALID_HANDLE; }
