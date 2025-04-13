@@ -4,16 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "RockInventorySlot.h"
+#include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
 
-#include "RockInventoryData.generated.h"
+#include "RockInventorySlotContainer.generated.h"
 
 /**
  *
  */
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockInventoryData : public FFastArraySerializer
+struct ROCKINVENTORYRUNTIME_API FRockInventorySlotContainer : public FFastArraySerializer
 {
 	GENERATED_BODY()
 private:
@@ -22,47 +23,16 @@ private:
 	UPROPERTY()
 	TArray<FRockInventorySlotEntry> AllSlots;
 public:
+	ROCKINVENTORY_FASTARRAYSERIALIZER_TARRAY_ACCESSORS(AllSlots);
 
-	// FFastArraySerializer implementation
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
-		return FFastArraySerializer::FastArrayDeltaSerialize<FRockInventorySlotEntry, FRockInventoryData>(AllSlots, DeltaParms, *this);
+		return FFastArraySerializer::FastArrayDeltaSerialize<FRockInventorySlotEntry, FRockInventorySlotContainer>(AllSlots, DeltaParms, *this);
 	}
-
-	// ~Begin of TArray interface
-	auto& operator[](int32 Index)
-	{
-		checkf(0 <= Index && Index < AllSlots.Num(), TEXT("SlotIndex is out of range: %d (Num: %d)"), Index, AllSlots.Num());
-		return AllSlots[Index];
-	}
-
-	const auto& operator[](int32 Index) const
-	{
-		checkf(0 <= Index && Index < AllSlots.Num(), TEXT("SlotIndex is out of range: %d (Num: %d)"), Index, AllSlots.Num());
-		return AllSlots[Index];
-	}
-
-	int32 Num() const { return AllSlots.Num(); }
-	/**
-	 * DO NOT USE DIRECTLY
-	 * STL-like iterators to enable range-based for loop support.
-	 */
-	auto begin() { return AllSlots.begin(); }
-	auto begin() const { return AllSlots.begin(); }
-	auto end() { return AllSlots.end(); }
-	auto end() const { return AllSlots.end(); }
-	auto rbegin() { return AllSlots.rbegin(); }
-	auto rbegin() const { return AllSlots.rbegin(); }
-	auto rend() { return AllSlots.rend(); }
-	auto rend() const { return AllSlots.rend(); }
-	void Empty() { AllSlots.Empty(); }
-	void SetNum(int32 NewNum) { AllSlots.SetNum(NewNum); }
-	void AddUninitialized(int32 Count) { AllSlots.AddUninitialized(Count); }
-	// ~End of TArray interface
 };
 
 template <>
-struct TStructOpsTypeTraits<FRockInventoryData> : public TStructOpsTypeTraitsBase2<FRockInventoryData>
+struct TStructOpsTypeTraits<FRockInventorySlotContainer> : public TStructOpsTypeTraitsBase2<FRockInventorySlotContainer>
 {
 	enum
 	{

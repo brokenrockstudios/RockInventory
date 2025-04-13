@@ -10,13 +10,13 @@ void FRockInventorySlotEntry::Reset()
 	bIsLocked = false;
 }
 
-void FRockInventorySlotEntry::PreReplicatedRemove(const struct FRockInventoryData& InArraySerializer)
+void FRockInventorySlotEntry::PreReplicatedRemove(const struct FRockInventorySlotContainer& InArraySerializer)
 {
 	// Notify any listeners that this slot is about to be removed
 	// This could be used to clean up any references or perform pre-removal validation
 }
 
-void FRockInventorySlotEntry::PostReplicatedAdd(const struct FRockInventoryData& InArraySerializer)
+void FRockInventorySlotEntry::PostReplicatedAdd(const struct FRockInventorySlotContainer& InArraySerializer)
 {
 	// Validate the slot after replication
 	if (!IsValid())
@@ -26,7 +26,7 @@ void FRockInventorySlotEntry::PostReplicatedAdd(const struct FRockInventoryData&
 	}
 }
 
-void FRockInventorySlotEntry::PostReplicatedChange(const struct FRockInventoryData& InArraySerializer)
+void FRockInventorySlotEntry::PostReplicatedChange(const struct FRockInventorySlotContainer& InArraySerializer)
 {
 	// Validate the slot after changes
 	if (!IsValid())

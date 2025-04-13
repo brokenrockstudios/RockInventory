@@ -36,7 +36,10 @@ public:
 	URockInventory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	/** The inventory data containing all slots */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
-	FRockInventoryData InventoryData;
+	FRockInventorySlotContainer InventoryData;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	FRockInventoryItemContainer SlotData;
 
 	/** Tab configuration for the inventory */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = true))

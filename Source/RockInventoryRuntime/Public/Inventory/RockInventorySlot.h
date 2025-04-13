@@ -48,9 +48,9 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotEntry : public FFastArraySeria
 	void Reset();
 	
 	/** Required for FFastArraySerializerItem */
-	void PreReplicatedRemove(const struct FRockInventoryData& InArraySerializer);
-	void PostReplicatedAdd(const struct FRockInventoryData& InArraySerializer);
-	void PostReplicatedChange(const struct FRockInventoryData& InArraySerializer);
+	void PreReplicatedRemove(const struct FRockInventorySlotContainer& InArraySerializer);
+	void PostReplicatedAdd(const struct FRockInventorySlotContainer& InArraySerializer);
+	void PostReplicatedChange(const struct FRockInventorySlotContainer& InArraySerializer);
 
 	/** Validates the slot's state */
 	bool IsValid() const;
