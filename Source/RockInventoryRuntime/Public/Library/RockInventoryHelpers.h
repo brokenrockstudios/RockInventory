@@ -1,18 +1,6 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 #pragma once
-
-/**
- * 
- */
-UENUM(BlueprintType)
-enum class ROCKINVENTORYRUNTIME_API ERockInventoryHelpers : uint8
-{
-	SomeEnumValue UMETA(DisplayName = "SomeEnumValue"),
-
-	RockInventoryHelpers_MAX UMETA(Hidden)
-};
-
 
 /**
  * Macro to provide TArray-like interface for a property that needs to be accessed through FFastArraySerializer
@@ -20,7 +8,7 @@ enum class ROCKINVENTORYRUNTIME_API ERockInventoryHelpers : uint8
  * 
  * @param PropertyName The name of the TArray property to wrap
  */
-#define ROCKINVENTORY_FASTARRAYSERIALIZER_TARRAY_ACCESSORS(PropertyName) \
+#define ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(PropertyName) \
 	/* Const Iterators */ \
 	auto begin() const { return PropertyName.begin(); } \
 	auto end() const { return PropertyName.end(); } \
@@ -48,31 +36,35 @@ enum class ROCKINVENTORYRUNTIME_API ERockInventoryHelpers : uint8
 	/* Capacity Modifiers */ \
 	void Empty() { PropertyName.Empty(); } \
 	void SetNum(int32 NewNum) { PropertyName.SetNum(NewNum); } \
-	void Reserve(int32 NewCapacity) { PropertyName.Reserve(NewCapacity); }
+	void Reserve(int32 NewCapacity) { PropertyName.Reserve(NewCapacity); } \
+	void AddUninitialized(int32 Count) { PropertyName.AddUninitialized(Count); } \
+	int32 AddDefaulted(int32 Count) { return PropertyName.AddDefaulted(Count); } \
+    int32 AddDefaulted() { return PropertyName.AddDefaulted(); }
+
+
+// No direct int32 access. Always assume we want to access via handle
 
 
 // checkf(Index >= 0 && Index < PropertyName.Num(), TEXT("Index out of bounds"));
-
 
 
 // These are modifiers and operations
 // Which likely require more thought, especially because they might need MarkItemDirty() ir MarkArrayDirty();
 
 
-	//
-	// void AddUninitialized(int32 Count) { PropertyName.AddUninitialized(Count); } \
-	// \
-	// /* Modifiers */ \
-	// int32 Add(const typename decltype(PropertyName)::ElementType& Item) { return PropertyName.Add(Item); } \
-	// int32 AddUnique(const typename decltype(PropertyName)::ElementType& Item) { return PropertyName.AddUnique(Item); } \
-	// void Remove(const typename decltype(PropertyName)::ElementType& Item) { PropertyName.Remove(Item); } \
-	// void RemoveAt(int32 Index) { PropertyName.RemoveAt(Index); } \
-	// void RemoveAt(int32 Index, int32 Count) { PropertyName.RemoveAt(Index, Count); } \
-	// void RemoveAll(const TFunctionRef<bool(const typename decltype(PropertyName)::ElementType&)>& Predicate) { PropertyName.RemoveAll(Predicate); } \
-	// \
-	// /* Operations */ \
-	// void Sort(const TFunctionRef<bool(const typename decltype(PropertyName)::ElementType&, const typename decltype(PropertyName)::ElementType&)>& Predicate) { PropertyName.Sort(Predicate); } \
-	// int32 Find(const typename decltype(PropertyName)::ElementType& Item) const { return PropertyName.Find(Item); } \
-	// int32 FindLast(const typename decltype(PropertyName)::ElementType& Item) const { return PropertyName.FindLast(Item); } \
-	// bool Contains(const typename decltype(PropertyName)::ElementType& Item) const { return PropertyName.Contains(Item); } \
-	// void Swap(int32 A, int32 B) { PropertyName.Swap(A, B); }
+//
+// \
+// /* Modifiers */ \
+// int32 Add(const typename decltype(PropertyName)::ElementType& Item) { return PropertyName.Add(Item); } \
+// int32 AddUnique(const typename decltype(PropertyName)::ElementType& Item) { return PropertyName.AddUnique(Item); } \
+// void Remove(const typename decltype(PropertyName)::ElementType& Item) { PropertyName.Remove(Item); } \
+// void RemoveAt(int32 Index) { PropertyName.RemoveAt(Index); } \
+// void RemoveAt(int32 Index, int32 Count) { PropertyName.RemoveAt(Index, Count); } \
+// void RemoveAll(const TFunctionRef<bool(const typename decltype(PropertyName)::ElementType&)>& Predicate) { PropertyName.RemoveAll(Predicate); } \
+// \
+// /* Operations */ \
+// void Sort(const TFunctionRef<bool(const typename decltype(PropertyName)::ElementType&, const typename decltype(PropertyName)::ElementType&)>& Predicate) { PropertyName.Sort(Predicate); } \
+// int32 Find(const typename decltype(PropertyName)::ElementType& Item) const { return PropertyName.Find(Item); } \
+// int32 FindLast(const typename decltype(PropertyName)::ElementType& Item) const { return PropertyName.FindLast(Item); } \
+// bool Contains(const typename decltype(PropertyName)::ElementType& Item) const { return PropertyName.Contains(Item); } \
+// void Swap(int32 A, int32 B) { PropertyName.Swap(A, B); }

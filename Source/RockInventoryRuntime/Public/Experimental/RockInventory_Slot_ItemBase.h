@@ -7,6 +7,7 @@
 #include "Inventory/RockSlotHandle.h"
 #include "RockInventory_Slot_ItemBase.generated.h"
 
+struct FStreamableHandle;
 class UImage;
 class UTextBlock;
 class URockInventory;
@@ -18,7 +19,7 @@ class ROCKINVENTORYRUNTIME_API URockInventory_Slot_ItemBase : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-
+	
 	// The main widget for an item that will exist in the canvas panel of a Container
 	// This needs to adjust it's size based upon the size of the item
 	
@@ -36,6 +37,9 @@ public:
 	// Text widget for displaying item count
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
 	TObjectPtr<UTextBlock> ItemCount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
+	TObjectPtr<UImage> LoadingIndicator; 
 	
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -47,4 +51,16 @@ public:
 	// Callback for when the inventory changes
 	UFUNCTION()
 	void OnInventoryChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle);
+
+	
+	void SetItemIcon(const TSoftObjectPtr<UTexture2D>& InIconPtr);
+	void SetIsLoading(bool bIsLoading);
+	void OnIconLoaded();
+	
+	TSoftObjectPtr<UTexture2D> IconPtr = nullptr;
+	TSharedPtr<FStreamableHandle> StreamHandle;
+	bool bIsCurrentlyLoading = false;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Slot")
+	
+	TObjectPtr<UTexture2D> FallbackIcon;
 };

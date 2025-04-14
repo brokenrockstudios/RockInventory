@@ -12,7 +12,7 @@ class URockInventoryConfig;
 /**
  * 
  */
-UCLASS(Blueprintable)
+UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockItemDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
@@ -42,12 +42,12 @@ public:
 	FVector2D SlotDimensions;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	TSoftObjectPtr<UTexture2D> Icon;
-	
+
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Information
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
-	FGameplayTag ItemType; 
+	FGameplayTag ItemType;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag ItemSubType;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
@@ -55,9 +55,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	float Weight = 0.0f;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
-    float ItemValue = 0.0f;
-	
-	
+	float ItemValue = 0.0f;
+
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTagContainer ItemTags;
@@ -70,10 +69,9 @@ public:
 	// Always prefer SM over Skeletal, but allow for both.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|World")
 	TSoftObjectPtr<USkeletalMesh> ItemSkeletalMesh;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = "Item|World")
 	TSoftClassPtr<AActor> ActorClass;
-
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -83,7 +81,7 @@ public:
 	// Build a system to use this to determine what the value is used for.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag CustomValue1Tag;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	bool bRequiresRuntimeInstance = false;
 
@@ -99,21 +97,20 @@ public:
 	TSoftObjectPtr<USoundBase> PickupSoundOverride = nullptr;
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc")
 	TSoftObjectPtr<USoundBase> DropSoundOverride = nullptr;
-	
-	
+
 
 	// Add Fragments for things regarding 3D model or sounds?
-	
+
 	// Consider adding getter functions for common things like
 	// Usable
 	// Equipable
 
 	// destroy, drop, equip, inspect, open, unequip, unload, use
-	
+
 	// Consumable Fragment "Consume Item"
 	// GA to occur on consume or GameplayEffect?
 	// On consume destroy item or consume charges or something?
-	 
+
 	// UsableFragment "Use" item
 	// GA to occur on use or GameplayEffect?
 
@@ -123,14 +120,14 @@ public:
 	//TObjectPtr<URockEquipmentFragment> EquipmentFragment = nullptr;
 	//UPROPERTY()
 	//TObjectPtr<UConsumableEquipmentFragment> EquipmentFragment = nullptr;
-	
-	
+
+
 	// Only use ItemFrags array for if you have some special cases where you want a non traditional fragment or 1-off?	
 	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	//TArray<TSubclassOf<UObject>> ItemFragments;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-	TArray<FRockItemDefinitionFragmentInstance > ItemComponents;
+	TArray<FRockItemDefinitionFragmentInstance> ItemComponents;
 
 	// EquipmentFragment
 	// Supports Attachment
@@ -138,6 +135,9 @@ public:
 	// SkelMesh
 	// StaticMesh
 	// EquipSocket?
-	
-	
+
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override
+	{
+		return FPrimaryAssetId("RockItemDefinition", GetFName());
+	}
 };

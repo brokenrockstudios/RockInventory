@@ -2,11 +2,13 @@
 
 #include "ItemRegistry/RockItemManager.h"
 
+#include "RockInventoryLogging.h"
+
 FRockItemStackHandle FRockItemManager::CreateItem(URockItemDefinition* ItemDefinition, int32 StackSize)
 {
 	if (!ItemDefinition)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Attempted to create item with null definition"));
+		UE_LOG(LogRockInventory, Error, TEXT("Attempted to create item with null definition"));
 		return FRockItemStackHandle::Invalid();
 	}
 

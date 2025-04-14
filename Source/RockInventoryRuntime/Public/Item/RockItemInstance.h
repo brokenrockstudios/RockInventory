@@ -39,6 +39,9 @@ public:
 	/** Handle to the slot in the inventory where this item instance is located */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
 	FRockInventorySlotHandle SlotHandle;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
+	FRockItemStackHandle ItemHandle;
 
 	/** Cached reference to the item definition for quick access */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")

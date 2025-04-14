@@ -35,8 +35,8 @@ void URockInventoryComponent::BeginPlay()
 bool URockInventoryComponent::K2_AddItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess)
 {
 	// Sometimes when we add items, they might be 'incomplete'. Such as needing their instances created.
-	FRockItemStack ItemStack = URockItemStackLibrary::CreateItemStack(InItemStack);
-	
+	const FRockItemStack& ItemStack = URockItemStackLibrary::CreateItemStack(InItemStack);
+
 	return URockInventoryLibrary::AddItemToInventory(Inventory, ItemStack, outHandle, OutExcess);
 }
 
@@ -49,7 +49,7 @@ bool URockInventoryComponent::K2_RemoveItem(const FRockInventorySlotHandle& InHa
 		OutItemStack = FRockItemStack();
 		return false;
 	}
-	
+
 	if (!URockInventoryLibrary::GetItemAtLocation(Inventory, InHandle, OutItemStack))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItem: Invalid SlotHandle: %s"), *InHandle.ToString());
@@ -63,7 +63,7 @@ bool URockInventoryComponent::K2_RemoveItem(const FRockInventorySlotHandle& InHa
 		OutItemStack = FRockItemStack();
 		return false;
 	}
-	
+
 	return true;
 }
 

@@ -7,55 +7,23 @@
 #include "Item/RockItemInstance.h"
 #include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
 
-URockItemDefinition* URockItemStackLibrary::GetItemDefinition(const UObject* WorldContextObject, const FName& ItemId)
+URockItemDefinition* URockItemStackLibrary::GetItemDefinition(const FName& ItemId)
 {
-	if (!WorldContextObject)
+	if (const URockItemRegistrySubsystem* ItemRegistry = URockItemRegistrySubsystem::GetInstance())
 	{
-		return nullptr;
+		return ItemRegistry->FindDefinition(ItemId);
 	}
-	if (ItemId.IsNone())
-	{
-		return nullptr;
-	}
-
-	UWorld* World = WorldContextObject->GetWorld();
-	if (!World)
-	{
-		//UE_LOG(LogRockItemRegistry, Warning, TEXT("FRockItemStack::GetDefinition could not get World from WorldContextObject."));
-		return nullptr;
-	}
-
-	UGameInstance* GameInstance = World->GetGameInstance();
-	if (!GameInstance)
-	{
-		//UE_LOG(LogRockItemRegistry, Warning, TEXT("FRockItemStack::GetDefinition could not get GameInstance from World."));
-		return nullptr;
-	}
-
-	if (const URockItemRegistry* Registry = GameInstance->GetSubsystem<URockItemRegistry>())
-	{
-		URockItemDefinition* FoundDef = Registry->FindDefinition(ItemId); // Use the member ItemId
-
-		// Use const_cast ONLY for caching transient data derived from replicated state (or data loaded from disk).
-		// This is generally acceptable as CachedDefinition is marked Transient and is just an optimization.
-		// Ensure CachedDefinition is appropriately cleared if ItemId changes or the item stack is invalidated.
-		//const_cast<FRockItemStack*>(this)->CachedDefinition = FoundDef;
-
-		return FoundDef;
-	}
-	else
-	{
-		//UE_LOG(LogRockItemRegistry, Error, TEXT("FRockItemStack::GetDefinition failed to get URockItemRegistry subsystem!"));
-	}
-
 	return nullptr;
 }
 
 FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 {
-	if (ItemStack.GetDefinition())
+	if (const URockItemRegistrySubsystem* ItemRegistry = URockItemRegistrySubsystem::GetInstance())
 	{
-		return ItemStack.GetDefinition()->SlotDimensions;
+		if (const URockItemDefinition* Item = ItemRegistry->FindDefinition(ItemStack.ItemId))
+		{
+			return Item->SlotDimensions;
+		}
 	}
 	return FVector2D(0, 0);
 }
@@ -65,30 +33,65 @@ FRockItemStack URockItemStackLibrary::CreateItemStack(const FRockItemStack& InIt
 	FRockItemStack ItemStack = InItemStack;
 	ItemStack.StackSize = 1; // Reset stack size to 1 for the new item stack
 	ItemStack.RuntimeInstance = nullptr; // Reset runtime instance for the new item stack
-	
+
 	// If we have partial ItemStack, attempt to fill it out
-	if (ItemStack.ItemId == NAME_None && ItemStack.Definition)
+	// if (ItemStack.ItemId != NAME_None && !ItemDefinition)
+	// {
+	// 	// TODO: Build out a proper ItemRegistry
+	// 	// This would be a good time to LoadAsync certain aspects of the ItemDefinition
+	//
+	// 	// If we have an ItemId but no definition, we should look it up in the registry
+	// 	// Definition = URockItemRegistry::Get()->FindDefinition(ItemId);
+	// 	checkf(ItemDefinition, TEXT("ItemStack %s has no definition set!"), *ItemStack.GetDebugString());
+	// }
+	//else if (ItemStack.ItemId == NAME_None && !ItemStack.Definition)
 	{
-		ItemStack.ItemId = ItemStack.Definition->ItemId;
-	}
-	else if (ItemStack.ItemId != NAME_None && !ItemStack.Definition)
-	{
-		// TODO: Build out a proper ItemRegistry
-		// This would be a good time to LoadAsync certain aspects of the ItemDefinition
-		
-		// If we have an ItemId but no definition, we should look it up in the registry
-		// Definition = URockItemRegistry::Get()->FindDefinition(ItemId);
-		checkf(ItemStack.Definition, TEXT("ItemStack %s has no definition set!"), *ItemStack.GetDebugString());
-	}
-	else if (ItemStack.ItemId == NAME_None && !ItemStack.Definition)
-	{
-		UE_LOG(LogTemp, Error, TEXT("ItemStack %s has no ItemId or Definition set!"), *ItemStack.GetDebugString());
-		return ItemStack;
+	//	UE_LOG(LogTemp, Error, TEXT("ItemStack %s has no ItemId or Definition set!"), *ItemStack.GetDebugString());
+	//	return ItemStack;
 	}
 
-	if (ItemStack.GetDefinition()->bRequiresRuntimeInstance)
+	const URockItemDefinition* ItemDefinition = URockItemStackLibrary::GetItemDefinition(ItemStack.ItemId);
+	if (ItemDefinition && ItemDefinition->bRequiresRuntimeInstance)
 	{
-		ItemStack.RuntimeInstance = NewObject<URockItemInstance>(ItemStack.GetDefinition()->GetClass());
-	} 
+		ItemStack.RuntimeInstance = NewObject<URockItemInstance>(ItemDefinition->GetClass());
+		if (ItemStack.RuntimeInstance == nullptr)
+		{
+			UE_LOG(LogRockInventory, Error, TEXT("Failed to create runtime instance for item stack %s"), *ItemStack.GetDebugString());
+		}
+	}
 	return ItemStack;
+}
+
+bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const FRockItemStack& SecondItem)
+{
+	if (!FirstItem.IsValid() || !SecondItem.IsValid())
+	{
+		return false;
+	}
+	
+	if (!FirstItem.CanStackWith(SecondItem))
+	{
+		return false;
+	}
+	// Check if we have room to stack
+	const int32 MaxStackSize = GetMaxStackSize(FirstItem);
+	if (MaxStackSize <= 0)
+	{
+		return false;
+	}
+	return (FirstItem.StackSize + SecondItem.StackSize) <= MaxStackSize;
+}
+
+int32 URockItemStackLibrary::GetMaxStackSize(const FRockItemStack& ItemStack)
+{
+	if (const URockItemDefinition* Def = GetItemDefinition(ItemStack.GetItemId()))
+	{
+		return Def->MaxStackSize;
+	}
+	return DEFAULT_MAX_STACK_SIZE;
+}
+
+bool URockItemStackLibrary::IsFull(const FRockItemStack& ItemStack)
+{
+	return ItemStack.StackSize >= GetMaxStackSize(ItemStack);
 }

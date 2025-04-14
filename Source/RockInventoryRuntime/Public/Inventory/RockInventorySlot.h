@@ -24,13 +24,17 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySlotEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
+public:
+	FRockInventorySlotEntry();
+	static FRockInventorySlotEntry& Invalid();
 	
 	/** The actual item in this slot */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FRockItemStackHandle Handle;
+	FRockItemStackHandle ItemHandle;
 	
-	//FRockItemStack Item;
-	
+	/** Handle to identify this slot's position in the inventory */
+	UPROPERTY()
+	FRockInventorySlotHandle SlotHandle;
 
 	/** The orientation of the item in this slot */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -40,9 +44,6 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotEntry : public FFastArraySeria
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsLocked = false;
 
-	/** Handle to identify this slot's position in the inventory */
-	UPROPERTY()
-	FRockInventorySlotHandle SlotHandle;
 
 	/** Resets the slot to its default state */
 	void Reset();
@@ -56,8 +57,8 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotEntry : public FFastArraySeria
 	bool IsValid() const;
 
 	/** Returns true if the slot is empty */
-	bool IsEmpty() const;
+	// bool IsEmpty() const;
 
 	/** Returns true if the slot can accept the given item */
-	bool CanAcceptItem(const FRockItemStack& NewItem) const;
+	// bool CanAcceptItem(const FRockItemStack& NewItem) const;
 };

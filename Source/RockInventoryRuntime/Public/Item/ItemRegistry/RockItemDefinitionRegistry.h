@@ -13,10 +13,11 @@ class URockItemDefinition;
  * allowing for efficient lookup by ItemID throughout the game.
  */
 UCLASS()
-class ROCKINVENTORYRUNTIME_API URockItemRegistry : public UGameInstanceSubsystem
+class ROCKINVENTORYRUNTIME_API URockItemRegistrySubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 public:
+	static URockItemRegistrySubsystem* GetInstance();
 	//~ Begin USubsystem Interface
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
@@ -48,7 +49,7 @@ private:
 
 	/** Primary Asset Type for URockItemDefinition as configured in Project Settings. */
 	UPROPERTY() // Allow configuration via DefaultGame.ini if needed
-	FName ItemDefinitionAssetType = FName("/Script/RockInventory.RockItemDefinition"); // Default to "RockItem", matches step 1
+	FPrimaryAssetType ItemDefinitionAssetType = FPrimaryAssetType(TEXT("RockItemDefinition")); // Default to "RockItemDefinition", matches step 1
 
 	/** Flag to track if the registry has been successfully initialized. */
 	bool bIsInitialized = false;

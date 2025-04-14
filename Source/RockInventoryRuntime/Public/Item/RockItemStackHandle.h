@@ -35,6 +35,7 @@ public:
 
 	FRockItemStackHandle();
 	virtual ~FRockItemStackHandle() = default;
+	void Reset();
 
 	/**
 	 * Creates a handle with specific index and generation values

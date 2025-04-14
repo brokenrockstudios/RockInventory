@@ -6,6 +6,11 @@ FRockItemStackHandle::FRockItemStackHandle() :
 }
 
 
+void FRockItemStackHandle::Reset()
+{
+	Handle = INVALID_HANDLE;
+}
+
 FRockItemStackHandle FRockItemStackHandle::Create(uint32 InIndex, uint32 InGeneration)
 {
 	FRockItemStackHandle Result;

@@ -6,6 +6,7 @@
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemStackHandle.h"
 #include "UObject/Object.h"
+#include "RockItemManager.generated.h"
 
 /**
  * Manages the lifecycle and storage of item stacks in the inventory system.

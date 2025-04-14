@@ -14,16 +14,18 @@
  *
  */
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockInventoryItemContainer: public FFastArraySerializer
+struct ROCKINVENTORYRUNTIME_API FRockInventoryItemContainer : public FFastArraySerializer
 {
 	GENERATED_BODY()
+
 private:
 	// Force usage of the helpers, and not this array directly. 
 	// Replicated list of inventory slots
 	UPROPERTY()
 	TArray<FRockItemStack> AllSlots;
+
 public:
-	ROCKINVENTORY_FASTARRAYSERIALIZER_TARRAY_ACCESSORS(AllSlots);
+	ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(AllSlots);
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{

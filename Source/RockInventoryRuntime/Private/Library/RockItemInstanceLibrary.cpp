@@ -2,7 +2,6 @@
 
 #include "Library/RockItemInstanceLibrary.h"
 
-#include "Inventory/RockInventoryData.h"
 #include "Item/RockItemInstance.h"
 
 bool URockItemInstanceLibrary::FindItemStackForInstance(const URockItemInstance* InstanceToFind, FRockItemStack& OutItemStack)
@@ -18,11 +17,11 @@ bool URockItemInstanceLibrary::FindItemStackForInstance(const URockItemInstance*
 		return false;
 	}
 
-	for (const FRockInventorySlotEntry& Slot : OwningInventory->InventoryData)
+	for (const FRockItemStack& ItemStack : OwningInventory->ItemData)
 	{
-		if (Slot.Item.RuntimeInstance == InstanceToFind)
+		if (ItemStack.RuntimeInstance == InstanceToFind)
 		{
-			OutItemStack = Slot.Item;
+			OutItemStack = ItemStack;
 			return true;
 		}
 	}
@@ -36,15 +35,17 @@ bool URockItemInstanceLibrary::FindItemSlotForInstance(const URockItemInstance* 
 		return false;
 	}
 
+	// should we have required the inventory to be passed in instead of relying on this?
 	const URockInventory* OwningInventory = InstanceToFind->GetOwningInventory();
 	if (!OwningInventory)
 	{
 		return false;
 	}
 
-	for (const FRockInventorySlotEntry& Slot : OwningInventory->InventoryData)
+	for (const auto& Slot : OwningInventory->SlotData)
 	{
-		if (Slot.Item.RuntimeInstance == InstanceToFind)
+		const FRockItemStack& TempItemStack = OwningInventory->GetItemByHandle(Slot.ItemHandle);
+		if (TempItemStack.RuntimeInstance == InstanceToFind)
 		{
 			OutItemSlot = Slot;
 			return true;

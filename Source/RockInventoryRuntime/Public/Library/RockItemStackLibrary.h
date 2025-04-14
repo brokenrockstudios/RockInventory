@@ -17,10 +17,17 @@ class ROCKINVENTORYRUNTIME_API URockItemStackLibrary : public UBlueprintFunction
 public:
 
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
-	static URockItemDefinition* GetItemDefinition(const UObject* WorldContextObject, const FName& ItemId);
-
-
+	static URockItemDefinition* GetItemDefinition(const FName& ItemId);
 	static FVector2D GetItemSize(const FRockItemStack& ItemStack);
-
 	static FRockItemStack CreateItemStack(const FRockItemStack& InItemStack);
+	
+	/** Returns true if this stack can be combined with another stack */
+	static bool CanStackWith(const FRockItemStack& FirstItem, const FRockItemStack& SecondItem);
+
+	static int32 GetMaxStackSize(const FRockItemStack& ItemStack);
+
+	/** Returns true if the stack is at its maximum size */
+	static bool IsFull(const FRockItemStack& ItemStack);
+	
+
 };

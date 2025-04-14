@@ -3,37 +3,24 @@
 #include "Inventory/RockSlotHandle.h"
 
 FRockInventorySlotHandle::FRockInventorySlotHandle()
-	: TabIndex(INDEX_NONE)
-	  , X(INDEX_NONE)
-	  , Y(INDEX_NONE)
+	: Handle(INDEX_NONE)
 {
 }
 
 FRockInventorySlotHandle::FRockInventorySlotHandle(uint8 InTabIndex, uint8 InX, uint8 InY)
-	: TabIndex(InTabIndex)
-	  , X(InX)
-	  , Y(InY)
 {
-}
-
-bool FRockInventorySlotHandle::IsValid() const
-{
-	return TabIndex != INDEX_NONE || X != INDEX_NONE || Y != INDEX_NONE;
+	Set(InTabIndex, InX, InY);
 }
 
 FString FRockInventorySlotHandle::ToString() const
 {
 	return FString::Printf(TEXT("SlotHandle(Tab=%d, X=%d, Y=%d, Valid=%s)"), 
-		TabIndex, X, Y, IsValid() ? TEXT("true") : TEXT("false"));
+		GetTabIndex(), GetX(), GetY(), IsValid() ? TEXT("true") : TEXT("false"));
 }
 
 uint32 GetTypeHash(const FRockInventorySlotHandle& Handle)
 {
-	uint32 Hash = 0;
-	Hash = HashCombine(Hash, GetTypeHash(Handle.TabIndex));
-	Hash = HashCombine(Hash, GetTypeHash(Handle.X));
-	Hash = HashCombine(Hash, GetTypeHash(Handle.Y));
-	return Hash;
+	return GetTypeHash(Handle.Handle);
 }
 
 uint32 FRockInventorySlotHandle::GetHash() const

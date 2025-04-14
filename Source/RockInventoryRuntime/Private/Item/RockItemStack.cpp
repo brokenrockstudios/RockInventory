@@ -5,12 +5,13 @@
 
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
+#include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
 
 FRockItemStack::FRockItemStack()
-	: StackSize(0)
+	: ItemId(NAME_None)
+	  , StackSize(0)
 	  , CustomValue1(0)
-	  , RuntimeInstance(nullptr)
-	  , Definition(nullptr)
+	  , CustomValue2(0)
 {
 	// Default empty itemslot
 }
@@ -19,20 +20,16 @@ FRockItemStack::FRockItemStack(const FName& InItemId, int32 InStackSize)
 	: ItemId(InItemId),
 	  StackSize(InStackSize)
 	  , CustomValue1(0)
-	  , RuntimeInstance(nullptr)
-	  , Definition(nullptr)
 {
 	if (!ItemId.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("ItemStack %s has no ItemId set!"), *GetDebugString());
+		UE_LOG(LogRockInventory, Error, TEXT("ItemStack %s has no ItemId set!"), *GetDebugString());
 	}
 }
 
 FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize)
 	: StackSize(InStackSize)
 	  , CustomValue1(0)
-	  , RuntimeInstance(nullptr)
-	  , Definition(InDefinition)
 {
 	if (InDefinition)
 	{
@@ -40,18 +37,18 @@ FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackS
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("ItemStack %s has no ItemId set!"), *GetDebugString());
+		UE_LOG(LogRockInventory, Error, TEXT("ItemStack %s has no ItemId set!"), *GetDebugString());
 	}
+}
+
+FRockItemStack FRockItemStack::Invalid()
+{
+	return FRockItemStack();
 }
 
 FName FRockItemStack::GetItemId() const
 {
 	return ItemId;
-}
-
-const URockItemDefinition* FRockItemStack::GetDefinition() const
-{
-	return Definition;
 }
 
 bool FRockItemStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
@@ -84,10 +81,14 @@ bool FRockItemStack::IsValid() const
 {
 	// If we have at least 1 of an ItemID, we should be valid.
 	// We should assume a StackSize of 0 should be invalid and emptied out.
-	return (StackSize > 0) && ItemId.IsValid();
-	
+	return (StackSize > 0) && ItemId.IsValid() && bIsOccupied;
 	// Many items won't ever have RuntimeInstances
 	// A definition is 'nice to have' but not required for valid item, since we only lazy load the definition in many scenarios
+}
+
+bool FRockItemStack::IsOccupied() const
+{
+	return bIsOccupied;
 }
 
 void FRockItemStack::SetStackSize(int32 InStackSize)
@@ -106,17 +107,11 @@ void FRockItemStack::Reset()
 	CustomValue1 = 0;
 	CustomValue2 = 0;
 	RuntimeInstance = nullptr;
-	Definition = nullptr;
-}
-
-bool FRockItemStack::IsEmpty() const
-{
-	return StackSize <= 0;
 }
 
 bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 {
-	if (!IsValid() || !Other.IsValid())
+	if (IsEmpty() || Other.IsEmpty())
 	{
 		return false;
 	}
@@ -124,38 +119,20 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 	{
 		return false;
 	}
-	// TODO: We might be able to support this later. But for now, disallow stacking when we have RuntimeInstances
-	if (RuntimeInstance || Other.RuntimeInstance)
+	if (CustomValue1 != Other.CustomValue1)
 	{
 		return false;
 	}
-	// TODO: We might be able to support this later. But for now, disallow stacking when we have different CustomValues
-	if (CustomValue1 != Other.CustomValue1 || CustomValue2 != Other.CustomValue2)
+	if (CustomValue2 != Other.CustomValue2)
 	{
 		return false;
 	}
-
-	// Check if we have room to stack
-	const int32 MaxStackSize = GetMaxStackSize();
-	if (MaxStackSize <= 0)
-	{
-		return false;
-	}
-	return (StackSize + Other.StackSize) <= MaxStackSize;
+	return true;
 }
 
-int32 FRockItemStack::GetMaxStackSize() const
+bool FRockItemStack::IsEmpty() const
 {
-	if (const URockItemDefinition* Def = GetDefinition())
-	{
-		return Def->MaxStackSize;
-	}
-	return DEFAULT_MAX_STACK_SIZE;
-}
-
-bool FRockItemStack::IsFull() const
-{
-	return StackSize >= GetMaxStackSize();
+	return StackSize <= 0;
 }
 
 void FRockItemStack::SetCustomValue1(int32 NewValue)
@@ -170,27 +147,6 @@ void FRockItemStack::SetCustomValue2(int32 NewValue)
 	// Add any additional validation or side effects here
 }
 
-void FRockItemStack::ValidateStackSize(int32 NewSize)
-{
-	if (NewSize < 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Attempted to set negative stack size for item %s"), *ItemId.ToString());
-		NewSize = 0;
-	}
-
-	const int32 MaxStackSize = GetMaxStackSize();
-	if (MaxStackSize > 0 && NewSize > MaxStackSize)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Attempted to exceed max stack size for item %s"), *ItemId.ToString());
-		NewSize = MaxStackSize;
-	}
-
-	StackSize = NewSize;
-	if (StackSize <= 0)
-	{
-		Reset();
-	}
-}
 
 // UE_OBJPTR_DEPRECATED(5.0, "Conversion to a mutable pointer is deprecated.  Please pass a TObjectPtr<T>& instead so that assignment can be tracked accurately.")
 // explicit FORCEINLINE operator T*& () { return GetInternalRef(); }

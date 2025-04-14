@@ -3,9 +3,23 @@
 #include "Inventory/RockInventorySlot.h"
 #include "RockInventoryLogging.h"
 
+FRockInventorySlotEntry::FRockInventorySlotEntry(): 
+	ItemHandle(),
+	SlotHandle(),
+	Orientation(ERockItemOrientation::Horizontal),
+	bIsLocked(false)
+{
+}
+
+FRockInventorySlotEntry& FRockInventorySlotEntry::Invalid()
+{
+	static FRockInventorySlotEntry InvalidSlot;
+	return InvalidSlot;
+}
+
 void FRockInventorySlotEntry::Reset()
 {
-	Item.Reset();
+	ItemHandle.Reset();
 	Orientation = ERockItemOrientation::Horizontal;
 	bIsLocked = false;
 }
@@ -46,32 +60,28 @@ bool FRockInventorySlotEntry::IsValid() const
 	{
 		return false;
 	}
-	if (!Item.IsValid())
-	{
-		return Orientation == ERockItemOrientation::Horizontal;
-	}
 	return true;
 }
 
-bool FRockInventorySlotEntry::IsEmpty() const
-{
-	return !Item.IsValid();
-}
+// bool FRockInventorySlotEntry::IsEmpty() const
+// {
+// 	return !Item.IsValid();
+// }
 
-bool FRockInventorySlotEntry::CanAcceptItem(const FRockItemStack& NewItem) const
-{
-	// A slot can accept an item if:
-	// 1. The slot is not locked
-	// 2. The slot is either empty or can stack with the new item
-	if (bIsLocked)
-	{
-		return false;
-	}
-
-	if (IsEmpty())
-	{
-		return true;
-	}
-
-	return Item.CanStackWith(NewItem);
-}
+// bool FRockInventorySlotEntry::CanAcceptItem(const FRockItemStack& NewItem) const
+// {
+// 	// A slot can accept an item if:
+// 	// 1. The slot is not locked
+// 	// 2. The slot is either empty or can stack with the new item
+// 	if (bIsLocked)
+// 	{
+// 		return false;
+// 	}
+//
+// 	if (IsEmpty())
+// 	{
+// 		return true;
+// 	}
+//
+// 	return Item.CanStackWith(NewItem);
+// }

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "RockInventorySlot.h"
+#include "RockInventoryTabInfo.h"
 #include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
@@ -11,7 +12,9 @@
 #include "RockInventorySlotContainer.generated.h"
 
 /**
- *
+ * Container for inventory slots that uses a packed handle format for efficient indexing.
+ * The handle contains relative position within a tab, and the container manages the
+ * mapping to absolute indices based on tab configuration.
  */
 USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySlotContainer : public FFastArraySerializer
@@ -20,10 +23,12 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotContainer : public FFastArrayS
 private:
 	// Force usage of the helpers, and not this array directly. 
 	// Replicated list of inventory slots
+public:
 	UPROPERTY()
 	TArray<FRockInventorySlotEntry> AllSlots;
+
 public:
-	ROCKINVENTORY_FASTARRAYSERIALIZER_TARRAY_ACCESSORS(AllSlots);
+	ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(AllSlots);
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{

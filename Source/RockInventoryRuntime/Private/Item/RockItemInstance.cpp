@@ -66,15 +66,15 @@ FRockInventorySlotEntry URockItemInstance::GetItemSlot() const
 	return FRockInventorySlotEntry();
 }
 
-FRockItemStack URockItemInstance::GetItemStack() const
-{
-	const FRockInventorySlotEntry& Slot = GetItemSlot();
-	if (Slot.IsValid())
-	{
-		return Slot.Item;
-	}
-	return nullptr;
-}
+// FRockItemStack URockItemInstance::GetItemStack() const
+// {
+// 	const FRockInventorySlotEntry& Slot = GetItemSlot();
+// 	if (Slot.IsValid())
+// 	{
+// 		return Slot.Item;
+// 	}
+// 	return nullptr;
+// }
 
 // // In URockItemInstance
 // void URockItemInstance::DoSomethingThatNeedsStackData()

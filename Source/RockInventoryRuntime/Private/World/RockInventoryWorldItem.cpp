@@ -2,8 +2,10 @@
 
 #include "World/RockInventoryWorldItem.h"
 
+#include "RockInventoryLogging.h"
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
+#include "Library/RockItemStackLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 ARockInventoryWorldItem::ARockInventoryWorldItem(const FObjectInitializer& ObjectInitializer)
@@ -50,13 +52,13 @@ void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
 	}
 
 	// Update the static mesh component with the item definition's mesh
-	if (const URockItemDefinition* definition = ItemStack.GetDefinition())
+	if (const URockItemDefinition* definition = URockItemStackLibrary::GetItemDefinition(ItemStack.ItemId))
 	{
 		FStreamableManager Manager;
 		TSoftObjectPtr<UStaticMesh> Mesh = definition->ItemMesh;
 		Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
 		{
-			UE_LOG(LogTemp, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh loaded: %s"), *Mesh.ToString());
+			UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh loaded: %s"), *Mesh.ToString());
 			UStaticMesh* LoadedStaticMesh = Mesh.Get();
 			if (LoadedStaticMesh)
 			{
@@ -64,13 +66,13 @@ void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh is null"));
+				UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh is null"));
 			}
 		}));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - ItemStack is invalid"));
+		UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - ItemStack is invalid"));
 	}
 }
 

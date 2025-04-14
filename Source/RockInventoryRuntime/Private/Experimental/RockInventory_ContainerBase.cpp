@@ -4,17 +4,14 @@
 #include "Experimental/RockInventory_ContainerBase.h"
 
 #include "RockInventoryLogging.h"
-#include "Components/CanvasPanel.h"
-#include "Components/CanvasPanelSlot.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
 #include "Components/Image.h"
-#include "Components/UniformGridPanel.h"
-#include "Components/UniformGridSlot.h"
 #include "Experimental/RockInventory_Slot_BackgroundBase.h"
 #include "Experimental/RockInventory_Slot_ItemBase.h"
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
+#include "Library/RockItemStackLibrary.h"
 
 void URockInventory_ContainerBase::SetInventory(URockInventory* InInventory, int32 InTabIndex)
 {
@@ -45,7 +42,7 @@ void URockInventory_ContainerBase::GenerateGrid()
 {
 	GridPanel->ClearChildren();
 
-	
+
 	for (int32 slotIndex = 0; slotIndex < TabInfo.NumSlots; ++slotIndex)
 	{
 		const int32 X = slotIndex % TabInfo.Width;
@@ -72,7 +69,6 @@ void URockInventory_ContainerBase::GenerateGrid()
 
 void URockInventory_ContainerBase::ClearItemsFromGrid()
 {
-
 	for (int32 i = GridPanel->GetChildrenCount() - 1; i >= 0; --i)
 	{
 		UWidget* Child = GridPanel->GetChildAt(i);
@@ -112,8 +108,25 @@ void URockInventory_ContainerBase::GenerateItems()
 
 	for (int32 slotIndex = TabInfo.FirstSlotIndex; slotIndex < TabInfo.FirstSlotIndex + TabInfo.NumSlots; ++slotIndex)
 	{
-		const FRockInventorySlotEntry& TempSlot = Inventory->InventoryData[slotIndex];
-		if (TempSlot.Item.IsValid())
+		const FRockInventorySlotEntry& TempSlot = Inventory->GetSlotByAbsoluteIndex(slotIndex);
+		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(TempSlot.ItemHandle);
+		const URockItemDefinition* ItemDefinition = URockItemStackLibrary::GetItemDefinition(ItemStack.ItemId);
+		int32 ColumnSpan = 1;
+		int32 RowSpan = 1;
+		TSoftObjectPtr<UTexture2D> ItemIcon = nullptr;
+		if (ItemDefinition)
+		{
+			ColumnSpan = ItemDefinition->SlotDimensions.X;
+			RowSpan = ItemDefinition->SlotDimensions.Y;
+			ItemIcon = ItemDefinition->Icon;
+		}
+		else
+		{
+			UE_LOG(LogRockInventory, Warning, TEXT("GenerateItems - Item definition not found for item ID: %s"), *ItemStack.ItemId.ToString());
+			continue;
+		}
+
+		if (ItemStack.IsValid())
 		{
 			UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass, FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
 
@@ -121,27 +134,20 @@ void URockInventory_ContainerBase::GenerateItems()
 			{
 				WidgetItem->Inventory = Inventory;
 				WidgetItem->SlotHandle = TempSlot.SlotHandle;
-				
-				WidgetItem->ItemIcon->SetBrushFromTexture(TempSlot.Item.GetDefinition()->Icon.LoadSynchronous());
-				
+				WidgetItem->SetItemIcon(ItemIcon);
 				// Initialize the item count display
 				WidgetItem->UpdateItemCount();
-				
 				// Additional Setup
 				// SlotBackground->ItemStack = TempSlot.Item;
 			}
 
-			UGridSlot* GridSlot = GridPanel->AddChildToGrid(newWidget, TempSlot.SlotHandle.Y, TempSlot.SlotHandle.X);
+			UGridSlot* GridSlot = GridPanel->AddChildToGrid(newWidget, TempSlot.SlotHandle.GetY(), TempSlot.SlotHandle.GetX());
 			if (GridSlot)
 			{
 				// Setting this more than 0 breaks things. Find another way to do 'padding' or internal spacing
 				GridSlot->SetPadding(FMargin(0));
-
-				int32 ColumnSpan = TempSlot.Item.GetDefinition()->SlotDimensions.X;
-				int32 RowSpan = TempSlot.Item.GetDefinition()->SlotDimensions.Y;
 				GridSlot->SetColumnSpan(ColumnSpan);
 				GridSlot->SetRowSpan(RowSpan);
-
 				GridSlot->SetHorizontalAlignment(HAlign_Fill);
 				GridSlot->SetVerticalAlignment(VAlign_Fill);
 			}

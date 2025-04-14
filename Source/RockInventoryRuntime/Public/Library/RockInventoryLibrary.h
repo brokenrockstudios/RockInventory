@@ -28,11 +28,20 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	/// Inventory Location Manipulation
 	UFUNCTION(BlueprintCallable)
-	static bool PlaceItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack, ERockItemOrientation DesiredOrientation);
+	static bool PlaceItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStackHandle& ItemStackHandle, ERockItemOrientation DesiredOrientation);
 	UFUNCTION(BlueprintCallable)
 	static bool GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, FRockItemStack& OutItemStack);
 	UFUNCTION(BlueprintCallable)
 	static bool RemoveItemAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle);
+
+	/**
+	 * Move an item from one inventory to another
+	 * @param SourceInventory - The source inventory
+	 * @param SourceSlotHandle - The handle of the source slot
+	 * @param TargetInventory - The target inventory
+	 * @param TargetSlotHandle - The handle of the target slot
+	 * @return true if the move was successful
+	 */
 	UFUNCTION(BlueprintCallable)
 	static bool MoveItem(URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 		URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,

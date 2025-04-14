@@ -29,7 +29,8 @@ public class RockInventoryRuntime : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"NetCore"
+				"NetCore",
+				"AssetRegistry",
 				// ... add private dependencies that you statically link with here ...	
 			}
 		);
