@@ -1,4 +1,5 @@
-Warning: This Repo is under HEAVY ongoing construction/refactor/redesign.  Vast majority of the system does not work at this time. I will remove this, and possibly pin some official versions when it is.
+> [!CAUTION]
+> This Repo is under HEAVY ongoing construction/refactor/redesign.  Vast majority of the system does not work at this time. I will remove this, and possibly pin some official versions when it is.
 
 
 # RockInventory
