@@ -79,7 +79,7 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 		const int32 TabOffset = TabInfo.FirstSlotIndex;
 
 		// Mark occupied cells
-		for (int32 SlotIndex = TabOffset; SlotIndex < TabOffset + TabInfo.NumSlots; ++SlotIndex)
+		for (int32 SlotIndex = TabOffset; SlotIndex < TabOffset + TabInfo.GetNumSlots(); ++SlotIndex)
 		{
 			checkf(0 <= SlotIndex && SlotIndex < Inventory->SlotData.Num(),
 				TEXT("SlotIndex is out of range: %d (max: %d)"), SlotIndex, Inventory->SlotData.Num() - 1);

@@ -2,6 +2,11 @@
 
 #include "Inventory/RockInventoryTabInfo.h"
 
+int32 FRockInventoryTabInfo::GetNumSlots() const
+{
+	return Width * Height;
+}
+
 int32 FRockInventoryTabInfo::GetWidth() const
 {
 	return Width;

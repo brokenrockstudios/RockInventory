@@ -28,7 +28,6 @@ void URockInventory_ContainerBase::SetInventory(URockInventory* InInventory, int
 		TabInfo.TabID = FName("Preview");
 		TabInfo.Width = Width;
 		TabInfo.Height = Height;
-		TabInfo.NumSlots = Width * Height;
 	}
 	// if invalid, fall back on preview sizes?
 
@@ -43,7 +42,7 @@ void URockInventory_ContainerBase::GenerateGrid()
 	GridPanel->ClearChildren();
 
 
-	for (int32 slotIndex = 0; slotIndex < TabInfo.NumSlots; ++slotIndex)
+	for (int32 slotIndex = 0; slotIndex < TabInfo.GetNumSlots(); ++slotIndex)
 	{
 		const int32 X = slotIndex % TabInfo.Width;
 		const int32 Y = slotIndex / TabInfo.Width;
@@ -106,7 +105,7 @@ void URockInventory_ContainerBase::GenerateItems()
 	//////////////////////////////////////////////////////////////////////////
 
 
-	for (int32 slotIndex = TabInfo.FirstSlotIndex; slotIndex < TabInfo.FirstSlotIndex + TabInfo.NumSlots; ++slotIndex)
+	for (int32 slotIndex = TabInfo.FirstSlotIndex; slotIndex < TabInfo.FirstSlotIndex + TabInfo.GetNumSlots(); ++slotIndex)
 	{
 		const FRockInventorySlotEntry& TempSlot = Inventory->GetSlotByAbsoluteIndex(slotIndex);
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(TempSlot.ItemHandle);

@@ -33,15 +33,14 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
     UPROPERTY()
     int32 FirstSlotIndex = 0;
 
-    /** Total number of slots in this tab */
-    UPROPERTY()
-    int32 NumSlots = 0;
-
     /** Optional tags to filter items in this tab.
      * e.g. a Head Slot only accepts hat items, or weapons only accept weapons, Keychain only accepts keys. 
      */
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FGameplayTagQuery TabFilter;
+    
+    /** Total number of slots in this tab */
+    int32 GetNumSlots() const;
 
     /** Returns the width of the tab */
     int32 GetWidth() const;

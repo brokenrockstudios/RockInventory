@@ -36,9 +36,8 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	{
 		FRockInventoryTabInfo NewTab = TabInfo;
 		NewTab.FirstSlotIndex = totalInventorySlots;
-		NewTab.NumSlots = TabInfo.Width * TabInfo.Height;
 		Tabs.Add(NewTab);
-		totalInventorySlots += NewTab.NumSlots;
+		totalInventorySlots += NewTab.GetNumSlots();
 	}
 	// ItemData will grow dynamically, and not be preallocated
 	SlotData.SetNum(totalInventorySlots);
@@ -175,14 +174,13 @@ int32 URockInventory::AddTab(FName TabID, int32 Width, int32 Height)
 	NewTab.TabID = TabID;
 	NewTab.Width = Width;
 	NewTab.Height = Height;
-	NewTab.NumSlots = Width * Height;
 	NewTab.FirstSlotIndex = SlotData.Num(); // Current size is the first index
 
 	const int32 TabIndex = Tabs.Add(NewTab);
 
 	// Reserve space for the new tab's slots
 	const int32 OldSize = SlotData.Num();
-	SlotData.AddUninitialized(NewTab.NumSlots);
+	SlotData.AddUninitialized(NewTab.GetNumSlots());
 
 	// Initialize each slot's SlotHandle
 	for (int32 Y = 0; Y < Height; Y++)
