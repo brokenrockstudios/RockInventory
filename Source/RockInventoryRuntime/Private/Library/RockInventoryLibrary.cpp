@@ -240,6 +240,9 @@ bool URockInventoryLibrary::MoveItem(
 	// item size . URockItemStackLibrary::GetItemSize(SourceSlot.Item)
 	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(SourceItem);
 	PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid);
+	
+	
+	
 	if (CanItemFitInGridPosition(OccupancyGrid, TargetInventory->Tabs[TargetSlotHandle.GetTabIndex()],
 			TargetSlotHandle.GetX(), TargetSlotHandle.GetY(), ItemSize)
 	)

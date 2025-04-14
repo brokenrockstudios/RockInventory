@@ -108,6 +108,9 @@ void URockInventory_ContainerBase::GenerateItems()
 	for (int32 slotIndex = TabInfo.FirstSlotIndex; slotIndex < TabInfo.FirstSlotIndex + TabInfo.GetNumSlots(); ++slotIndex)
 	{
 		const FRockInventorySlotEntry& TempSlot = Inventory->GetSlotByAbsoluteIndex(slotIndex);
+		const int32 Column = slotIndex % TabInfo.Width;
+		const int32 Row = slotIndex / TabInfo.Width;
+		
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(TempSlot.ItemHandle);
 		const URockItemDefinition* ItemDefinition = URockItemStackLibrary::GetItemDefinition(ItemStack.ItemId);
 		int32 ColumnSpan = 1;
@@ -140,7 +143,7 @@ void URockInventory_ContainerBase::GenerateItems()
 				// SlotBackground->ItemStack = TempSlot.Item;
 			}
 
-			UGridSlot* GridSlot = GridPanel->AddChildToGrid(newWidget, TempSlot.SlotHandle.GetY(), TempSlot.SlotHandle.GetX());
+			UGridSlot* GridSlot = GridPanel->AddChildToGrid(newWidget, Row, Column);
 			if (GridSlot)
 			{
 				// Setting this more than 0 breaks things. Find another way to do 'padding' or internal spacing
