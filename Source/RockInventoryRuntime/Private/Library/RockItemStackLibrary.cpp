@@ -3,6 +3,7 @@
 
 #include "Library/RockItemStackLibrary.h"
 
+#include "RockInventoryLogging.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
 #include "Item/ItemRegistry/RockItemDefinitionRegistry.h"

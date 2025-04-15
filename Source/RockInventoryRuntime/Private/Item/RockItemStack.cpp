@@ -3,9 +3,9 @@
 
 #include "Item/RockItemStack.h"
 
+#include "RockInventoryLogging.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
-#include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
 
 FRockItemStack::FRockItemStack()
 	: ItemId(NAME_None)

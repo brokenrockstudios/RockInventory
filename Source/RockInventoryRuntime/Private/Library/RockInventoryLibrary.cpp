@@ -31,7 +31,7 @@ bool URockInventoryLibrary::AddItemToInventory(
 		UE_LOG(LogRockInventory, Warning, TEXT("Item Definition not found"));
 		return false;
 	}
-	
+
 	const FVector2D ItemSize = Definition->SlotDimensions;
 	if (ItemSize.X <= 0 || ItemSize.Y <= 0)
 	{
@@ -79,13 +79,15 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 		const int32 TabOffset = TabInfo.FirstSlotIndex;
 
 		// Mark occupied cells
-		for (int32 SlotIndex = TabOffset; SlotIndex < TabOffset + TabInfo.GetNumSlots(); ++SlotIndex)
+		for (int32 SlotIndex = 0; SlotIndex < TabInfo.GetNumSlots(); ++SlotIndex)
 		{
 			checkf(0 <= SlotIndex && SlotIndex < Inventory->SlotData.Num(),
 				TEXT("SlotIndex is out of range: %d (max: %d)"), SlotIndex, Inventory->SlotData.Num() - 1);
 
-			//const FRockInventorySlotEntry& ExistingItem = Inventory->GetSlotData.GetSlot(SlotIndex);
-			const FRockInventorySlotEntry& ExistingItemSlot = Inventory->SlotData[SlotIndex];
+			const int32 Column = (SlotIndex) % TabInfo.Width;
+			const int32 Row = (SlotIndex) / TabInfo.Width;
+
+			const FRockInventorySlotEntry& ExistingItemSlot = Inventory->SlotData[TabOffset + SlotIndex];
 			const FRockItemStack& ExistingItemStack = Inventory->GetItemByHandle(ExistingItemSlot.ItemHandle);
 
 			if (ExistingItemStack.IsValid())
@@ -97,8 +99,8 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 				{
 					for (int32 X = 0; X < ItemSize.X; ++X)
 					{
-						const int32 GridX = ExistingItemSlot.SlotHandle.GetX() + X;
-						const int32 GridY = ExistingItemSlot.SlotHandle.GetY() + Y;
+						const int32 GridX = Column + X;
+						const int32 GridY = Row + Y;
 						const int32 GridIndex = TabOffset + (GridY * TabInfo.Width + GridX);
 						checkf(0 <= GridIndex && GridIndex < totalGridSize,
 							TEXT("Grid index out of range: %d (max: %d)"), GridIndex, totalGridSize - 1);
@@ -173,7 +175,7 @@ bool URockInventoryLibrary::RemoveItemAtLocation(URockInventory* Inventory, FRoc
 		return false;
 	}
 
-	const int32 slotIndex = Inventory->GetAbsoluteSlotIndex(SlotHandle.GetTabIndex(), SlotHandle.GetX(), SlotHandle.GetY());
+	const int32 slotIndex = Inventory->GetAbsoluteSlotIndex(SlotHandle);
 
 	if (slotIndex < 0 || slotIndex >= Inventory->SlotData.Num())
 	{
@@ -240,11 +242,13 @@ bool URockInventoryLibrary::MoveItem(
 	// item size . URockItemStackLibrary::GetItemSize(SourceSlot.Item)
 	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(SourceItem);
 	PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid);
-	
-	
-	
-	if (CanItemFitInGridPosition(OccupancyGrid, TargetInventory->Tabs[TargetSlotHandle.GetTabIndex()],
-			TargetSlotHandle.GetX(), TargetSlotHandle.GetY(), ItemSize)
+
+	const FRockInventoryTabInfo& targetTab = TargetInventory->Tabs[TargetSlotHandle.GetTabIndex()];
+	const int32 TabIndex = TargetSlotHandle.GetIndex() - targetTab.FirstSlotIndex;
+	const int32 Column = TabIndex % targetTab.Width;
+	const int32 Row = TabIndex / targetTab.Width;
+
+	if (CanItemFitInGridPosition(OccupancyGrid, targetTab,Column, Row, ItemSize)
 	)
 	{
 		if (RemoveItemAtLocation(SourceInventory, SourceSlotHandle))

@@ -4,10 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "RockInventoryConfig.h"
-#include "RockInventoryItemContainer.h"
-#include "RockInventoryLogging.h"
-#include "RockInventorySlotContainer.h"
+#include "RockInventorySlot.h"
 #include "RockSlotHandle.h"
+#include "Item/RockItemStack.h"
 #include "UObject/Object.h"
 #include "RockInventory.generated.h"
 

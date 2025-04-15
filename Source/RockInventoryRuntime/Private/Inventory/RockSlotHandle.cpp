@@ -14,8 +14,7 @@ FRockInventorySlotHandle::FRockInventorySlotHandle(uint8 InTabIndex, uint8 InX, 
 
 FString FRockInventorySlotHandle::ToString() const
 {
-	return FString::Printf(TEXT("SlotHandle(Tab=%d, X=%d, Y=%d, Valid=%s)"), 
-		GetTabIndex(), GetX(), GetY(), IsValid() ? TEXT("true") : TEXT("false"));
+	return FString::Printf(TEXT("SlotHandle(%d, Valid=%s)"), GetIndex(), IsValid() ? TEXT("true") : TEXT("false"));
 }
 
 uint32 GetTypeHash(const FRockInventorySlotHandle& Handle)

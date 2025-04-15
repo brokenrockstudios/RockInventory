@@ -50,6 +50,8 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotHandle
 	/** Get the Y coordinate from the handle */
 	uint8 GetY() const { return (Handle >> Y_SHIFT) & Y_MASK; }
 
+	uint32 GetIndex() const { return Handle; }
+	
 	/** Get the relative index within the tab (Y * Width + X) */
 	uint32 GetRelativeIndex(uint32 TabWidth) const 
 	{ 

@@ -18,13 +18,13 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStackHandle
 
 public:
 	/** Bit counts for index and generation components */
-	static constexpr uint32 INDEX_BITS = 24;     // 24 bits = 16 million unique items
+	static constexpr uint32 INDEX_BITS = 24; // 24 bits = 16 million unique items
 	static constexpr uint32 GENERATION_BITS = 8; // 8 bits = 256 generations
-	
+
 	/** Bit masks and shifts based on bit counts */
-	static constexpr uint32 INDEX_MASK = (1 << INDEX_BITS) - 1;                // Masks the lower 24 bits
-	static constexpr uint32 GENERATION_SHIFT = INDEX_BITS;                     // Bits to shift for generation
-	static constexpr uint32 GENERATION_MASK = ((1 << GENERATION_BITS) - 1);    // Maximum generation count (8 bits, 0-255)
+	static constexpr uint32 INDEX_MASK = (1 << INDEX_BITS) - 1; // Masks the lower 24 bits
+	static constexpr uint32 GENERATION_SHIFT = INDEX_BITS; // Bits to shift for generation
+	static constexpr uint32 GENERATION_MASK = ((1 << GENERATION_BITS) - 1); // Maximum generation count (8 bits, 0-255)
 	static constexpr uint32 GENERATION_HANDLE_MASK = GENERATION_MASK << GENERATION_SHIFT; // Masks the upper 8 bits in complete handle
 
 	// Compile-time check to ensure we don't exceed 32 bits
@@ -80,27 +80,14 @@ public:
 	}
 
 	/** Virtual hash function for derived classes */
-	virtual uint32 GetHash() const
-	{
-		return GetTypeHash(Handle);
-	}
+	virtual uint32 GetHash() const { return GetTypeHash(Handle); }
 
 	/** Equality comparison operator */
-	bool operator==(const FRockItemStackHandle& OtherSlotHandle) const
-	{
-		return Handle == OtherSlotHandle.Handle;
-	}
-
-	bool operator!=(const FRockItemStackHandle& OtherSlotHandle) const
-	{
-		return Handle != OtherSlotHandle.Handle;
-	}
+	bool operator==(const FRockItemStackHandle& OtherSlotHandle) const { return Handle == OtherSlotHandle.Handle; }
+	bool operator!=(const FRockItemStackHandle& OtherSlotHandle) const { return Handle != OtherSlotHandle.Handle; }
 
 	/** Explicit cast to bool for conditional expressions */
-	explicit operator bool() const
-	{
-		return IsValid();
-	}
+	explicit operator bool() const { return IsValid(); }
 
 private:
 	/** The unique identifier for this item stack (combines index and generation) */

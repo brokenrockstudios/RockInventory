@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "RockItemStackHandle.h"
+#include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
 
@@ -96,3 +97,33 @@ struct TStructOpsTypeTraits<FRockItemStack> : public TStructOpsTypeTraitsBase2<F
 		WithIdenticalViaEquality = true,
 	};
 };
+
+USTRUCT(BlueprintType)
+struct ROCKINVENTORYRUNTIME_API FRockInventoryItemContainer : public FFastArraySerializer
+{
+	GENERATED_BODY()
+
+private:
+	// Force usage of the helpers, and not this array directly. 
+	// Replicated list of inventory slots
+	UPROPERTY()
+	TArray<FRockItemStack> AllSlots;
+
+public:
+	ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(AllSlots);
+
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	{
+		return FFastArraySerializer::FastArrayDeltaSerialize<FRockItemStack, FRockInventoryItemContainer>(AllSlots, DeltaParms, *this);
+	}
+};
+
+template <>
+struct TStructOpsTypeTraits<FRockInventoryItemContainer> : public TStructOpsTypeTraitsBase2<FRockInventoryItemContainer>
+{
+	enum
+	{
+		WithNetDeltaSerializer = true,
+	};
+};
+
