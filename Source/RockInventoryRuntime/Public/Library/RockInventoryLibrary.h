@@ -1,10 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/RockInventoryComponent.h"
-#include "Inventory/RockInventorySectionInfo.h"
 #include "Inventory/RockItemOrientation.h"
 #include "Inventory/RockSlotHandle.h"
 #include "Item/RockItemStack.h"
