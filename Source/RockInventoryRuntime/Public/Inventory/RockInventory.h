@@ -53,7 +53,7 @@ private:
 	
 	/** Tab configuration for the inventory */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = true))
-	TArray<FRockInventoryTabInfo> Tabs;
+	TArray<FRockInventorySectionInfo> SlotSections;
 
 public:
 	/**
@@ -67,14 +67,14 @@ public:
 	 * @param TabIndex - The index of the tab to retrieve
 	 * @return Pointer to the tab info, or nullptr if index is invalid
 	 */
-	const FRockInventoryTabInfo* GetTabInfo(int32 TabIndex) const;
+	const FRockInventorySectionInfo* GetTabInfo(int32 TabIndex) const;
 
 	/**
 	 * Find tab index by name (slower than GetTabInfo)
 	 * @param TabName - The name of the tab to find
 	 * @return The index of the tab, or INDEX_NONE if not found
 	 */
-	int32 FindTabIndex(const FName& TabName) const;
+	int32 FindSectionIndex(const FName& SectionName) const;
 
 	/**
 	 * Get slot at specific coordinates in a tab
@@ -105,19 +105,7 @@ public:
 	 * @param InSlot - The slot to set
 	 */
 	void SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlot);
-
-	/**
-	 * Get the slot index in the AllSlots array
-	 * @param TabIndex - The tab index
-	 * @param X - The X coordinate in the tab
-	 * @param Y - The Y coordinate in the tab
-	 * @return The slot index, or INDEX_NONE if coordinates are invalid
-	 */
-	int32 GetAbsoluteSlotIndex(int32 TabIndex, int32 X, int32 Y) const;
-
-	int32 GetAbsoluteSlotIndex(const FRockInventorySlotHandle& InSlotHandle) const;
 	
-
 	/**
 	 * Add a new tab and initialize its slots
 	 * @param TabID - The unique identifier for the tab
@@ -125,7 +113,7 @@ public:
 	 * @param Height - The height of the tab in slots
 	 * @return The index of the newly created tab
 	 */
-	int32 AddTab(FName TabID, int32 Width, int32 Height);
+	int32 AddSection(const FName& SectionName, int32 Width, int32 Height);
 
 	/**
 	 * Get all slots in a specific tab
@@ -139,7 +127,7 @@ public:
 	 * @param TabID - The ID of the tab to find
 	 * @return The index of the tab, or INDEX_NONE if not found
 	 */
-	int32 GetTabIndexByID(FName TabID) const;
+	int32 GetSectionIndexByID(const FName& SectionName) const;
 
 	/** Override to specify which properties should be replicated */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

@@ -24,18 +24,15 @@ void URockInventory_ContainerBase::SetInventory(URockInventory* InInventory, int
 	else
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("URockInventory_ContainerBase::SetInventory - Invalid inventory, falling back to preview"));
-		TabInfo = FRockInventoryTabInfo();
-		TabInfo.TabID = FName("Preview");
+		TabInfo = FRockInventorySectionInfo();
+		TabInfo.SectionName = FName("Preview");
 		TabInfo.Width = Width;
 		TabInfo.Height = Height;
 	}
 	// if invalid, fall back on preview sizes?
-
-
 	GenerateGrid();
 	GenerateItems();
 }
-
 
 void URockInventory_ContainerBase::GenerateGrid()
 {
@@ -46,12 +43,13 @@ void URockInventory_ContainerBase::GenerateGrid()
 	{
 		const int32 X = slotIndex % TabInfo.Width;
 		const int32 Y = slotIndex / TabInfo.Width;
+		const int32 AbsoluteIndex = TabInfo.FirstSlotIndex + slotIndex;
 
 		UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass_Empty, FName(*FString::Printf(TEXT("ItemSlot_%d"), slotIndex)));
 		if (URockInventory_Slot_BackgroundBase* SlotBackground = Cast<URockInventory_Slot_BackgroundBase>(newWidget))
 		{
 			SlotBackground->Inventory = Inventory;
-			SlotBackground->SlotHandle = FRockInventorySlotHandle(TabIndex, X, Y);
+			SlotBackground->SlotHandle = FRockInventorySlotHandle(TabIndex, AbsoluteIndex);
 		}
 		UGridSlot* GridSlotWidget = GridPanel->AddChildToGrid(newWidget, Y, X);
 		if (GridSlotWidget)

@@ -3,7 +3,7 @@
 #include "Inventory/RockInventory.h"
 
 #include "RockInventoryLogging.h"
-#include "Inventory/RockInventoryTabInfo.h"
+#include "Inventory/RockInventorySectionInfo.h"
 #include "Item/RockItemInstance.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
@@ -30,13 +30,13 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	SlotData.Empty();
 	ItemData.Empty();
 
-	Tabs.Empty();
-	Tabs.Reserve(config->InventoryTabs.Num()); // Reserve space for the inventory data
-	for (const FRockInventoryTabInfo& TabInfo : config->InventoryTabs)
+	SlotSections.Empty();
+	SlotSections.Reserve(config->InventoryTabs.Num()); // Reserve space for the inventory data
+	for (const FRockInventorySectionInfo& TabInfo : config->InventoryTabs)
 	{
-		FRockInventoryTabInfo NewTab = TabInfo;
+		FRockInventorySectionInfo NewTab = TabInfo;
 		NewTab.FirstSlotIndex = totalInventorySlots;
-		Tabs.Add(NewTab);
+		SlotSections.Add(NewTab);
 		totalInventorySlots += NewTab.GetNumSlots();
 	}
 	// ItemData will grow dynamically, and not be preallocated
@@ -47,42 +47,36 @@ void URockInventory::Init(const URockInventoryConfig* config)
 		return;
 	}
 
-	// Initialize each slot's SlotHandle
-	for (int32 tabIndex = 0; tabIndex < Tabs.Num(); tabIndex++)
+	for (int32 SectionIndex = 0; SectionIndex < SlotSections.Num(); ++SectionIndex)
 	{
-		const FRockInventoryTabInfo& TabInfo = Tabs[tabIndex];
-		for (int32 Y = 0; Y < TabInfo.Height; Y++)
+		const FRockInventorySectionInfo& TabInfo = SlotSections[SectionIndex];
+		const int32 TabOffset = TabInfo.FirstSlotIndex;
+
+		for (int32 SlotIndex = 0; SlotIndex < TabInfo.GetNumSlots(); ++SlotIndex)
 		{
-			for (int32 X = 0; X < TabInfo.Width; X++)
-			{
-				const int32 SlotIndex = TabInfo.FirstSlotIndex + (Y * TabInfo.Width + X);
-				checkf(0 <= SlotIndex && SlotIndex < SlotData.Num(),
-					TEXT("Slot index out of range: %d (max: %d)"), SlotIndex, SlotData.Num() - 1);
-
-				const FRockInventorySlotHandle SlotHandle(tabIndex, X, Y);
-				const int32 absoluteIndex = GetAbsoluteSlotIndex(SlotHandle);
-
-				FRockInventorySlotEntry& Slot = SlotData[absoluteIndex];
-				Slot.SlotHandle = SlotHandle;
-			}
+			const int32 AbsoluteSlotIndex = TabOffset + SlotIndex;
+			SlotData[SlotIndex].SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteSlotIndex);
+			SlotData[SlotIndex].ItemHandle = FRockItemStackHandle::Invalid();
+			SlotData[SlotIndex].Orientation = ERockItemOrientation::Horizontal;
+			SlotData[SlotIndex].bIsLocked = false;
 		}
 	}
 }
 
-const FRockInventoryTabInfo* URockInventory::GetTabInfo(int32 TabIndex) const
+const FRockInventorySectionInfo* URockInventory::GetTabInfo(int32 TabIndex) const
 {
-	if (TabIndex >= 0 && TabIndex < Tabs.Num())
+	if (TabIndex >= 0 && TabIndex < SlotSections.Num())
 	{
-		return &Tabs[TabIndex];
+		return &SlotSections[TabIndex];
 	}
 	return nullptr;
 }
 
-int32 URockInventory::FindTabIndex(const FName& TabName) const
+int32 URockInventory::FindSectionIndex(const FName& SectionName) const
 {
-	for (int32 i = 0; i < Tabs.Num(); i++)
+	for (int32 i = 0; i < SlotSections.Num(); i++)
 	{
-		if (Tabs[i].TabID == TabName)
+		if (SlotSections[i].SectionName == SectionName)
 		{
 			return i;
 		}
@@ -92,26 +86,25 @@ int32 URockInventory::FindTabIndex(const FName& TabName) const
 
 FRockInventorySlotEntry URockInventory::GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
-	const int32 absoluteIndex = GetAbsoluteSlotIndex(InSlotHandle);
-	// If the handle was invalid, it wouldn't be in range
-	if (absoluteIndex < 0 || absoluteIndex >= SlotData.Num())
+	const int32 slotIndex = InSlotHandle.GetIndex();
+	if (slotIndex < 0 || slotIndex >= SlotData.Num())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotByHandle - Invalid slot index"));
 		return FRockInventorySlotEntry();
 	}
-	return SlotData[absoluteIndex];
+	return SlotData[slotIndex];
 }
 
 FRockInventorySlotEntry& URockInventory::GetSlotRefByHandle(const FRockInventorySlotHandle& InSlotHandle)
 {
-	const int32 absoluteIndex = GetAbsoluteSlotIndex(InSlotHandle);
+	const int32 slotIndex = InSlotHandle.GetIndex();
 	// If the handle was invalid, it wouldn't be in range
-	if (absoluteIndex < 0 || absoluteIndex >= SlotData.Num())
+	if (slotIndex < 0 || slotIndex >= SlotData.Num())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotRefByHandle - Invalid slot index"));
 		return FRockInventorySlotEntry::Invalid();
 	}
-	return SlotData[absoluteIndex];
+	return SlotData[slotIndex];
 }
 
 FRockInventorySlotEntry URockInventory::GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const
@@ -127,6 +120,10 @@ FRockItemStack URockInventory::GetItemBySlotHandle(const FRockInventorySlotHandl
 
 FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlotHandle) const
 {
+	if (!InSlotHandle.IsValid())
+	{
+		return FRockItemStack::Invalid();
+	}
 	FRockItemStack Item = ItemData[InSlotHandle.GetIndex()];
 	if (Item.Generation == InSlotHandle.GetGeneration())
 	{
@@ -137,15 +134,14 @@ FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlo
 
 void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlot)
 {
-	
-	const int32 absoluteIndex = GetAbsoluteSlotIndex(InSlotHandle);
-	if (absoluteIndex < 0 || absoluteIndex >= SlotData.Num())
+	const int32 SlotIndex = InSlotHandle.GetIndex();
+	if (SlotIndex < 0 || SlotIndex >= SlotData.Num())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("SetSlotByHandle - Invalid slot index"));
 		return;
 	}
 
-	FRockInventorySlotEntry& Slot = SlotData[absoluteIndex];
+	FRockInventorySlotEntry& Slot = SlotData[SlotIndex];
 	if (Slot.IsValid())
 	{
 		Slot = InSlot;
@@ -153,71 +149,39 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 	}
 }
 
-int32 URockInventory::GetAbsoluteSlotIndex(int32 TabIndex, int32 X, int32 Y) const
+int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 Height)
 {
-	const FRockInventoryTabInfo* TabInfo = GetTabInfo(TabIndex);
-	if (TabInfo && X >= 0 && X < TabInfo->Width && Y >= 0 && Y < TabInfo->Height)
-	{
-		return TabInfo->FirstSlotIndex + (Y * TabInfo->Width + X);
-	}
-	return INDEX_NONE;
-}
-
-int32 URockInventory::GetAbsoluteSlotIndex(const FRockInventorySlotHandle& InSlotHandle) const
-{
-	return GetAbsoluteSlotIndex(InSlotHandle.GetTabIndex(), InSlotHandle.GetX(), InSlotHandle.GetY());
-}
-
-int32 URockInventory::AddTab(FName TabID, int32 Width, int32 Height)
-{
-	FRockInventoryTabInfo NewTab;
-	NewTab.TabID = TabID;
+	FRockInventorySectionInfo NewTab;
+	NewTab.SectionName = SectionName;
 	NewTab.Width = Width;
 	NewTab.Height = Height;
 	NewTab.FirstSlotIndex = SlotData.Num(); // Current size is the first index
 
-	const int32 TabIndex = Tabs.Add(NewTab);
+	const int32 TabIndex = SlotSections.Add(NewTab);
 
 	// Reserve space for the new tab's slots
-	const int32 OldSize = SlotData.Num();
 	SlotData.AddUninitialized(NewTab.GetNumSlots());
 
 	// Initialize each slot's SlotHandle
-	for (int32 Y = 0; Y < Height; Y++)
+	for (int32 SlotIndex = 0; SlotIndex < NewTab.GetNumSlots(); ++SlotIndex)
 	{
-		for (int32 X = 0; X < Width; X++)
-		{
-			const int32 SlotIndex = NewTab.FirstSlotIndex + (Y * Width + X);
-			checkf(0 <= SlotIndex && SlotIndex < SlotData.Num(),
-				TEXT("Slot index out of range: %d (max: %d)"), SlotIndex, SlotData.Num() - 1);
+		const int32 AbsoluteSlotIndex = NewTab.FirstSlotIndex + SlotIndex;
+		checkf(0 <= AbsoluteSlotIndex && AbsoluteSlotIndex < SlotData.Num(), TEXT("Absolute slot index out of range:"));
 
-			const FRockInventorySlotHandle SlotHandle(TabIndex, X, Y);
-			const int32 absoluteIndex = GetAbsoluteSlotIndex(SlotHandle);
-			FRockInventorySlotEntry& Slot = SlotData[absoluteIndex];
-			Slot.SlotHandle = SlotHandle;
-		}
+		const FRockInventorySlotHandle SlotHandle(TabIndex, AbsoluteSlotIndex);
+		SlotData[AbsoluteSlotIndex].SlotHandle = SlotHandle;
 	}
 
 	return TabIndex;
 }
 
-// TArrayView<FRockInventorySlotEntry> URockInventory::GetTabSlots(int32 TabIndex)
-// {
-	// const FRockInventoryTabInfo* TabInfo = GetTabInfo(TabIndex);
-	// if (TabInfo && TabInfo->NumSlots > 0)
-	// {
-	// 	return TArrayView<FRockInventorySlotEntry>(&SlotData.GetSlot(Tabs, TabInfo->FirstSlotIndex), TabInfo->NumSlots);
-	// }
-	// return TArrayView<FRockInventorySlotEntry>();
-// }
-
-int32 URockInventory::GetTabIndexByID(FName TabID) const
+int32 URockInventory::GetSectionIndexByID(const FName& SectionName) const
 {
-	for (int32 i = 0; i < Tabs.Num(); i++)
+	for (int32 SlotIndex = 0; SlotIndex < SlotSections.Num(); SlotIndex++)
 	{
-		if (Tabs[i].TabID == TabID)
+		if (SlotSections[SlotIndex].SectionName == SectionName)
 		{
-			return i;
+			return SlotIndex;
 		}
 	}
 	return INDEX_NONE;
@@ -228,7 +192,7 @@ void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(URockInventory, ItemData);
 	DOREPLIFETIME(URockInventory, SlotData);
-	DOREPLIFETIME(URockInventory, Tabs);
+	DOREPLIFETIME(URockInventory, SlotSections);
 }
 
 void URockInventory::BroadcastInventoryChanged(const FRockInventorySlotHandle& SlotHandle)

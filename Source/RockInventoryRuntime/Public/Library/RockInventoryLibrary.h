@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/RockInventoryComponent.h"
-#include "Inventory/RockInventoryTabInfo.h"
+#include "Inventory/RockInventorySectionInfo.h"
 #include "Inventory/RockItemOrientation.h"
 #include "Inventory/RockSlotHandle.h"
 #include "Item/RockItemStack.h"
@@ -53,5 +53,5 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	// Misc Utility functions
 	static void PrecomputeOccupancyGrids(const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid);
-	static bool CanItemFitInGridPosition(const TArray<bool>& OccupancyGrid, const FRockInventoryTabInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
+	static bool CanItemFitInGridPosition(const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
 };

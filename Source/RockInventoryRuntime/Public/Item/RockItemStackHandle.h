@@ -16,6 +16,10 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStackHandle
 {
 	GENERATED_BODY()
 
+private:
+	/** The unique identifier for this item stack (combines index and generation) */
+	UPROPERTY()
+	int32 Handle = INDEX_NONE;
 public:
 	/** Bit counts for index and generation components */
 	static constexpr uint32 INDEX_BITS = 24; // 24 bits = 16 million unique items
@@ -30,12 +34,8 @@ public:
 	// Compile-time check to ensure we don't exceed 32 bits
 	static_assert(INDEX_BITS + GENERATION_BITS == 32, "Bit allocation exceeds 32 bits");
 
-	/** Default invalid handle constant */
-	static constexpr uint32 INVALID_HANDLE = INDEX_NONE;
-
 	FRockItemStackHandle();
-	virtual ~FRockItemStackHandle() = default;
-	void Reset();
+	void Reset() { Handle = INDEX_NONE; }
 
 	/**
 	 * Creates a handle with specific index and generation values
@@ -51,7 +51,7 @@ public:
 	static FRockItemStackHandle Invalid() { return FRockItemStackHandle(); }
 
 	/** Returns true if this handle refers to a valid item stack */
-	bool IsValid() const { return Handle != INVALID_HANDLE; }
+	bool IsValid() const { return Handle != INDEX_NONE; }
 
 	/** Gets the index portion of the handle (lower 24 bits) */
 	uint32 GetIndex() const { return Handle & INDEX_MASK; }
@@ -80,7 +80,7 @@ public:
 	}
 
 	/** Virtual hash function for derived classes */
-	virtual uint32 GetHash() const { return GetTypeHash(Handle); }
+	uint32 GetHash() const { return GetTypeHash(Handle); }
 
 	/** Equality comparison operator */
 	bool operator==(const FRockItemStackHandle& OtherSlotHandle) const { return Handle == OtherSlotHandle.Handle; }
@@ -89,8 +89,4 @@ public:
 	/** Explicit cast to bool for conditional expressions */
 	explicit operator bool() const { return IsValid(); }
 
-private:
-	/** The unique identifier for this item stack (combines index and generation) */
-	UPROPERTY()
-	uint32 Handle = INVALID_HANDLE;
 };

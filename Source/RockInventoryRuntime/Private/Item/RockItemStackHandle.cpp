@@ -1,15 +1,11 @@
 #include "Item/RockItemStackHandle.h"
 
 FRockItemStackHandle::FRockItemStackHandle() : 
-	Handle(INVALID_HANDLE)
+	Handle(INDEX_NONE)
 {
 }
 
 
-void FRockItemStackHandle::Reset()
-{
-	Handle = INVALID_HANDLE;
-}
 
 FRockItemStackHandle FRockItemStackHandle::Create(uint32 InIndex, uint32 InGeneration)
 {

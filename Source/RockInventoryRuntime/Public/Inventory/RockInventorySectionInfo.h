@@ -6,14 +6,14 @@
 #include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 
-#include "RockInventoryTabInfo.generated.h"
+#include "RockInventorySectionInfo.generated.h"
 
 /**
  * Tab dimension info
  * This struct is used to define the dimensions of a tab or collection in a single inventory system.
  */
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
+struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
 {
     GENERATED_BODY()
 
@@ -27,7 +27,7 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTabInfo
 
     /** Unique identifier for this tab */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    FName TabID;
+    FName SectionName;
 
     /** First slot index in the AllSlots array */
     UPROPERTY()

@@ -43,22 +43,22 @@ bool URockInventoryLibrary::AddItemToInventory(
 	TArray<bool> OccupancyGrids;
 	PrecomputeOccupancyGrids(Inventory, OccupancyGrids);
 
-	for (int32 TabIndex = 0; TabIndex < Inventory->Tabs.Num(); ++TabIndex)
+	for (int32 TabIndex = 0; TabIndex < Inventory->SlotSections.Num(); ++TabIndex)
 	{
-		const FRockInventoryTabInfo& TabInfo = Inventory->Tabs[TabIndex];
-		const int32 TabOffset = TabInfo.FirstSlotIndex;
-
-		for (int32 Y = 0; Y <= TabInfo.Height - ItemSize.Y; ++Y)
+		// TabInfo
+		const FRockInventorySectionInfo& TabInfo = Inventory->SlotSections[TabIndex];
+		for (int32 SlotIndex = 0; SlotIndex < TabInfo.GetNumSlots(); ++SlotIndex)
 		{
-			for (int32 X = 0; X <= TabInfo.Width - ItemSize.X; ++X)
+			const int32 Column = (SlotIndex) % TabInfo.Width;
+			const int32 Row = (SlotIndex) / TabInfo.Width;
+			const int32 AbsoluteIndex = TabInfo.FirstSlotIndex + SlotIndex;
+
+			if (CanItemFitInGridPosition(OccupancyGrids, TabInfo, Column, Row, ItemSize))
 			{
-				if (CanItemFitInGridPosition(OccupancyGrids, TabInfo, X, Y, ItemSize))
-				{
-					const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStack);
-					OutHandle = FRockInventorySlotHandle(TabIndex, X, Y);
-					PlaceItemAtLocation(Inventory, OutHandle, ItemHandle, ERockItemOrientation::Horizontal);
-					return true;
-				}
+				const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStack);
+				OutHandle = FRockInventorySlotHandle(TabIndex, AbsoluteIndex);
+				PlaceItemAtLocation(Inventory, OutHandle, ItemHandle, ERockItemOrientation::Horizontal);
+				return true;
 			}
 		}
 	}
@@ -73,9 +73,9 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 	// Initialize all cells to false (unoccupied)
 	OutOccupancyGrid.Init(false, totalGridSize);
 
-	for (int32 TabIndex = 0; TabIndex < Inventory->Tabs.Num(); ++TabIndex)
+	for (int32 TabIndex = 0; TabIndex < Inventory->SlotSections.Num(); ++TabIndex)
 	{
-		const FRockInventoryTabInfo& TabInfo = Inventory->Tabs[TabIndex];
+		const FRockInventorySectionInfo& TabInfo = Inventory->SlotSections[TabIndex];
 		const int32 TabOffset = TabInfo.FirstSlotIndex;
 
 		// Mark occupied cells
@@ -113,7 +113,7 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 }
 
 bool URockInventoryLibrary::CanItemFitInGridPosition(
-	const TArray<bool>& OccupancyGrid, const FRockInventoryTabInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize)
+	const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize)
 {
 	for (int32 ItemY = 0; ItemY < ItemSize.Y; ++ItemY)
 	{
@@ -175,8 +175,7 @@ bool URockInventoryLibrary::RemoveItemAtLocation(URockInventory* Inventory, FRoc
 		return false;
 	}
 
-	const int32 slotIndex = Inventory->GetAbsoluteSlotIndex(SlotHandle);
-
+	const int32 slotIndex = SlotHandle.GetIndex();
 	if (slotIndex < 0 || slotIndex >= Inventory->SlotData.Num())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid SlotHandle: %s"), *SlotHandle.ToString());
@@ -243,12 +242,12 @@ bool URockInventoryLibrary::MoveItem(
 	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(SourceItem);
 	PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid);
 
-	const FRockInventoryTabInfo& targetTab = TargetInventory->Tabs[TargetSlotHandle.GetTabIndex()];
+	const FRockInventorySectionInfo& targetTab = TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()];
 	const int32 TabIndex = TargetSlotHandle.GetIndex() - targetTab.FirstSlotIndex;
 	const int32 Column = TabIndex % targetTab.Width;
 	const int32 Row = TabIndex / targetTab.Width;
 
-	if (CanItemFitInGridPosition(OccupancyGrid, targetTab,Column, Row, ItemSize)
+	if (CanItemFitInGridPosition(OccupancyGrid, targetTab, Column, Row, ItemSize)
 	)
 	{
 		if (RemoveItemAtLocation(SourceInventory, SourceSlotHandle))

@@ -6,7 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "RockInventoryConfig.generated.h"
 
-struct FRockInventoryTabInfo;
+struct FRockInventorySectionInfo;
 /**
  * 
  */
@@ -21,6 +21,6 @@ public:
 	// A chest rig, might have 4 tabs of 1x2
 	// Note: that the TabIndex will equal the order they are defined here.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
-	TArray<FRockInventoryTabInfo> InventoryTabs;
+	TArray<FRockInventorySectionInfo> InventoryTabs;
 
 };

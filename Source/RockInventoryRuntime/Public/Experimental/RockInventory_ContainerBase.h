@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Inventory/RockInventoryTabInfo.h"
+#include "Inventory/RockInventorySectionInfo.h"
 #include "RockInventory_ContainerBase.generated.h"
 
 class UGridPanel;
@@ -38,7 +38,7 @@ public:
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
-	FRockInventoryTabInfo TabInfo;
+	FRockInventorySectionInfo TabInfo;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	int32 Width = 4;
