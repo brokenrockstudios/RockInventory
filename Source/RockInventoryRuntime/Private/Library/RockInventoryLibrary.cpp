@@ -34,6 +34,7 @@ bool URockInventoryLibrary::AddItemToInventory(
 	TArray<bool> OccupancyGrids;
 	PrecomputeOccupancyGrids(Inventory, OccupancyGrids);
 
+	// TODO: Handle the OutExcess for 'stackable' type things.
 	for (int32 SectionIndex = 0; SectionIndex < Inventory->SlotSections.Num(); ++SectionIndex)
 	{
 		const FRockInventorySectionInfo& SectionInfo = Inventory->SlotSections[SectionIndex];
@@ -228,7 +229,6 @@ bool URockInventoryLibrary::MoveItem(
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Move
-
 	TArray<bool> OccupancyGrid;
 	// item size . URockItemStackLibrary::GetItemSize(SourceSlot.Item)
 	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(SourceItem);
@@ -239,24 +239,28 @@ bool URockInventoryLibrary::MoveItem(
 	const int32 Column = SectionIndex % targetSection.Width;
 	const int32 Row = SectionIndex / targetSection.Width;
 
-	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize)
-	)
+	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize))
 	{
-		if (RemoveItemAtLocation(SourceInventory, SourceSlotHandle))
-		{
-			FRockInventorySlotHandle OutHandle;
-			if (PlaceItemAtLocation(TargetInventory, TargetSlotHandle, SourceSlot.ItemHandle, DesiredOrientation))
-			{
-				// If these are the same inventory, should we handle this differently?
-				// Technically we probably want a different 'event' for how this was handled?
-				SourceInventory->BroadcastInventoryChanged(SourceSlotHandle);
-				TargetInventory->BroadcastInventoryChanged(TargetSlotHandle);
-				return true;
-			}
-		}
+		FRockInventorySlotEntry& SourceSlotRef = SourceInventory->GetSlotRefByHandle(SourceSlotHandle);
+		SourceSlotRef.ItemHandle = FRockItemStackHandle::Invalid();
+		SourceSlotRef.Orientation = ERockItemOrientation::Horizontal;
+		SourceInventory->ItemData.MarkItemDirty(SourceSlotRef);
+
+		FRockInventorySlotEntry& TargetSlotRef = TargetInventory->GetSlotRefByHandle(TargetSlotHandle);
+		TargetSlotRef.ItemHandle = SourceSlot.ItemHandle;
+		TargetSlotRef.Orientation = DesiredOrientation;
+		TargetInventory->ItemData.MarkItemDirty(TargetSlotRef);
+		
+		// If these are the same inventory, should we handle this differently?
+		// Technically we probably want a different 'event' for how this was handled?
+		SourceInventory->BroadcastInventoryChanged(SourceSlotHandle);
+		TargetInventory->BroadcastInventoryChanged(TargetSlotHandle);
+		return true;
+	}
+	else
+	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Failed to place item at target location"));
 	}
-
 
 	//////////////////////////////////////////////////////////////////////
 	/// TODO:Merge Item
