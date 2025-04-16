@@ -11,26 +11,14 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySlotHandle
 {
 	GENERATED_BODY()
-	// Default constructor is an invalid handle
-	FRockInventorySlotHandle()
-		: Index(INDEX_NONE)
-		  , Section(INDEX_NONE)
-	{
-	}
-
-	// Constructor with SectionIndex and absolute index into Inventory's SlotData
-	FRockInventorySlotHandle(int32 InSectionIndex, int32 InAbsoluteSlotIndex)
-		: Index(InAbsoluteSlotIndex)
-		  , Section(InSectionIndex)
-	{
-	}
-
+	
+	FRockInventorySlotHandle();
+	FRockInventorySlotHandle(int32 InSectionIndex, int32 InAbsoluteSlotIndex);
 private:
 	UPROPERTY(VisibleAnywhere)
 	int32 Index;
 	UPROPERTY(VisibleAnywhere)
 	int32 Section;
-
 public:
 	/** Get the tab index from the handle */
 	int32 GetSectionIndex() const { return Section; }
@@ -38,12 +26,10 @@ public:
 	bool IsValid() const { return Index != INDEX_NONE && Section != INDEX_NONE; }
 
 	// Helper Utility functions
-	friend uint32 GetTypeHash(const FRockInventorySlotHandle& Slot)
-	{
-		return HashCombine(Slot.Index, Slot.Section);
-	}
-
+	friend uint32 GetTypeHash(const FRockInventorySlotHandle& Slot);
 	uint32 GetHash() const;
 	FString ToString() const;
-	bool operator==(const FRockInventorySlotHandle& OtherSlotHandle) const = default;
+	
+	bool operator==(const FRockInventorySlotHandle& Other) const {  return Index == Other.Index && Section == Other.Section; }
+	bool operator!=(const FRockInventorySlotHandle& Other) const { return !(*this == Other); }
 };

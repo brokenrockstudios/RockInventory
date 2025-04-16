@@ -29,7 +29,6 @@ public:
 	}
 
 	// Do we want a function to handle 'how' they are combined?
-
 	// What other functions to run on itemdefinition?
 };
 

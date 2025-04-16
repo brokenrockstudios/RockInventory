@@ -28,9 +28,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RockInventory", BlueprintPure)
 	FRockItemStack GetItemStack() const;
 	
-	UFUNCTION(BlueprintCallable, Category = "RockInventory", BlueprintPure)
-	const FRockItemStack& GetItemStack2() const;
-	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing=OnRep_ItemStack)
 	FRockItemStack ItemStack;

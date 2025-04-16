@@ -13,7 +13,6 @@ bool URockInventoryLibrary::AddItemToInventory(
 	URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess)
 {
 	OutExcess = 0;
-	OutHandle = FRockInventorySlotHandle();
 	if (!Inventory || !ItemStack.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("AddItemToInventory: Invalid Inventory or ItemStack"));
@@ -24,7 +23,7 @@ bool URockInventoryLibrary::AddItemToInventory(
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid ItemStack"));
 		return false;
 	}
-	const FVector2D ItemSize = ItemStack.Definition->SlotDimensions;
+	const FVector2D ItemSize = ItemStack.GetDefinition()->SlotDimensions;
 	if (ItemSize.X <= 0 || ItemSize.Y <= 0)
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Item Size"));
@@ -47,7 +46,7 @@ bool URockInventoryLibrary::AddItemToInventory(
 			if (CanItemFitInGridPosition(OccupancyGrids, SectionInfo, Column, Row, ItemSize))
 			{
 				const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStack);
-				OutHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
+				OutHandle = Inventory->GetSlotByAbsoluteIndex(AbsoluteIndex).SlotHandle;
 				PlaceItemAtLocation(Inventory, OutHandle, ItemHandle, ERockItemOrientation::Horizontal);
 				return true;
 			}
@@ -281,7 +280,7 @@ int32 URockInventoryLibrary::GetItemCount(const URockInventory* Inventory, const
 	{
 		if (ItemStack.IsValid() && ItemStack.GetItemId() == ItemId)
 		{
-			ItemCount += ItemStack.StackSize;
+			ItemCount += ItemStack.GetStackSize();
 		}
 	}
 	return ItemCount;

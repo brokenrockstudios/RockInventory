@@ -19,7 +19,7 @@ bool URockItemInstanceLibrary::FindItemStackForInstance(const URockItemInstance*
 
 	for (const FRockItemStack& ItemStack : OwningInventory->ItemData)
 	{
-		if (ItemStack.RuntimeInstance == InstanceToFind)
+		if (ItemStack.GetRuntimeInstance() == InstanceToFind)
 		{
 			OutItemStack = ItemStack;
 			return true;
@@ -45,7 +45,7 @@ bool URockItemInstanceLibrary::FindItemSlotForInstance(const URockItemInstance* 
 	for (const auto& Slot : OwningInventory->SlotData)
 	{
 		const FRockItemStack& TempItemStack = OwningInventory->GetItemByHandle(Slot.ItemHandle);
-		if (TempItemStack.RuntimeInstance == InstanceToFind)
+		if (TempItemStack.GetRuntimeInstance() == InstanceToFind)
 		{
 			OutItemSlot = Slot;
 			return true;

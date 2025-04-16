@@ -100,11 +100,12 @@ public:
 	TSoftObjectPtr<USoundBase> DropSoundOverride = nullptr;
 
 
-	// Add Fragments for things regarding 3D model or sounds?
 
+	
+	// Add Fragments for things regarding 3D model or sounds?
 	// Consider adding getter functions for common things like
 	// Usable
-	// Equipable
+	// Equippable
 
 	// destroy, drop, equip, inspect, open, unequip, unload, use
 

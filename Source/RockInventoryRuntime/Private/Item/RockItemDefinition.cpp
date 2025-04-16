@@ -3,8 +3,6 @@
 
 #include "Item/RockItemDefinition.h"
 
-#include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
-
 void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewItem)
 {
 	checkf(false, TEXT("RegisterItemDefinition is not tested yet!"));
@@ -22,7 +20,7 @@ void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewI
 		return;
 	}
 
-	FSoftObjectPath ItemPath(NewItem);
+	const FSoftObjectPath ItemPath(NewItem);
 	if (!ItemPath.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("RegisterItemDefinition: Invalid SoftObjectPath for item %s."), *NewItem->GetName());

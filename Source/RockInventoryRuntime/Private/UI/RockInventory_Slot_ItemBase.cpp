@@ -1,7 +1,7 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 
-#include "Experimental/RockInventory_Slot_ItemBase.h"
+#include "UI/RockInventory_Slot_ItemBase.h"
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
@@ -60,9 +60,9 @@ void URockInventory_Slot_ItemBase::UpdateItemCount()
 	if (URockInventoryLibrary::GetItemAtLocation(Inventory, SlotHandle, ItemStack))
 	{
 		// Update the count text if stack size is greater than 1
-		if (ItemStack.StackSize > 1)
+		if (ItemStack.GetStackSize() > 1)
 		{
-			ItemCount->SetText(FText::AsNumber(ItemStack.StackSize));
+			ItemCount->SetText(FText::AsNumber(ItemStack.GetStackSize()));
 			ItemCount->SetVisibility(ESlateVisibility::Visible);
 		}
 		else

@@ -23,7 +23,7 @@ FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 	checkf(ItemStack.IsValid(), TEXT("ItemStack is invalid!"));
 	if (ItemStack.IsValid())
 	{
-		return ItemStack.Definition->SlotDimensions;
+		return ItemStack.GetDefinition()->SlotDimensions;
 	}
 	return FVector2D(1, 1);
 }
@@ -32,8 +32,9 @@ FRockItemStack URockItemStackLibrary::CreateItemStack(URockInventory* OwningInve
 {
 	checkf(OwningInventory, TEXT("CreateItemStack called with invalid inventory!"));
 	FRockItemStack ItemStack = InItemStack;
-	
 	ItemStack.bIsOccupied = true;
+
+	
 	checkf(ItemStack.IsValid(), TEXT("CreateItemStack called with invalid item stack!"));
 	if (!ItemStack.IsValid())
 	{

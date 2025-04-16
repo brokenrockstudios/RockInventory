@@ -1,6 +1,6 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
-#include "World/RockInventoryWorldItem.h"
+#include "Item/World/RockInventoryWorldItem.h"
 
 #include "RockInventoryLogging.h"
 #include "Engine/StreamableManager.h"
@@ -23,7 +23,6 @@ ARockInventoryWorldItem::ARockInventoryWorldItem(const FObjectInitializer& Objec
 
 	bReplicates = true;
 	ItemStack = FRockItemStack();
-	ItemStack.bIsOccupied = true;
 }
 
 void ARockInventoryWorldItem::BeginPlay()
@@ -44,7 +43,7 @@ void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
 	// currently assuming we will only create it upon 'looting' the item.
 
 	ItemStack = InItemStack;
-		if (GetLocalRole() == ROLE_Authority)
+	if (GetLocalRole() == ROLE_Authority)
 	{
 		if (InItemStack.IsValid())
 		{
@@ -56,7 +55,7 @@ void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
 	if (ItemStack.IsValid())
 	{
 		FStreamableManager Manager;
-		TSoftObjectPtr<UStaticMesh> Mesh = ItemStack.Definition->ItemMesh;
+		TSoftObjectPtr<UStaticMesh> Mesh = ItemStack.GetDefinition()->ItemMesh;
 		Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
 		{
 			UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh loaded: %s"), *Mesh.ToString());
@@ -78,11 +77,6 @@ void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
 }
 
 FRockItemStack ARockInventoryWorldItem::GetItemStack() const
-{
-	return ItemStack;
-}
-
-const FRockItemStack& ARockInventoryWorldItem::GetItemStack2() const
 {
 	return ItemStack;
 }

@@ -26,66 +26,64 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
-	FRockItemStack();
-	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
-	// create invalid stack
-	static FRockItemStack Invalid();
+private:
+	// Generally this item stack is read only.
+	// Because to modify it, requires special attention to marking the containing array dirty for replication.
+	// Which should be exclusively handled by this plugin and minimal amount of classes
+	friend class URockInventory;
+	friend class URockItemStackLibrary;
 
 	/** Unique identifier for the item */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<URockItemDefinition> Definition;
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<URockItemDefinition> Definition = nullptr;
+
+	/** Runtime instance of the item, if required by the definition, likely often null */
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<URockItemInstance> RuntimeInstance = nullptr;
 
 	/** Current number of items in the stack */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere)
 	int32 StackSize = 0;
-
+	
 	/** 
 	 * Generic value that can be used for various purposes (durability, charges, etc.)
 	 * The meaning of this value is determined by the item's definition
 	 */
 	UPROPERTY(EditAnywhere)
 	int32 CustomValue1 = 0;
-	
 	/** Additional generic value for extended functionality */
 	UPROPERTY()
 	int32 CustomValue2 = 0;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	/** This is used to detect stale item handles that may have pointed to previous items */
+	UPROPERTY(VisibleAnywhere)
 	uint8 Generation = 0;
 	UPROPERTY()
-	bool bIsOccupied = false; // Is this any different then basically a IsValid?
-	
-	// Handle for the item stack in the inventory
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	// FRockItemStackHandle Handle;
+	bool bIsOccupied = false;
 
-	/** Runtime instance of the item, if required by the definition */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<URockItemInstance> RuntimeInstance = nullptr;
+public:
+	FRockItemStack() = default;
+	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
+	// create invalid stack
+	static FRockItemStack Invalid();
 
-	
+
 	// Core functionality
 	FName GetItemId() const;
+	URockItemDefinition* GetDefinition() const { return Definition; }
+	int32 GetStackSize() const { return StackSize; }
+	URockItemInstance* GetRuntimeInstance() const { return RuntimeInstance; }
+
 	/** Gets the item definition for this item stack */
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 	bool operator==(const FRockItemStack& Other) const;
 	FString GetDebugString() const;
 	bool IsValid() const;
 	bool IsOccupied() const;
-	void SetStackSize(int32 InStackSize);
 	void Reset();
 
 	bool CanStackWith(const FRockItemStack& Other) const;
-
 	/** Returns true if the stack is empty (StackSize <= 0) */
 	inline bool IsEmpty() const;
-	
-	/** Safely modifies CustomValue1 with bounds checking */
-	void SetCustomValue1(int32 NewValue);
-	/** Safely modifies CustomValue2 with bounds checking */
-	void SetCustomValue2(int32 NewValue);
-private:
-
 };
 
 template <>
@@ -102,7 +100,6 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventoryItemContainer : public FFastArraySerializer
 {
 	GENERATED_BODY()
-
 private:
 	// Force usage of the helpers, and not this array directly. 
 	// Replicated list of inventory slots
@@ -126,4 +123,3 @@ struct TStructOpsTypeTraits<FRockInventoryItemContainer> : public TStructOpsType
 		WithNetDeltaSerializer = true,
 	};
 };
-

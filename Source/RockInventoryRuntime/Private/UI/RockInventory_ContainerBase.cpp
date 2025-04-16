@@ -1,14 +1,14 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 
-#include "Experimental/RockInventory_ContainerBase.h"
+#include "UI/RockInventory_ContainerBase.h"
 
 #include "RockInventoryLogging.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
 #include "Components/Image.h"
-#include "Experimental/RockInventory_Slot_BackgroundBase.h"
-#include "Experimental/RockInventory_Slot_ItemBase.h"
+#include "UI/RockInventory_Slot_BackgroundBase.h"
+#include "UI/RockInventory_Slot_ItemBase.h"
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
 
@@ -45,8 +45,8 @@ void URockInventory_ContainerBase::GenerateGrid()
 		{
 			SlotBackground->Inventory = Inventory;
 			SlotBackground->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
-			// FRockInventorySlotHandle(TabIndex, AbsoluteIndex);
 		}
+		
 		UGridSlot* GridSlotWidget = GridPanel->AddChildToGrid(newWidget, Row, Column);
 		if (GridSlotWidget)
 		{
@@ -114,8 +114,8 @@ void URockInventory_ContainerBase::GenerateItems()
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(TempSlot.ItemHandle);
 		if (ItemStack.IsValid())
 		{
-			const int32 ColumnSpan = ItemStack.Definition->SlotDimensions.X;
-			const int32 RowSpan = ItemStack.Definition->SlotDimensions.Y;
+			const int32 ColumnSpan = ItemStack.GetDefinition()->SlotDimensions.X;
+			const int32 RowSpan = ItemStack.GetDefinition()->SlotDimensions.Y;
 
 			UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass, FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
 
@@ -123,7 +123,7 @@ void URockInventory_ContainerBase::GenerateItems()
 			{
 				WidgetItem->Inventory = Inventory;
 				WidgetItem->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
-				WidgetItem->SetItemIcon(ItemStack.Definition->Icon);
+				WidgetItem->SetItemIcon(ItemStack.GetDefinition()->Icon);
 				// Initialize the item count display
 				WidgetItem->UpdateItemCount();
 				// Additional Setup
