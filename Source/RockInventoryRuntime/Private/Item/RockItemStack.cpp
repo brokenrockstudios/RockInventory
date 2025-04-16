@@ -36,14 +36,19 @@ FName FRockItemStack::GetItemId() const
 bool FRockItemStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	bOutSuccess = true;
+
+	// Serialize basic properties
 	Ar << Definition;
 	Ar << StackSize;
 	Ar << CustomValue1;
 	Ar << CustomValue2;
 
-	UObject* NewObj = RuntimeInstance.Get();
-	Map->SerializeObject(Ar, URockItemInstance::StaticClass(), NewObj);
-
+	UObject* Instance = RuntimeInstance.Get();
+	Map->SerializeObject(Ar, URockItemInstance::StaticClass(), Instance);
+	if (Ar.IsLoading())
+	{
+		RuntimeInstance = Cast<URockItemInstance>(Instance);
+	}
 	return true;
 }
 

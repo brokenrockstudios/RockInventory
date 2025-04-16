@@ -34,24 +34,13 @@ FRockItemStack URockItemStackLibrary::CreateItemStack(URockInventory* OwningInve
 	FRockItemStack ItemStack = InItemStack;
 	ItemStack.bIsOccupied = true;
 
-	
 	checkf(ItemStack.IsValid(), TEXT("CreateItemStack called with invalid item stack!"));
 	if (!ItemStack.IsValid())
 	{
 		return FRockItemStack::Invalid();
 	}
-	// TODO: Build out a proper ItemRegistry
-	// This would be a good time to LoadAsync certain aspects of the ItemDefinition
-
-	// If we have an ItemId but no definition, we should look it up in the registry
-	// Definition = URockItemRegistry::Get()->FindDefinition(ItemId);
-	// 	checkf(ItemDefinition, TEXT("ItemStack %s has no definition set!"), *ItemStack.GetDebugString());
-	// }
-	//else if (ItemStack.ItemId == NAME_None && !ItemStack.Definition)
-	// {
-	//	UE_LOG(LogTemp, Error, TEXT("ItemStack %s has no ItemId or Definition set!"), *ItemStack.GetDebugString());
-	//	return ItemStack;
-	//}
+	
+	// This could be a good time to LoadAsync certain aspects of the ItemDefinition
 	if (ItemStack.Definition->bRequiresRuntimeInstance)
 	{
 		// The outer should be the inventory that owns this item stack?
