@@ -30,7 +30,7 @@ public:
 	void Initialize(URockInventoryComponent* InOwnerInventory, int32 InMaxHistoryLength = 25);
 
 	// Execute and record a transaction
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
+	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	bool ExecuteTransaction(TSharedPtr<FRockInventoryTransaction> Transaction);
     
 	// Undo the last transaction

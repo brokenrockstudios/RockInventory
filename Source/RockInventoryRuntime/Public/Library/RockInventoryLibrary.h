@@ -21,12 +21,15 @@ class ROCKINVENTORYRUNTIME_API URockInventoryLibrary : public UBlueprintFunction
 	GENERATED_BODY()
 public:
 	// Core Item
-	static bool AddItemToInventory(URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess);
+	// Add it anywhere we can. This will attempt to merge into existing stacks.
+	// In case of multiple stacks being merged, the last one will be assigned the OutHandle
+	static bool LootItemToInventory(URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess);
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Inventory Location Manipulation
+	// Add item at a specific location a specific location and orientation.
 	UFUNCTION(BlueprintCallable)
-	static bool PlaceItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStackHandle& ItemStackHandle, ERockItemOrientation DesiredOrientation);
+	static bool PlaceItemAtSlot(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStackHandle& ItemStackHandle, ERockItemOrientation DesiredOrientation);
 	UFUNCTION(BlueprintCallable)
 	static bool GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, FRockItemStack& OutItemStack);
 	UFUNCTION(BlueprintCallable)

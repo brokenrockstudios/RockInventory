@@ -37,7 +37,7 @@ bool URockInventoryComponent::K2_AddItem(const FRockItemStack& InItemStack, FRoc
 	// Sometimes when we add items, they might be 'incomplete'. Such as needing their instances created.
 	const FRockItemStack& ItemStack = URockItemStackLibrary::CreateItemStack(Inventory, InItemStack);
 
-	return URockInventoryLibrary::AddItemToInventory(Inventory, ItemStack, outHandle, OutExcess);
+	return URockInventoryLibrary::LootItemToInventory(Inventory, ItemStack, outHandle, OutExcess);
 }
 
 

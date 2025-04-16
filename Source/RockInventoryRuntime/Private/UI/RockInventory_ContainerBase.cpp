@@ -39,14 +39,14 @@ void URockInventory_ContainerBase::GenerateGrid()
 		const int32 Column = slotIndex % TabInfo.Width;
 		const int32 Row = slotIndex / TabInfo.Width;
 		const int32 AbsoluteIndex = TabInfo.FirstSlotIndex + slotIndex;
-		
+
 		UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass_Empty, FName(*FString::Printf(TEXT("ItemSlot_%d"), slotIndex)));
 		if (URockInventory_Slot_BackgroundBase* SlotBackground = Cast<URockInventory_Slot_BackgroundBase>(newWidget))
 		{
 			SlotBackground->Inventory = Inventory;
 			SlotBackground->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
 		}
-		
+
 		UGridSlot* GridSlotWidget = GridPanel->AddChildToGrid(newWidget, Row, Column);
 		if (GridSlotWidget)
 		{
@@ -65,13 +65,18 @@ void URockInventory_ContainerBase::ClearItemsFromGrid()
 	for (int32 i = GridPanel->GetChildrenCount() - 1; i >= 0; --i)
 	{
 		UWidget* Child = GridPanel->GetChildAt(i);
-
-		const URockInventory_Slot_ItemBase* ItemWidget = Cast<URockInventory_Slot_ItemBase>(Child);
-		if (ItemWidget)
+		if (!Child || Cast<URockInventory_Slot_BackgroundBase>(Child))
 		{
-			// Remove the item widget from the grid
-			GridPanel->RemoveChildAt(i);
+			// Skip background widgets. Remove everything else
+			continue;
 		}
+		if (URockInventory_Slot_ItemBase* ItemSlot = Cast<URockInventory_Slot_ItemBase>(Child))
+		{
+			// Explicitly clear the inventory reference to avoid dangling pointers
+			ItemSlot->Inventory = nullptr;
+			ItemSlot->FallbackIcon = nullptr;
+		}
+		GridPanel->RemoveChildAt(i);
 	}
 }
 
@@ -90,7 +95,7 @@ void URockInventory_ContainerBase::GenerateItems()
 	{
 		SectionIndex = Inventory->GetSectionIndexById(TabInfo.SectionName);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////////
 	/// Calculate uniform grid cell size to calculate proper positions of canvas slots
 	// float CellWidth = 0.0f;
@@ -109,28 +114,29 @@ void URockInventory_ContainerBase::GenerateItems()
 		const int32 Column = slotIndex % TabInfo.Width;
 		const int32 Row = slotIndex / TabInfo.Width;
 		const int32 AbsoluteIndex = TabInfo.FirstSlotIndex + slotIndex;
-		const FRockInventorySlotEntry& TempSlot = Inventory->GetSlotByAbsoluteIndex(AbsoluteIndex);
-
-		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(TempSlot.ItemHandle);
-		if (ItemStack.IsValid())
+		const FRockInventorySlotEntry& SlotEntry = Inventory->GetSlotByAbsoluteIndex(AbsoluteIndex);
+		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(SlotEntry.ItemHandle);
+		if (!ItemStack.IsValid() || !ItemStack.IsOccupied())
 		{
-			const int32 ColumnSpan = ItemStack.GetDefinition()->SlotDimensions.X;
-			const int32 RowSpan = ItemStack.GetDefinition()->SlotDimensions.Y;
+			continue;
+		}
 
-			UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass, FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
+		const int32 ColumnSpan = ItemStack.GetDefinition()->SlotDimensions.X;
+		const int32 RowSpan = ItemStack.GetDefinition()->SlotDimensions.Y;
 
-			if (URockInventory_Slot_ItemBase* WidgetItem = Cast<URockInventory_Slot_ItemBase>(newWidget))
-			{
-				WidgetItem->Inventory = Inventory;
-				WidgetItem->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
-				WidgetItem->SetItemIcon(ItemStack.GetDefinition()->Icon);
-				// Initialize the item count display
-				WidgetItem->UpdateItemCount();
-				// Additional Setup
-				// SlotBackground->ItemStack = TempSlot.Item;
-			}
+		URockInventory_Slot_ItemBase* WidgetItem = CreateWidget<URockInventory_Slot_ItemBase>(this, ItemSlotWidgetClass,
+			FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
 
-			UGridSlot* GridSlot = GridPanel->AddChildToGrid(newWidget, Row, Column);
+		if (WidgetItem)
+		{
+			// Setup Widget properties
+			WidgetItem->Inventory = Inventory;
+			WidgetItem->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
+			WidgetItem->SetItemIcon(ItemStack.GetDefinition()->Icon);
+			WidgetItem->UpdateItemCount();
+
+			// Add to grid with proper sizing
+			UGridSlot* GridSlot = GridPanel->AddChildToGrid(WidgetItem, Row, Column);
 			if (GridSlot)
 			{
 				// Setting this more than 0 breaks things. Find another way to do 'padding' or internal spacing

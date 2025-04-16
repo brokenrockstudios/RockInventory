@@ -57,10 +57,10 @@ public:
 	void SetIsLoading(bool bIsLoading);
 	void OnIconLoaded();
 	
-	TSoftObjectPtr<UTexture2D> IconPtr = nullptr;
 	TSharedPtr<FStreamableHandle> StreamHandle;
 	bool bIsCurrentlyLoading = false;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Slot")
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Slot")
 	TObjectPtr<UTexture2D> FallbackIcon;
+	TSoftObjectPtr<UTexture2D> IconPtr = nullptr;
 };

@@ -20,6 +20,7 @@ private:
 	/** The unique identifier for this item stack (combines index and generation) */
 	UPROPERTY()
 	int32 Handle = INDEX_NONE;
+
 public:
 	/** Bit counts for index and generation components */
 	static constexpr uint32 INDEX_BITS = 24; // 24 bits = 16 million unique items
@@ -88,5 +89,4 @@ public:
 
 	/** Explicit cast to bool for conditional expressions */
 	explicit operator bool() const { return IsValid(); }
-
 };

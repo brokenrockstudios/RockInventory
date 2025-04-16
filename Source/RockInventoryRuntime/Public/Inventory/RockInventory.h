@@ -83,36 +83,26 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	FRockInventorySlotEntry GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
-	FRockInventorySlotEntry& GetSlotRefByHandle(const FRockInventorySlotHandle& InSlotHandle);
+	
 	FRockInventorySlotEntry GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const;
 	FRockItemStack GetItemBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
-
-	
 	FRockItemStack GetItemByHandle(const FRockItemStackHandle& InSlotHandle) const;
 
 	/**
 	 * Set the slot at the given handle
 	 * @param InSlotHandle - The handle of the slot to set
-	 * @param InSlot - The slot to set
+	 * @param InSlotEntry - The slot to set
 	 */
-	void SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlot);
+	void SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry);
 	
 	/**
 	 * Add a new tab and initialize its slots
-	 * @param TabID - The unique identifier for the tab
+	 * @param SectionName - The unique identifier for the tab
 	 * @param Width - The width of the tab in slots
 	 * @param Height - The height of the tab in slots
 	 * @return The index of the newly created tab
 	 */
 	int32 AddSection(const FName& SectionName, int32 Width, int32 Height);
-
-	/**
-	 * Get all slots in a specific tab
-	 * @param TabIndex - The index of the tab
-	 * @return Array view of the slots in the tab
-	 */
-	// TArrayView<FRockInventorySlotEntry> GetTabSlots(int32 TabIndex);
-
 
 	/** Override to specify which properties should be replicated */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -130,4 +120,11 @@ public:
 	FOnInventoryChanged OnInventoryChanged;
 };
 
+
+///////////////////////////////////////////////////////////////////////////////
+/// Inline functions
+FORCEINLINE FRockInventorySlotEntry URockInventory::GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const
+{
+	return SlotData[AbsoluteIndex];
+}
 

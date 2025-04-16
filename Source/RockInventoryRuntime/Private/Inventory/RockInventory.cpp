@@ -100,26 +100,9 @@ FRockInventorySlotEntry URockInventory::GetSlotByHandle(const FRockInventorySlot
 	if (slotIndex < 0 || slotIndex >= SlotData.Num())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotByHandle - Invalid slot index"));
-		return FRockInventorySlotEntry();
-	}
-	return SlotData[slotIndex];
-}
-
-FRockInventorySlotEntry& URockInventory::GetSlotRefByHandle(const FRockInventorySlotHandle& InSlotHandle)
-{
-	const int32 slotIndex = InSlotHandle.GetIndex();
-	// If the handle was invalid, it wouldn't be in range
-	if (slotIndex < 0 || slotIndex >= SlotData.Num())
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotRefByHandle - Invalid slot index"));
 		return FRockInventorySlotEntry::Invalid();
 	}
 	return SlotData[slotIndex];
-}
-
-FRockInventorySlotEntry URockInventory::GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const
-{
-	return SlotData[AbsoluteIndex];
 }
 
 FRockItemStack URockInventory::GetItemBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const
@@ -142,21 +125,17 @@ FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlo
 	return FRockItemStack::Invalid();
 }
 
-void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlot)
+void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry)
 {
-	const int32 SlotIndex = InSlotHandle.GetIndex();
-	if (SlotIndex < 0 || SlotIndex >= SlotData.Num())
+	const int32 slotIndex = InSlotHandle.GetIndex();
+	if (slotIndex < 0 || slotIndex >= SlotData.Num())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("SetSlotByHandle - Invalid slot index"));
 		return;
 	}
 
-	FRockInventorySlotEntry& Slot = SlotData[SlotIndex];
-	if (Slot.IsValid())
-	{
-		Slot = InSlot;
-		SlotData.MarkItemDirty(Slot);
-	}
+	SlotData[slotIndex] = InSlotEntry;
+	SlotData.MarkItemDirty(SlotData[slotIndex]);
 }
 
 int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 Height)
