@@ -23,6 +23,7 @@ ARockInventoryWorldItem::ARockInventoryWorldItem(const FObjectInitializer& Objec
 
 	bReplicates = true;
 	ItemStack = FRockItemStack();
+	ItemStack.bIsOccupied = true;
 }
 
 void ARockInventoryWorldItem::BeginPlay()
@@ -43,7 +44,7 @@ void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
 	// currently assuming we will only create it upon 'looting' the item.
 
 	ItemStack = InItemStack;
-	if (GetLocalRole() == ROLE_Authority)
+		if (GetLocalRole() == ROLE_Authority)
 	{
 		if (InItemStack.IsValid())
 		{
@@ -52,10 +53,10 @@ void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
 	}
 
 	// Update the static mesh component with the item definition's mesh
-	if (const URockItemDefinition* definition = URockItemStackLibrary::GetItemDefinition(ItemStack.ItemId))
+	if (ItemStack.IsValid())
 	{
 		FStreamableManager Manager;
-		TSoftObjectPtr<UStaticMesh> Mesh = definition->ItemMesh;
+		TSoftObjectPtr<UStaticMesh> Mesh = ItemStack.Definition->ItemMesh;
 		Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
 		{
 			UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh loaded: %s"), *Mesh.ToString());

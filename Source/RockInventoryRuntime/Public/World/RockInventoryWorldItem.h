@@ -34,6 +34,7 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing=OnRep_ItemStack)
 	FRockItemStack ItemStack;
+	
 	UFUNCTION()
 	void OnRep_ItemStack();
 

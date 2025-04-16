@@ -16,14 +16,11 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
 {
     GENERATED_BODY()
-
-    /** Grid width in slots */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    uint8 Width = 0;
-
-    /** Grid height in slots */
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    uint8 Height = 0;
+public:
+    bool IsValid() const
+    {
+        return Width > 0 && Height > 0 && FirstSlotIndex >= 0 && SectionName != NAME_None;
+    }
 
     /** Unique identifier for this tab */
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -32,6 +29,14 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
     /** First slot index in the AllSlots array */
     UPROPERTY()
     int32 FirstSlotIndex = 0;
+    
+    /** Grid width in slots */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    int32 Width = 0;
+
+    /** Grid height in slots */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    int32 Height = 0;
 
     /** Optional tags to filter items in this tab.
      * e.g. a Head Slot only accepts hat items, or weapons only accept weapons, Keychain only accepts keys. 
@@ -47,4 +52,6 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
     
     /** Returns the height of the tab */
     int32 GetHeight() const;
+    
+    static FRockInventorySectionInfo Invalid();
 };

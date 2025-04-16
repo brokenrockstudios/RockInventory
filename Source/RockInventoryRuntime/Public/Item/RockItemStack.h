@@ -27,14 +27,14 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 	GENERATED_BODY()
 
 	FRockItemStack();
-	FRockItemStack(const FName& InItemId, int32 InStackSize = 1);
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
 	// create invalid stack
 	static FRockItemStack Invalid();
-	/** Unique identifier for the item type */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName ItemId = NAME_None;
-	
+
+	/** Unique identifier for the item */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<URockItemDefinition> Definition;
+
 	/** Current number of items in the stack */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 StackSize = 0;
@@ -53,7 +53,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	uint8 Generation = 0;
 	UPROPERTY()
-	bool bIsOccupied = false; // Is this any different than basically a IsValid?
+	bool bIsOccupied = false; // Is this any different then basically a IsValid?
 	
 	// Handle for the item stack in the inventory
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -61,7 +61,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 
 	/** Runtime instance of the item, if required by the definition */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UObject> RuntimeInstance = nullptr;
+	TObjectPtr<URockItemInstance> RuntimeInstance = nullptr;
 
 	
 	// Core functionality

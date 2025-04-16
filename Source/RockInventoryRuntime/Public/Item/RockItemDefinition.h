@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "RockItemDefinitionFragment.h"
+#include "Engine/AssetManager.h"
 #include "Engine/DataAsset.h"
 #include "RockItemDefinition.generated.h"
 
@@ -136,8 +137,21 @@ public:
 	// StaticMesh
 	// EquipSocket?
 
+
+	// If creating a 'runtime instance definition', we'd need to manually register it with the asset manager
+	// e.g. 
+	
+	
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override
 	{
+		if (ItemId != NAME_None)
+		{
+			return FPrimaryAssetId("RockItemDefinition", ItemId);
+		}
 		return FPrimaryAssetId("RockItemDefinition", GetFName());
 	}
+
+
+	// Experimental 
+	void RegisterItemDefinition(const URockItemDefinition* NewItem);
 };

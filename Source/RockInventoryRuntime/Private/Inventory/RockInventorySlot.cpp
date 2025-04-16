@@ -54,8 +54,6 @@ bool FRockInventorySlotEntry::IsValid() const
 {
 	// A slot is valid if:
 	// 1. The slot handle is valid
-	// 2. If the item is empty, the orientation is horizontal (default)
-	// Note: We don't have to have an item to be valid. 
 	if (!SlotHandle.IsValid())
 	{
 		return false;

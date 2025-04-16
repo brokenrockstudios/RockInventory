@@ -19,43 +19,47 @@ URockItemDefinition* URockItemStackLibrary::GetItemDefinition(const FName& ItemI
 
 FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 {
-	if (const URockItemRegistrySubsystem* ItemRegistry = URockItemRegistrySubsystem::GetInstance())
+	// We shouldn't have ItemStacks without valid definitions
+	checkf(ItemStack.IsValid(), TEXT("ItemStack is invalid!"));
+	if (ItemStack.IsValid())
 	{
-		if (const URockItemDefinition* Item = ItemRegistry->FindDefinition(ItemStack.ItemId))
-		{
-			return Item->SlotDimensions;
-		}
+		return ItemStack.Definition->SlotDimensions;
 	}
-	return FVector2D(0, 0);
+	return FVector2D(1, 1);
 }
 
-FRockItemStack URockItemStackLibrary::CreateItemStack(const FRockItemStack& InItemStack)
+FRockItemStack URockItemStackLibrary::CreateItemStack(URockInventory* OwningInventory, const FRockItemStack& InItemStack)
 {
+	checkf(OwningInventory, TEXT("CreateItemStack called with invalid inventory!"));
 	FRockItemStack ItemStack = InItemStack;
-	ItemStack.StackSize = 1; // Reset stack size to 1 for the new item stack
-	ItemStack.RuntimeInstance = nullptr; // Reset runtime instance for the new item stack
+	
+	ItemStack.bIsOccupied = true;
+	checkf(ItemStack.IsValid(), TEXT("CreateItemStack called with invalid item stack!"));
+	if (!ItemStack.IsValid())
+	{
+		return FRockItemStack::Invalid();
+	}
+	// TODO: Build out a proper ItemRegistry
+	// This would be a good time to LoadAsync certain aspects of the ItemDefinition
 
-	// If we have partial ItemStack, attempt to fill it out
-	// if (ItemStack.ItemId != NAME_None && !ItemDefinition)
-	// {
-	// 	// TODO: Build out a proper ItemRegistry
-	// 	// This would be a good time to LoadAsync certain aspects of the ItemDefinition
-	//
-	// 	// If we have an ItemId but no definition, we should look it up in the registry
-	// 	// Definition = URockItemRegistry::Get()->FindDefinition(ItemId);
+	// If we have an ItemId but no definition, we should look it up in the registry
+	// Definition = URockItemRegistry::Get()->FindDefinition(ItemId);
 	// 	checkf(ItemDefinition, TEXT("ItemStack %s has no definition set!"), *ItemStack.GetDebugString());
 	// }
 	//else if (ItemStack.ItemId == NAME_None && !ItemStack.Definition)
-	{
+	// {
 	//	UE_LOG(LogTemp, Error, TEXT("ItemStack %s has no ItemId or Definition set!"), *ItemStack.GetDebugString());
 	//	return ItemStack;
-	}
-
-	const URockItemDefinition* ItemDefinition = URockItemStackLibrary::GetItemDefinition(ItemStack.ItemId);
-	if (ItemDefinition && ItemDefinition->bRequiresRuntimeInstance)
+	//}
+	if (ItemStack.Definition->bRequiresRuntimeInstance)
 	{
-		ItemStack.RuntimeInstance = NewObject<URockItemInstance>(ItemDefinition->GetClass());
-		if (ItemStack.RuntimeInstance == nullptr)
+		// The outer should be the inventory that owns this item stack?
+		ItemStack.RuntimeInstance = NewObject<URockItemInstance>(OwningInventory);
+		if (ItemStack.RuntimeInstance)
+		{
+			ItemStack.RuntimeInstance->OwningInventory = OwningInventory;
+		}
+		else
 		{
 			UE_LOG(LogRockInventory, Error, TEXT("Failed to create runtime instance for item stack %s"), *ItemStack.GetDebugString());
 		}
@@ -69,7 +73,7 @@ bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const 
 	{
 		return false;
 	}
-	
+
 	if (!FirstItem.CanStackWith(SecondItem))
 	{
 		return false;

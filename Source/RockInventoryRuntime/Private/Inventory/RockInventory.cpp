@@ -55,34 +55,44 @@ void URockInventory::Init(const URockInventoryConfig* config)
 		for (int32 SlotIndex = 0; SlotIndex < TabInfo.GetNumSlots(); ++SlotIndex)
 		{
 			const int32 AbsoluteSlotIndex = TabOffset + SlotIndex;
-			SlotData[SlotIndex].SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteSlotIndex);
-			SlotData[SlotIndex].ItemHandle = FRockItemStackHandle::Invalid();
-			SlotData[SlotIndex].Orientation = ERockItemOrientation::Horizontal;
-			SlotData[SlotIndex].bIsLocked = false;
+			SlotData[AbsoluteSlotIndex].SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteSlotIndex);
+			SlotData[AbsoluteSlotIndex].ItemHandle = FRockItemStackHandle::Invalid();
+			SlotData[AbsoluteSlotIndex].Orientation = ERockItemOrientation::Horizontal;
+			SlotData[AbsoluteSlotIndex].bIsLocked = false;
 		}
 	}
 }
 
-const FRockInventorySectionInfo* URockInventory::GetTabInfo(int32 TabIndex) const
+FRockInventorySectionInfo URockInventory::GetSectionInfo(const FName& SectionName) const
 {
-	if (TabIndex >= 0 && TabIndex < SlotSections.Num())
+	if (SectionName != NAME_None)
 	{
-		return &SlotSections[TabIndex];
+		for (const FRockInventorySectionInfo& SectionInfo : SlotSections)
+		{
+			if (SectionInfo.SectionName == SectionName)
+			{
+				return SectionInfo;
+			}
+		}
 	}
-	return nullptr;
+	return FRockInventorySectionInfo::Invalid();
 }
 
-int32 URockInventory::FindSectionIndex(const FName& SectionName) const
+int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
 {
-	for (int32 i = 0; i < SlotSections.Num(); i++)
+	if (SectionName != NAME_None)
 	{
-		if (SlotSections[i].SectionName == SectionName)
+		for (int32 SlotIndex = 0; SlotIndex < SlotSections.Num(); SlotIndex++)
 		{
-			return i;
+			if (SlotSections[SlotIndex].SectionName == SectionName)
+			{
+				return SlotIndex;
+			}
 		}
 	}
 	return INDEX_NONE;
 }
+
 
 FRockInventorySlotEntry URockInventory::GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
@@ -175,17 +185,6 @@ int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 He
 	return TabIndex;
 }
 
-int32 URockInventory::GetSectionIndexByID(const FName& SectionName) const
-{
-	for (int32 SlotIndex = 0; SlotIndex < SlotSections.Num(); SlotIndex++)
-	{
-		if (SlotSections[SlotIndex].SectionName == SectionName)
-		{
-			return SlotIndex;
-		}
-	}
-	return INDEX_NONE;
-}
 
 void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {

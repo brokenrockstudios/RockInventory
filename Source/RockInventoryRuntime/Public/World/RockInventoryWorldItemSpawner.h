@@ -17,8 +17,6 @@ public:
 	ARockInventoryWorldItemSpawner();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<URockItemDefinition> ItemDefinition;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockItemStack ItemStack;
 
 	UFUNCTION(BlueprintCallable, Category = "Item")

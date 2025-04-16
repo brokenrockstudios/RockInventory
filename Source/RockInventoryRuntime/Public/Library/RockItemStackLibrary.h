@@ -7,6 +7,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "RockItemStackLibrary.generated.h"
 
+class URockInventory;
 /**
  * 
  */
@@ -19,7 +20,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
 	static URockItemDefinition* GetItemDefinition(const FName& ItemId);
 	static FVector2D GetItemSize(const FRockItemStack& ItemStack);
-	static FRockItemStack CreateItemStack(const FRockItemStack& InItemStack);
+	static FRockItemStack CreateItemStack(URockInventory* OwningInventory, const FRockItemStack& InItemStack);
 	
 	/** Returns true if this stack can be combined with another stack */
 	static bool CanStackWith(const FRockItemStack& FirstItem, const FRockItemStack& SecondItem);

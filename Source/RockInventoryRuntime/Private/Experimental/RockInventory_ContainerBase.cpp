@@ -11,25 +11,15 @@
 #include "Experimental/RockInventory_Slot_ItemBase.h"
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
-#include "Library/RockItemStackLibrary.h"
 
-void URockInventory_ContainerBase::SetInventory(URockInventory* InInventory, int32 InTabIndex)
+void URockInventory_ContainerBase::SetInventory(URockInventory* InInventory, const FName& InSectionName)
 {
 	if (InInventory)
 	{
 		Inventory = InInventory;
-		TabIndex = InTabIndex;
-		TabInfo = *Inventory->GetTabInfo(TabIndex);
+		TabInfo = Inventory->GetSectionInfo(InSectionName);
 	}
-	else
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("URockInventory_ContainerBase::SetInventory - Invalid inventory, falling back to preview"));
-		TabInfo = FRockInventorySectionInfo();
-		TabInfo.SectionName = FName("Preview");
-		TabInfo.Width = Width;
-		TabInfo.Height = Height;
-	}
-	// if invalid, fall back on preview sizes?
+
 	GenerateGrid();
 	GenerateItems();
 }
@@ -38,20 +28,26 @@ void URockInventory_ContainerBase::GenerateGrid()
 {
 	GridPanel->ClearChildren();
 
+	int32 SectionIndex = INDEX_NONE;
+	if (Inventory)
+	{
+		SectionIndex = Inventory->GetSectionIndexById(TabInfo.SectionName);
+	}
 
 	for (int32 slotIndex = 0; slotIndex < TabInfo.GetNumSlots(); ++slotIndex)
 	{
-		const int32 X = slotIndex % TabInfo.Width;
-		const int32 Y = slotIndex / TabInfo.Width;
+		const int32 Column = slotIndex % TabInfo.Width;
+		const int32 Row = slotIndex / TabInfo.Width;
 		const int32 AbsoluteIndex = TabInfo.FirstSlotIndex + slotIndex;
-
+		
 		UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass_Empty, FName(*FString::Printf(TEXT("ItemSlot_%d"), slotIndex)));
 		if (URockInventory_Slot_BackgroundBase* SlotBackground = Cast<URockInventory_Slot_BackgroundBase>(newWidget))
 		{
 			SlotBackground->Inventory = Inventory;
-			SlotBackground->SlotHandle = FRockInventorySlotHandle(TabIndex, AbsoluteIndex);
+			SlotBackground->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
+			// FRockInventorySlotHandle(TabIndex, AbsoluteIndex);
 		}
-		UGridSlot* GridSlotWidget = GridPanel->AddChildToGrid(newWidget, Y, X);
+		UGridSlot* GridSlotWidget = GridPanel->AddChildToGrid(newWidget, Row, Column);
 		if (GridSlotWidget)
 		{
 			GridSlotWidget->SetHorizontalAlignment(HAlign_Fill);
@@ -89,6 +85,12 @@ void URockInventory_ContainerBase::GenerateItems()
 
 	ClearItemsFromGrid();
 
+	int32 SectionIndex = INDEX_NONE;
+	if (Inventory)
+	{
+		SectionIndex = Inventory->GetSectionIndexById(TabInfo.SectionName);
+	}
+	
 	//////////////////////////////////////////////////////////////////////////
 	/// Calculate uniform grid cell size to calculate proper positions of canvas slots
 	// float CellWidth = 0.0f;
@@ -102,39 +104,26 @@ void URockInventory_ContainerBase::GenerateItems()
 	// }
 	//////////////////////////////////////////////////////////////////////////
 
-
-	for (int32 slotIndex = TabInfo.FirstSlotIndex; slotIndex < TabInfo.FirstSlotIndex + TabInfo.GetNumSlots(); ++slotIndex)
+	for (int32 slotIndex = 0; slotIndex < TabInfo.GetNumSlots(); ++slotIndex)
 	{
-		const FRockInventorySlotEntry& TempSlot = Inventory->GetSlotByAbsoluteIndex(slotIndex);
 		const int32 Column = slotIndex % TabInfo.Width;
 		const int32 Row = slotIndex / TabInfo.Width;
-		
-		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(TempSlot.ItemHandle);
-		const URockItemDefinition* ItemDefinition = URockItemStackLibrary::GetItemDefinition(ItemStack.ItemId);
-		int32 ColumnSpan = 1;
-		int32 RowSpan = 1;
-		TSoftObjectPtr<UTexture2D> ItemIcon = nullptr;
-		if (ItemDefinition)
-		{
-			ColumnSpan = ItemDefinition->SlotDimensions.X;
-			RowSpan = ItemDefinition->SlotDimensions.Y;
-			ItemIcon = ItemDefinition->Icon;
-		}
-		else
-		{
-			UE_LOG(LogRockInventory, Warning, TEXT("GenerateItems - Item definition not found for item ID: %s"), *ItemStack.ItemId.ToString());
-			continue;
-		}
+		const int32 AbsoluteIndex = TabInfo.FirstSlotIndex + slotIndex;
+		const FRockInventorySlotEntry& TempSlot = Inventory->GetSlotByAbsoluteIndex(AbsoluteIndex);
 
+		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(TempSlot.ItemHandle);
 		if (ItemStack.IsValid())
 		{
+			const int32 ColumnSpan = ItemStack.Definition->SlotDimensions.X;
+			const int32 RowSpan = ItemStack.Definition->SlotDimensions.Y;
+
 			UUserWidget* newWidget = CreateWidget(this, ItemSlotWidgetClass, FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
 
 			if (URockInventory_Slot_ItemBase* WidgetItem = Cast<URockInventory_Slot_ItemBase>(newWidget))
 			{
 				WidgetItem->Inventory = Inventory;
-				WidgetItem->SlotHandle = TempSlot.SlotHandle;
-				WidgetItem->SetItemIcon(ItemIcon);
+				WidgetItem->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
+				WidgetItem->SetItemIcon(ItemStack.Definition->Icon);
 				// Initialize the item count display
 				WidgetItem->UpdateItemCount();
 				// Additional Setup

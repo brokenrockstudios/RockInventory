@@ -63,28 +63,19 @@ public:
 	void Init(const URockInventoryConfig* config);
 
 	/**
-	 * Get tab info by index (fastest method)
-	 * @param TabIndex - The index of the tab to retrieve
+	 * Get section info by name
+	 * @param SectionName - The name of the section to retrieve
 	 * @return Pointer to the tab info, or nullptr if index is invalid
 	 */
-	const FRockInventorySectionInfo* GetTabInfo(int32 TabIndex) const;
-
+	FRockInventorySectionInfo GetSectionInfo(const FName& SectionName) const;
+	
 	/**
-	 * Find tab index by name (slower than GetTabInfo)
-	 * @param TabName - The name of the tab to find
+	 * Find section index by name
+	 * @param SectionName - The ID of the tab to find
 	 * @return The index of the tab, or INDEX_NONE if not found
 	 */
-	int32 FindSectionIndex(const FName& SectionName) const;
-
-	/**
-	 * Get slot at specific coordinates in a tab
-	 * @param TabIndex - The tab index
-	 * @param X - The X coordinate in the tab
-	 * @param Y - The Y coordinate in the tab
-	 * @return The slot, or an empty slot if coordinates are invalid
-	 */
-	//FRockInventorySlotEntry GetSlotAt(int32 TabIndex, int32 X, int32 Y) const;
-
+	int32 GetSectionIndexById(const FName& SectionName) const;
+	
 	/**
 	 * Get slot by handle
 	 * @param InSlotHandle - The handle of the slot to retrieve
@@ -122,12 +113,6 @@ public:
 	 */
 	// TArrayView<FRockInventorySlotEntry> GetTabSlots(int32 TabIndex);
 
-	/**
-	 * Find tab index by ID
-	 * @param TabID - The ID of the tab to find
-	 * @return The index of the tab, or INDEX_NONE if not found
-	 */
-	int32 GetSectionIndexByID(const FName& SectionName) const;
 
 	/** Override to specify which properties should be replicated */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

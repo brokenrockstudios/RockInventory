@@ -36,31 +36,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UUserWidget> ItemSlotWidgetClass_Empty;
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	FRockInventorySectionInfo TabInfo;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
-	int32 Width = 4;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
-	int32 Height = 4;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
-	int32 TabIndex = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<URockInventory> Inventory;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void SetInventory(URockInventory* InInventory, int32 InTabIndex);
+	void SetInventory(URockInventory* InInventory, const FName& InSectionName);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void GenerateGrid();
 
 	void ClearItemsFromGrid();
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void GenerateItems();
-	
-	
 	
 };

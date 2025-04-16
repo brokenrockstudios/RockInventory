@@ -8,23 +8,12 @@
 #include "Item/RockItemInstance.h"
 
 FRockItemStack::FRockItemStack()
-	: ItemId(NAME_None)
+	: Definition(nullptr)
 	  , StackSize(0)
 	  , CustomValue1(0)
 	  , CustomValue2(0)
 {
 	// Default empty itemslot
-}
-
-FRockItemStack::FRockItemStack(const FName& InItemId, int32 InStackSize)
-	: ItemId(InItemId),
-	  StackSize(InStackSize)
-	  , CustomValue1(0)
-{
-	if (!ItemId.IsValid())
-	{
-		UE_LOG(LogRockInventory, Error, TEXT("ItemStack %s has no ItemId set!"), *GetDebugString());
-	}
 }
 
 FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize)
@@ -33,7 +22,7 @@ FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackS
 {
 	if (InDefinition)
 	{
-		ItemId = InDefinition->ItemId;
+		Definition = InDefinition;
 	}
 	else
 	{
@@ -48,13 +37,17 @@ FRockItemStack FRockItemStack::Invalid()
 
 FName FRockItemStack::GetItemId() const
 {
-	return ItemId;
+	if (Definition)
+	{
+		return Definition->ItemId;
+	}
+	return NAME_None;
 }
 
 bool FRockItemStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	bOutSuccess = true;
-	Ar << ItemId;
+	Ar << Definition;
 	Ar << StackSize;
 	Ar << CustomValue1;
 
@@ -74,14 +67,14 @@ bool FRockItemStack::operator==(const FRockItemStack& Other) const
 
 FString FRockItemStack::GetDebugString() const
 {
-	return FString::Printf(TEXT("ItemId=[%s], StackSize=[%d]"), *ItemId.ToString(), StackSize);
+	return FString::Printf(TEXT("ItemId=[%s], StackSize=[%d]"), *GetItemId().ToString(), StackSize);
 }
 
 bool FRockItemStack::IsValid() const
 {
 	// If we have at least 1 of an ItemID, we should be valid.
 	// We should assume a StackSize of 0 should be invalid and emptied out.
-	return (StackSize > 0) && ItemId.IsValid() && bIsOccupied;
+	return (StackSize > 0) && Definition && bIsOccupied;
 	// Many items won't ever have RuntimeInstances
 	// A definition is 'nice to have' but not required for valid item, since we only lazy load the definition in many scenarios
 }
@@ -102,7 +95,7 @@ void FRockItemStack::SetStackSize(int32 InStackSize)
 
 void FRockItemStack::Reset()
 {
-	ItemId = NAME_None;
+	Definition = nullptr;
 	StackSize = 0;
 	CustomValue1 = 0;
 	CustomValue2 = 0;
@@ -115,7 +108,7 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 	{
 		return false;
 	}
-	if (ItemId != Other.ItemId)
+	if (Definition != Other.Definition)
 	{
 		return false;
 	}

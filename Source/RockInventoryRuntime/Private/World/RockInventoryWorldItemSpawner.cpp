@@ -21,10 +21,9 @@ void ARockInventoryWorldItemSpawner::SpawnWorldItem()
 	{
 		return;
 	}
-
-	if (ItemDefinition && ItemStack.StackSize > 0)
+	
+	if (ItemStack.IsValid())
 	{
-		ItemStack.ItemId = ItemDefinition->ItemId;
 		const TSubclassOf<ARockInventoryWorldItem> ClassToSpawn = GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass;
 
 		ARockInventoryWorldItem* SpawnedActor = GetWorld()->SpawnActorDeferred<ARockInventoryWorldItem>(ClassToSpawn, GetActorTransform());

@@ -16,3 +16,13 @@ int32 FRockInventorySectionInfo::GetHeight() const
 {
 	return Height;
 }
+
+FRockInventorySectionInfo FRockInventorySectionInfo::Invalid()
+{
+	FRockInventorySectionInfo InvalidSection;
+	InvalidSection.SectionName = NAME_None;
+	InvalidSection.FirstSlotIndex = -1;
+	InvalidSection.Width = 0;
+	InvalidSection.Height = 0;
+	return InvalidSection;
+}
