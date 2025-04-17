@@ -19,21 +19,42 @@ UCLASS()
 class ROCKINVENTORYRUNTIME_API URockInventoryLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
+
 public:
 	// Core Item
-	// Add it anywhere we can. This will attempt to merge into existing stacks.
+	// Add it from anywhere. This will attempt to merge into existing stacks.
 	// In case of multiple stacks being merged, the last one will be assigned the OutHandle
-	static bool LootItemToInventory(URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess);
+	// We also will 'fully initialized' any items not initialized (e.g. Create their runtime instances)
+	static bool LootItemToInventory(
+		URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess);
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Inventory Location Manipulation
-	// Add item at a specific location a specific location and orientation.
+
+
+	/** Place an item at a specific location
+	 * @param Inventory - The inventory to place the item in
+	 * @param SlotHandle - The handle of the slot to place the item in
+	 * @param ItemStackHandle - The handle of the item stack to place
+	 * @param DesiredOrientation - The desired orientation of the item
+	 * @return true if the item was placed successfully
+	 */
 	UFUNCTION(BlueprintCallable)
-	static bool PlaceItemAtSlot(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStackHandle& ItemStackHandle, ERockItemOrientation DesiredOrientation);
+	static bool PlaceItemAtSlot(
+		URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStackHandle& ItemStackHandle,
+		ERockItemOrientation DesiredOrientation);
+
+	// Used internally to place an item at a specific location
+	static bool PlaceItemAtSlot_Internal(
+		URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack, ERockItemOrientation DesiredOrientation);
+
+	/** Remove an item at a specific location
+	 * @param Inventory - The inventory to remove the item from
+	 * @param SlotHandle - The handle of the slot to remove the item from
+	 * @return The item stack that was removed
+	 */
 	UFUNCTION(BlueprintCallable)
-	static bool GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, FRockItemStack& OutItemStack);
-	UFUNCTION(BlueprintCallable)
-	static bool RemoveItemAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle);
+	static FRockItemStack RemoveItemAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle);
 
 	/**
 	 * Move an item from one inventory to another
@@ -41,18 +62,37 @@ public:
 	 * @param SourceSlotHandle - The handle of the source slot
 	 * @param TargetInventory - The target inventory
 	 * @param TargetSlotHandle - The handle of the target slot
+	 * @param DesiredOrientation - The desired orientation of the item
 	 * @return true if the move was successful
 	 */
 	UFUNCTION(BlueprintCallable)
-	static bool MoveItem(URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
+	static bool MoveItem(
+		URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 		URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
 		ERockItemOrientation DesiredOrientation = ERockItemOrientation::Horizontal);
 
+
+	// Misc helpers
+
+	/** Get the item at a specific location
+	 * @param Inventory - The inventory to get the item from
+	 * @param SlotHandle - The handle of the slot to get the item from
+	 * @return The item stack at the specified location
+	 */
+	UFUNCTION(BlueprintCallable)
+	static FRockItemStack GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle);
+
+	/** Get the item at a specific location
+	 * @param Inventory - The inventory to get the item from
+	 * @param SlotHandle - The handle of the slot to get the item from
+	 * @return The item stack at the specified location
+	 */
 	UFUNCTION(BlueprintCallable)
 	static int32 GetItemCount(const URockInventory* Inventory, const FName& ItemId);
-	
+
 	//////////////////////////////////////////////////////////////////////////
 	// Misc Utility functions
 	static void PrecomputeOccupancyGrids(const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid);
-	static bool CanItemFitInGridPosition(const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
+	static bool CanItemFitInGridPosition(
+		const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
 };

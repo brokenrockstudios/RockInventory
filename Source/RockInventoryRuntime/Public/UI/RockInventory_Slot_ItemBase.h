@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Inventory/RockSlotHandle.h"
+#include "Item/RockItemDefinition.h"
 #include "RockInventory_Slot_ItemBase.generated.h"
 
+struct FRockItemUIData;
 struct FStreamableHandle;
 class UImage;
 class UTextBlock;
@@ -53,7 +55,7 @@ public:
 	void OnInventoryChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle);
 
 	
-	void SetItemIcon(const TSoftObjectPtr<UTexture2D>& InIconPtr);
+	void SetIconData(const FRockItemUIData& InIconData);
 	void SetIsLoading(bool bIsLoading);
 	void OnIconLoaded();
 	
@@ -62,5 +64,6 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Slot")
 	TObjectPtr<UTexture2D> FallbackIcon;
-	TSoftObjectPtr<UTexture2D> IconPtr = nullptr;
+	UPROPERTY()
+	FRockItemUIData IconData;
 };

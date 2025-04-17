@@ -54,8 +54,12 @@ private:
 	/** Tab configuration for the inventory */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = true))
 	TArray<FRockInventorySectionInfo> SlotSections;
-
 public:
+	// Owning Actor
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	TObjectPtr<AActor> OwningActor;
+
+	
 	/**
 	 * Initialize the inventory with a configuration
 	 * @param config - The configuration to use for initialization
@@ -84,9 +88,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	FRockInventorySlotEntry GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 	
-	FRockInventorySlotEntry GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const;
+	const FRockInventorySlotEntry& GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const;
+	
 	FRockItemStack GetItemBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 	FRockItemStack GetItemByHandle(const FRockItemStackHandle& InSlotHandle) const;
+	void SetItemByHandle(const FRockItemStackHandle& InSlotHandle, const FRockItemStack& InItemStack);
 
 	/**
 	 * Set the slot at the given handle
@@ -108,12 +114,14 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Broadcast the inventory changed event */
-	void BroadcastInventoryChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());
+	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());
+	void BroadcastItemChanged(const FRockItemStackHandle& RockInventorySlotHandle = FRockItemStackHandle());
 
+	
 	/** Get a debug string representation of the inventory */
 	FString GetDebugString() const;
 	
-	FRockItemStackHandle AddItemToInventory(const FRockItemStack& ItemStack);
+	FRockItemStackHandle AddItemToInventory(const FRockItemStack& InItemStack);
 
 	/** Called when the inventory changes */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
@@ -123,7 +131,7 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 /// Inline functions
-FORCEINLINE FRockInventorySlotEntry URockInventory::GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const
+FORCEINLINE const FRockInventorySlotEntry& URockInventory::GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const
 {
 	return SlotData[AbsoluteIndex];
 }

@@ -4,6 +4,7 @@
 
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventorySectionInfo.h"
+#include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
@@ -125,6 +126,20 @@ FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlo
 	return FRockItemStack::Invalid();
 }
 
+void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, const FRockItemStack& InItemStack)
+{
+	const int32 slotIndex = InSlotHandle.GetIndex();
+	if (slotIndex < 0 || slotIndex >= ItemData.Num())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("SetItemByHandle - Invalid item index"));
+		return;
+	}
+
+	ItemData[slotIndex] = InItemStack;
+	ItemData.MarkItemDirty(ItemData[slotIndex]);
+	BroadcastItemChanged(InSlotHandle);
+}
+
 void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry)
 {
 	const int32 slotIndex = InSlotHandle.GetIndex();
@@ -173,10 +188,15 @@ void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(URockInventory, SlotSections);
 }
 
-void URockInventory::BroadcastInventoryChanged(const FRockInventorySlotHandle& SlotHandle)
+void URockInventory::BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle)
 {
 	// TODO: This is just placeholder, will need to be updated to use the actual slot handle
 	OnInventoryChanged.Broadcast(this, SlotHandle);
+}
+
+void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& RockInventorySlotHandle)
+{
+	// TODO: This is just placeholder, will need to be updated to use the actual item handle
 }
 
 FString URockInventory::GetDebugString() const
@@ -185,13 +205,14 @@ FString URockInventory::GetDebugString() const
 	return GetName();
 }
 
-FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& ItemStack)
+FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& InItemStack)
 {
-	if (!ItemStack.IsValid())
+	if (!InItemStack.IsValid())
 	{
 		UE_LOG(LogRockInventory, Error, TEXT("Attempted to add an invalid item"));
 		return FRockItemStackHandle::Invalid();
 	}
+	FRockItemStack ItemStack = InItemStack;
 
 	uint32 Index = INDEX_NONE;
 
@@ -203,7 +224,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& It
 	else if (ItemData.Num() <= SlotData.Num())
 	{
 		Index = ItemData.AddDefaulted();
-		ItemData[Index].Generation = 0;
+		ItemStack.Generation = 0;
 	}
 	else
 	{
@@ -211,12 +232,27 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& It
 		return FRockItemStackHandle::Invalid();
 	}
 
+	
+	// Initialize the item stack
+	if (ItemStack.Definition->bRequiresRuntimeInstance)
+	{
+		// The outer should be the inventory that owns this item stack?
+		ItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
+		if (ItemStack.RuntimeInstance)
+		{
+			ItemStack.RuntimeInstance->OwningInventory = this;
+		}
+		else
+		{
+			UE_LOG(LogRockInventory, Error, TEXT("Failed to create runtime instance for item stack %s"), *ItemStack.GetDebugString());
+		}
+	}
+		
 	// Set up the item
+	ItemStack.bIsOccupied = true;
 	ItemData[Index] = ItemStack;
-	ItemData[Index].bIsOccupied = true;
-
-	ItemData.MarkItemDirty(ItemData[Index]);
+	ItemData.MarkItemDirty(ItemStack);
 
 	// Return handle with current index and generation
-	return FRockItemStackHandle::Create(Index, ItemData[Index].Generation);
+	return FRockItemStackHandle::Create(Index, ItemStack.Generation);
 }

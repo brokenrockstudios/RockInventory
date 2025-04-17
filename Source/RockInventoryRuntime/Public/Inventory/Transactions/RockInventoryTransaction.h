@@ -3,12 +3,30 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Inventory/RockInventory.h"
-#include "Inventory/RockSlotHandle.h"
 #include "Library/RockInventoryLibrary.h"
 #include "UObject/Object.h"
 
 #include "RockInventoryTransaction.generated.h"
+
+// Maybe we want to support asynchronous transactions?
+UENUM(BlueprintType)
+enum class ERockTransactionState : uint8
+{
+	Pending,
+	Executing,
+	Completed,
+	Failed,
+	Undoing
+};
+
+UENUM(BlueprintType)
+enum class ERockTransactionResult : uint8
+{
+	InProgress UMETA(DisplayName = "In Progress", ToolTip = "Transaction is still executing"),
+	Complete UMETA(DisplayName = "Complete", ToolTip = "Transaction has completed successfully"),
+	Failed UMETA(DisplayName = "Failed", ToolTip = "Transaction has failed"),
+};
+
 
 UENUM(BlueprintType)
 enum class ERockInventoryTransactionType : uint8
@@ -17,10 +35,10 @@ enum class ERockInventoryTransactionType : uint8
 	AddItem, // instantiate a wholly new item from nowhere
 	LootItem, // Get an item from a source that isn't necessarily another container? 
 	MoveItem, // Move an item from any inventory to any other inventory.
-	
+
 	// Destroy or remove or consume item?
 	// Modify an item somehow?
-	
+
 	// ItemUpdated,
 
 	// TabAdded,
@@ -75,75 +93,10 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTransaction
 	// Note: We could leverage the OwnerInventory to indirectly get actor's WorldLocation and other stuff
 	// It doesn't necessarily mean we are doing something with this particular inventory, as we could be moving items between 2 independent inventories
 	virtual bool CanApply(URockInventoryComponent* OwnerInventory) const { return true; }
+
+	// If we decide to support async transactions, we can use this to check if the transaction is still executing
+	// We'd need to update the TransactionManager
+	// BeginExecute, IsExecuting, UpdateExecuting, OnExecutionComplete
+	// BeginUndo, IsUndoing, UpdateUndoing, OnUndoComplete
 };
 
-
-USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockMoveItemTransaction : public FRockInventoryTransaction
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TObjectPtr<URockInventory> SourceInventory = nullptr;
-	UPROPERTY()
-	FRockInventorySlotHandle SourceSlotHandle;
-	UPROPERTY()
-	TObjectPtr<URockInventory> TargetInventory = nullptr;
-	UPROPERTY()
-	FRockInventorySlotHandle TargetSlotHandle;
-
-
-	virtual bool Execute() override
-	{
-		return URockInventoryLibrary::MoveItem(SourceInventory, SourceSlotHandle, TargetInventory, TargetSlotHandle);
-	}
-
-	virtual bool Undo() override
-	{
-		return URockInventoryLibrary::MoveItem(TargetInventory, TargetSlotHandle, SourceInventory, SourceSlotHandle);
-	}
-
-	virtual bool CanUndo() const override
-	{
-		return true;
-	}
-
-	virtual bool CanApply(URockInventoryComponent* OwnerInventory) const override
-	{
-		//URockInventoryLibrary::CanMoveItem(SourceInventory, SourceSlotHandle, TargetInventory, TargetSlotHandle);
-		return true;
-	}
-
-	virtual FString GetDescription() const override
-	{
-		return FString::Printf(TEXT("Move Item"));
-		//" from %s to %s"), *SourceInventory->GetDebugString(), *TargetInventory->GetDebugString());
-	}
-};
-
-USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockAddItemTransaction : public FRockInventoryTransaction
-{
-	GENERATED_BODY()
-	UPROPERTY()
-	TObjectPtr<URockInventory> TargetInventory = nullptr;
-	UPROPERTY()
-	FRockInventorySlotHandle TargetSlotHandle;
-	UPROPERTY()
-	FRockItemStack ItemStack;
-
-	virtual bool Execute() override
-	{
-		return false; // URockInventoryLibrary::AddItemToInventory(TargetInventory, ItemStack, TargetSlotHandle);
-	}
-
-	virtual bool Undo() override
-	{
-		return false; // URockInventoryLibrary::RemoveItem(TargetInventory, ItemStack, TargetSlotHandle);
-	}
-
-	virtual FString GetDescription() const override
-	{
-		return FString::Printf(TEXT("Add Item"));
-	}
-};

@@ -8,6 +8,7 @@
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "Inventory/RockInventory.h"
+#include "Item/RockItemDefinition.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Item/RockItemStack.h"
 
@@ -56,8 +57,8 @@ void URockInventory_Slot_ItemBase::UpdateItemCount()
 	}
 
 	// Get the item at this slot
-	FRockItemStack ItemStack;
-	if (URockInventoryLibrary::GetItemAtLocation(Inventory, SlotHandle, ItemStack))
+	const FRockItemStack& ItemStack = URockInventoryLibrary::GetItemAtLocation(Inventory, SlotHandle);
+	if (ItemStack.IsValid() && ItemStack.IsOccupied())
 	{
 		// Update the count text if stack size is greater than 1
 		if (ItemStack.GetStackSize() > 1)
@@ -88,14 +89,15 @@ void URockInventory_Slot_ItemBase::OnInventoryChanged(URockInventory* ChangedInv
 	}
 }
 
-void URockInventory_Slot_ItemBase::SetItemIcon(const TSoftObjectPtr<UTexture2D>& InIconPtr)
+void URockInventory_Slot_ItemBase::SetIconData(const FRockItemUIData& InIconData)
 {
-	IconPtr = InIconPtr;
-
+	IconData = InIconData;
+	// TODO: Use the IconData to set hover/tooltip?
+	
 	SetIsLoading(true);
 
 	// Handle null case
-	if (IconPtr.IsNull())
+	if (IconData.Icon.IsNull())
 	{
 		// Set fallback texture
 		if (FallbackIcon)
@@ -111,9 +113,9 @@ void URockInventory_Slot_ItemBase::SetItemIcon(const TSoftObjectPtr<UTexture2D>&
 	}
 
 	// If already loaded, use it immediately
-	if (IconPtr.IsValid())
+	if (IconData.Icon.IsValid())
 	{
-		ItemIcon->SetBrushFromTexture(IconPtr.Get());
+		ItemIcon->SetBrushFromTexture(IconData.Icon.Get());
 		SetIsLoading(false);
 		return;
 	}
@@ -126,7 +128,7 @@ void URockInventory_Slot_ItemBase::SetItemIcon(const TSoftObjectPtr<UTexture2D>&
 
 	// Start async load
 	StreamHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
-		IconPtr.ToSoftObjectPath(),
+		IconData.Icon.ToSoftObjectPath(),
 		FStreamableDelegate::CreateUObject(this, &URockInventory_Slot_ItemBase::OnIconLoaded)
 	);
 }
@@ -158,9 +160,9 @@ void URockInventory_Slot_ItemBase::OnIconLoaded()
 		return;
 	}
 
-	if (IconPtr.IsValid())
+	if (IconData.Icon.IsValid())
 	{
-		ItemIcon->SetBrushFromTexture(IconPtr.Get());
+		ItemIcon->SetBrushFromTexture(IconData.Icon.Get());
 	}
 	else
 	{

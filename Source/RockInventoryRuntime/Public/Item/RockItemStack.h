@@ -32,7 +32,8 @@ private:
 	// Which should be exclusively handled by this plugin and minimal amount of other classes
 	friend class URockInventory;
 	friend class URockItemStackLibrary;
-
+	friend class URockInventoryLibrary;
+	
 	/** Unique identifier for the item */
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<URockItemDefinition> Definition = nullptr;

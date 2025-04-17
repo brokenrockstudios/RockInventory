@@ -11,6 +11,7 @@
 #include "UI/RockInventory_Slot_ItemBase.h"
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
+#include "Library/RockItemStackLibrary.h"
 
 void URockInventory_ContainerBase::SetInventory(URockInventory* InInventory, const FName& InSectionName)
 {
@@ -120,9 +121,7 @@ void URockInventory_ContainerBase::GenerateItems()
 		{
 			continue;
 		}
-
-		const int32 ColumnSpan = ItemStack.GetDefinition()->SlotDimensions.X;
-		const int32 RowSpan = ItemStack.GetDefinition()->SlotDimensions.Y;
+		const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
 
 		URockInventory_Slot_ItemBase* WidgetItem = CreateWidget<URockInventory_Slot_ItemBase>(this, ItemSlotWidgetClass,
 			FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
@@ -132,7 +131,7 @@ void URockInventory_ContainerBase::GenerateItems()
 			// Setup Widget properties
 			WidgetItem->Inventory = Inventory;
 			WidgetItem->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
-			WidgetItem->SetItemIcon(ItemStack.GetDefinition()->Icon);
+			WidgetItem->SetIconData(ItemStack.GetDefinition()->IconData);
 			WidgetItem->UpdateItemCount();
 
 			// Add to grid with proper sizing
@@ -141,8 +140,8 @@ void URockInventory_ContainerBase::GenerateItems()
 			{
 				// Setting this more than 0 breaks things. Find another way to do 'padding' or internal spacing
 				GridSlot->SetPadding(FMargin(0));
-				GridSlot->SetColumnSpan(ColumnSpan);
-				GridSlot->SetRowSpan(RowSpan);
+				GridSlot->SetColumnSpan(ItemSize.X);
+				GridSlot->SetRowSpan(ItemSize.Y);
 				GridSlot->SetHorizontalAlignment(HAlign_Fill);
 				GridSlot->SetVerticalAlignment(VAlign_Fill);
 			}

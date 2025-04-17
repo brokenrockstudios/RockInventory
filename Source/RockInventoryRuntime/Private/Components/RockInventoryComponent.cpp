@@ -5,7 +5,6 @@
 
 #include "RockInventoryLogging.h"
 #include "Library/RockInventoryLibrary.h"
-#include "Library/RockItemStackLibrary.h"
 #include "Misc/DataValidation.h"
 
 #define LOCTEXT_NAMESPACE "RockInventoryComponent"
@@ -28,43 +27,40 @@ void URockInventoryComponent::BeginPlay()
 	{
 		Inventory = NewObject<URockInventory>(this, TEXT("Inventory"), RF_Transient);
 		Inventory->Init(InventoryConfig);
+		Inventory->OwningActor = GetOwner();
 	}
 }
 
 
 bool URockInventoryComponent::K2_AddItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess)
 {
-	// Sometimes when we add items, they might be 'incomplete'. Such as needing their instances created.
-	const FRockItemStack& ItemStack = URockItemStackLibrary::CreateItemStack(Inventory, InItemStack);
+	return URockInventoryLibrary::LootItemToInventory(Inventory, InItemStack, outHandle, OutExcess);
+}
 
-	return URockInventoryLibrary::LootItemToInventory(Inventory, ItemStack, outHandle, OutExcess);
+bool URockInventoryComponent::K2_LootItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess)
+{
+	return URockInventoryLibrary::LootItemToInventory(Inventory, InItemStack, outHandle, OutExcess);
+}
+
+FRockItemStack URockInventoryComponent::K2_DropItem(const FRockInventorySlotHandle& SlotHandle)
+{
+	FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(Inventory, SlotHandle);
+	if (!Item.IsValid())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("DropItem: Failed to remove item at location"));
+	}
+	return Item;
 }
 
 
-bool URockInventoryComponent::K2_RemoveItem(const FRockInventorySlotHandle& InHandle, FRockItemStack& OutItemStack)
+FRockItemStack URockInventoryComponent::K2_RemoveItem(const FRockInventorySlotHandle& InHandle)
 {
-	if (!Inventory)
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItem: Invalid Inventory"));
-		OutItemStack = FRockItemStack();
-		return false;
-	}
-
-	if (!URockInventoryLibrary::GetItemAtLocation(Inventory, InHandle, OutItemStack))
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItem: Invalid SlotHandle: %s"), *InHandle.ToString());
-		OutItemStack = FRockItemStack();
-		return false;
-	}
-
-	if (!URockInventoryLibrary::RemoveItemAtLocation(Inventory, InHandle))
+	FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(Inventory, InHandle);
+	if (!Item.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItem: Failed to remove item at location"));
-		OutItemStack = FRockItemStack();
-		return false;
 	}
-
-	return true;
+	return Item;
 }
 
 bool URockInventoryComponent::K2_HasItem(const FName ItemId, int32 MinQuantity)

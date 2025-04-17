@@ -9,6 +9,21 @@
 #include "RockItemDefinition.generated.h"
 
 class URockInventoryConfig;
+
+USTRUCT(BlueprintType)
+struct FRockItemUIData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI")
+	FText Description;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
+	TSoftObjectPtr<UTexture2D> Icon;
+};
+
+
 /**
  * 
  */
@@ -16,6 +31,7 @@ UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockItemDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
+
 public:
 	//////////////////////////////////////////////////////////////////////////	
 	// Item ID
@@ -36,7 +52,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	FVector2D SlotDimensions;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
-	TSoftObjectPtr<UTexture2D> Icon;
+	FRockItemUIData IconData;
 	//////////////////////////////////////////////////////////////////////////
 	/// Information
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
@@ -77,10 +93,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSoftObjectPtr<URockInventoryConfig> InventoryConfig = nullptr;
 	//////////////////////////////////////////////////////////////////////////
-	/// Misc
-	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc")
+	/// Sound
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc", meta = (AssetBundles= "UI"))
+	TSoftObjectPtr<USoundBase> InventoryMoveSoundOverride = nullptr;
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc", meta = (AssetBundles= "Gameplay"))
 	TSoftObjectPtr<USoundBase> PickupSoundOverride = nullptr;
-	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc")
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc", meta = (AssetBundles= "Gameplay"))
 	TSoftObjectPtr<USoundBase> DropSoundOverride = nullptr;
 
 	///////////////////////////////////////////////////////////////////////////

@@ -23,38 +23,11 @@ FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 	checkf(ItemStack.IsValid(), TEXT("ItemStack is invalid!"));
 	if (ItemStack.IsValid())
 	{
-		return ItemStack.GetDefinition()->SlotDimensions;
+		const FVector2D Size = ItemStack.GetDefinition()->SlotDimensions;
+		checkf(Size.X > 0 && Size.Y > 0, TEXT("ItemStack %s has invalid size!"), *ItemStack.GetDebugString());
+		return Size;
 	}
 	return FVector2D(1, 1);
-}
-
-FRockItemStack URockItemStackLibrary::CreateItemStack(URockInventory* OwningInventory, const FRockItemStack& InItemStack)
-{
-	checkf(OwningInventory, TEXT("CreateItemStack called with invalid inventory!"));
-	FRockItemStack ItemStack = InItemStack;
-	ItemStack.bIsOccupied = true;
-
-	checkf(ItemStack.IsValid(), TEXT("CreateItemStack called with invalid item stack!"));
-	if (!ItemStack.IsValid())
-	{
-		return FRockItemStack::Invalid();
-	}
-	
-	// This could be a good time to LoadAsync certain aspects of the ItemDefinition
-	if (ItemStack.Definition->bRequiresRuntimeInstance)
-	{
-		// The outer should be the inventory that owns this item stack?
-		ItemStack.RuntimeInstance = NewObject<URockItemInstance>(OwningInventory);
-		if (ItemStack.RuntimeInstance)
-		{
-			ItemStack.RuntimeInstance->OwningInventory = OwningInventory;
-		}
-		else
-		{
-			UE_LOG(LogRockInventory, Error, TEXT("Failed to create runtime instance for item stack %s"), *ItemStack.GetDebugString());
-		}
-	}
-	return ItemStack;
 }
 
 bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const FRockItemStack& SecondItem)

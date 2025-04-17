@@ -5,7 +5,6 @@
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventory.h"
 #include "Inventory/RockInventorySectionInfo.h"
-#include "Item/RockItemDefinition.h"
 #include "Library/RockItemStackLibrary.h"
 
 
@@ -19,31 +18,25 @@ bool URockInventoryLibrary::LootItemToInventory(
 		return false;
 	}
 
-	const FVector2D ItemSize = ItemStack.GetDefinition()->SlotDimensions;
-	if (ItemSize.X <= 0 || ItemSize.Y <= 0)
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Item Size"));
-		return false;
-	}
-
 	// Create temporary occupancy grids for each tab
 	TArray<bool> OccupancyGrids;
 	PrecomputeOccupancyGrids(Inventory, OccupancyGrids);
 
 	TArray<FRockInventorySectionInfo> SlotSections = Inventory->SlotSections;
+	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
 
 	for (const FRockInventorySlotEntry Slot : Inventory->SlotData)
 	{
 		FRockInventorySlotHandle SlotHandle = Slot.SlotHandle;
 		const FRockInventorySectionInfo& SectionInfo = SlotSections[SlotHandle.GetSectionIndex()];
 		const int32 SectionSlotIndex = SlotHandle.GetIndex() - SectionInfo.FirstSlotIndex;
-		const int32 Column = SectionSlotIndex  % SectionInfo.Width;
+		const int32 Column = SectionSlotIndex % SectionInfo.Width;
 		const int32 Row = SectionSlotIndex / SectionInfo.Width;
-		
+
 		// TODO: If we have a stackable item, we should check if we can stack it instead of placing it
 		// And continue to the next slot
 		// if CanMergeItemAtLocation(Inventory, SlotHandle, ItemStack)
-		if (CanItemFitInGridPosition( OccupancyGrids, SectionInfo, Column, Row, ItemSize))
+		if (CanItemFitInGridPosition(OccupancyGrids, SectionInfo, Column, Row, ItemSize))
 		{
 			const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStack);
 			OutHandle = SlotHandle;
@@ -73,11 +66,22 @@ bool URockInventoryLibrary::PlaceItemAtSlot(
 		Slot.Orientation = DesiredOrientation;
 		Inventory->SetSlotByHandle(SlotHandle, Slot);
 
-		Inventory->BroadcastInventoryChanged(SlotHandle);
+		Inventory->BroadcastSlotChanged(SlotHandle);
 		return true;
 	}
 
 	UE_LOG(LogRockInventory, Warning, TEXT("PlaceItemAtLocation Failed"));
+	return false;
+}
+
+bool URockInventoryLibrary::PlaceItemAtSlot_Internal(
+	URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack, ERockItemOrientation DesiredOrientation)
+{
+	if (SlotHandle.IsValid())
+	{
+		const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStack);
+		return PlaceItemAtSlot(Inventory, SlotHandle, ItemHandle, DesiredOrientation);
+	}
 	return false;
 }
 
@@ -148,41 +152,51 @@ bool URockInventoryLibrary::CanItemFitInGridPosition(
 }
 
 
-bool URockInventoryLibrary::GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, FRockItemStack& OutItemStack)
+FRockItemStack URockInventoryLibrary::GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle)
 {
 	if (!Inventory)
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("GetItemAtLocation: Invalid Inventory"));
-		OutItemStack = FRockItemStack();
-		return false;
+		return FRockItemStack::Invalid();
 	}
-	OutItemStack = Inventory->GetItemBySlotHandle(SlotHandle);
-	return OutItemStack.IsValid();
+	return Inventory->GetItemBySlotHandle(SlotHandle);
 }
 
-bool URockInventoryLibrary::RemoveItemAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle)
+FRockItemStack URockInventoryLibrary::RemoveItemAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle)
 {
 	if (!Inventory)
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Inventory"));
-		return false;
+		return FRockItemStack::Invalid();
 	}
 
 	const int32 slotIndex = SlotHandle.GetIndex();
 	if (slotIndex < 0 || slotIndex >= Inventory->SlotData.Num())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid SlotHandle: %s"), *SlotHandle.ToString());
-		return false;
+		return FRockItemStack::Invalid();
 	}
+
 	FRockInventorySlotEntry Slot = Inventory->GetSlotByHandle(SlotHandle);
-	Slot.ItemHandle = FRockItemStackHandle::Invalid();
-	Inventory->SetSlotByHandle(SlotHandle, Slot);
+	FRockItemStack Item = Inventory->GetItemByHandle(Slot.ItemHandle);
+	const FRockItemStackHandle handle = Slot.ItemHandle;
+	
+	// Invalidate the slot
+	{
+		Slot.ItemHandle = FRockItemStackHandle::Invalid();
+		Inventory->SetSlotByHandle(SlotHandle, Slot);
+	}
+	// make a copy of the ItemStack
+	FRockItemStack OutItemStack = Item;
+	{
+		// Invalidate the original item
+		Item.bIsOccupied = false;
+		Item.Generation++;
+		Inventory->SetItemByHandle(handle, Item);
+	}
+	Inventory->BroadcastSlotChanged(Slot.SlotHandle);
 
-	// TODO: When/how should we drop the underlying item?
-	// Inventory->ItemData[slotIndex].Reset();
-
-	Inventory->BroadcastInventoryChanged(SlotHandle);
-	return true;
+	return OutItemStack;
 }
 
 
@@ -256,8 +270,8 @@ bool URockInventoryLibrary::MoveItem(
 
 		// If these are the same inventory, should we handle this differently?
 		// Technically we probably want a different 'event' for how this was handled?
-		SourceInventory->BroadcastInventoryChanged(SourceSlotHandle);
-		TargetInventory->BroadcastInventoryChanged(TargetSlotHandle);
+		SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
+		TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
 		return true;
 	}
 	else

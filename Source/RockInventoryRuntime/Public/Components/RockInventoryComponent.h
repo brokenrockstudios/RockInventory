@@ -43,18 +43,27 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Add Item"))
 	bool K2_AddItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess);
+	
+	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Loot Item"))
+	bool K2_LootItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess);
 
+	// After calling this, the item will cease to exist in this inventory, do something with it! 
+	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Loot Item"))
+	FRockItemStack K2_DropItem(const FRockInventorySlotHandle& SlotHandle);
+	
 	/**
 	 * Removes an item from the inventory
 	 * @param InHandle The handle to the slot where the item is located
-	 * @param OutItemStack Output parameter with the item stack that was removed
-	 * @return True if at least some of the item was removed
+	 * @return The item stack that was removed
 	 */
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Remove Item"))
-	bool K2_RemoveItem(const FRockInventorySlotHandle& InHandle, FRockItemStack& OutItemStack);
+	FRockItemStack K2_RemoveItem(const FRockInventorySlotHandle& InHandle);
+
+
+	// Misc
 	bool K2_HasItem(FName ItemId, int32 MinQuantity);
 	int32 K2_GetItemCount(FName ItemId);
-
+	
 #if WITH_EDITOR
 	// Validation
     virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
