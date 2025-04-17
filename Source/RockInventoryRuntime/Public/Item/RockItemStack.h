@@ -29,7 +29,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 private:
 	// Generally this item stack is read only.
 	// Because to modify it, requires special attention to marking the containing array dirty for replication.
-	// Which should be exclusively handled by this plugin and minimal amount of classes
+	// Which should be exclusively handled by this plugin and minimal amount of other classes
 	friend class URockInventory;
 	friend class URockItemStackLibrary;
 

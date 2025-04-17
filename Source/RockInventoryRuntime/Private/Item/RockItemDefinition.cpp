@@ -3,6 +3,8 @@
 
 #include "Item/RockItemDefinition.h"
 
+#include "Engine/AssetManager.h"
+
 void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewItem)
 {
 	checkf(false, TEXT("RegisterItemDefinition is not tested yet!"));
