@@ -8,7 +8,6 @@
 #include "UObject/Object.h"
 #include "RockInventoryTransactionManager.generated.h"
 
-struct FRockInventoryTransaction;
 /**
  * 
  */
@@ -18,7 +17,7 @@ class ROCKINVENTORYRUNTIME_API URockInventoryTransactionManager : public UObject
 	GENERATED_BODY()
 private:
 	// Transaction history
-	TArray<TSharedPtr<FRockInventoryTransaction>> TransactionHistory;
+	TArray<TObjectPtr<URockInventoryTransaction>> TransactionHistory;
 	// Current position in the transaction history
 	int32 CurrentTransactionIndex = -1;
 	// Maximum history length
@@ -32,7 +31,7 @@ public:
 	void Initialize(URockInventoryComponent* InOwnerInventory, int32 InMaxHistoryLength = 25);
 
 	// Execute and record a transaction
-	bool BeginTransaction(const TSharedPtr<FRockInventoryTransaction>& Transaction);
+	bool BeginTransaction(URockInventoryTransaction* Transaction);
     
 	// Undo the last transaction
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
@@ -68,14 +67,14 @@ public:
 
 
 	UFUNCTION(BlueprintCallable,Category="Inventory|Transactions")
-	bool K2_BeginDrop(const FRockDropItemTransaction & Transaction);
+	bool K2_BeginDrop(URockDropItemTransaction* Transaction);
 	
 
 	
 	/**
 	 * Execute a transaction 
 	 *
-	 * @param Transaction			The transaction to execute (must be derived from FRockInventoryTransaction)
+	 * @param Transaction			The transaction to execute (must be derived from URockInventoryTransaction)
 	 */
 	// UFUNCTION(BlueprintCallable, CustomThunk, Category="Inventory|Transactions", meta=(CustomStructureParam="Transaction", AllowAbstract="false", DisplayName="Begin Transaction"))
 	// bool K2_BeginTransaction(const int32& Transaction);

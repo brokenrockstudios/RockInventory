@@ -7,17 +7,17 @@
 #include "Item/World/RockInventoryWorldItem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/RockInventoryDeveloperSettings.h"
-#include "StructUtils/InstancedStruct.h"
 #include "UObject/Object.h"
 #include "RockDropItemTransaction.generated.h"
 
 /**
  *
  */
-USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockDropItemTransaction : public FRockInventoryTransaction
+UCLASS(BlueprintType, Blueprintable)
+class ROCKINVENTORYRUNTIME_API URockDropItemTransaction : public URockInventoryTransaction
 {
 	GENERATED_BODY()
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> SourceInventory = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -33,32 +33,34 @@ struct ROCKINVENTORYRUNTIME_API FRockDropItemTransaction : public FRockInventory
 	TWeakObjectPtr<ARockInventoryWorldItem> SpawnedItemStack = nullptr;
 	UPROPERTY()
 	ERockItemOrientation ExistingOrientation;
-	
-	virtual bool Execute() override
+
+	virtual bool Execute_Implementation() 
 	{
-		FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(SourceInventory, SourceSlotHandle);
+		const FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(SourceInventory, SourceSlotHandle);
 		if (!Item.IsValid())
 		{
 			return false;
 		}
-		
+
 		ExistingOrientation = SourceInventory->GetSlotByHandle(SourceSlotHandle).Orientation;
 		FTransform Transform = SourceInventory->OwningActor->GetActorTransform();
-		Transform.AddToTranslation(DropLocationOffset);
+		Transform.AddToTranslation(Transform.GetRotation().GetForwardVector() * DropLocationOffset.Size());
+		
 		ARockInventoryWorldItem* NewWorldItem = SourceInventory->OwningActor->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItem>(
 			GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass, Transform);
-	
-		if (IsValid(NewWorldItem)) {
-			NewWorldItem->SetItemStack(Item);
+
+		if (IsValid(NewWorldItem))
+		{
+			NewWorldItem->Execute_SetItemStack(NewWorldItem, Item);
 			UGameplayStatics::FinishSpawningActor(NewWorldItem, Transform);
 			SpawnedItemStack = NewWorldItem;
 			return true;
 		}
-		
+
 		return false;
 	}
 
-	virtual bool Undo() override
+	virtual bool Undo_Implementation() override
 	{
 		if (!SpawnedItemStack.IsValid())
 		{
@@ -68,7 +70,7 @@ struct ROCKINVENTORYRUNTIME_API FRockDropItemTransaction : public FRockInventory
 
 		// Get the item stack from the world item before destroying it
 		const FRockItemStack Item = SpawnedItemStack->GetItemStack();
-		
+
 		// Destroy the world item
 		SpawnedItemStack->Destroy();
 		SpawnedItemStack = nullptr;
@@ -101,7 +103,7 @@ struct ROCKINVENTORYRUNTIME_API FRockDropItemTransaction : public FRockInventory
 		}
 
 		FRockItemStack Item = URockInventoryLibrary::GetItemAtLocation(SourceInventory, SourceSlotHandle);
-		return FString::Printf(TEXT("Drop %s from %s"), 
+		return FString::Printf(TEXT("Drop %s from %s"),
 			*Item.GetDebugString(),
 			*SourceInventory->GetDebugString());
 	}

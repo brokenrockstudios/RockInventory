@@ -3,6 +3,7 @@
 #include "Item/World/RockInventoryWorldItem.h"
 
 #include "RockInventoryLogging.h"
+#include "Components/RockInventoryComponent.h"
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
 #include "Library/RockItemStackLibrary.h"
@@ -28,7 +29,8 @@ ARockInventoryWorldItem::ARockInventoryWorldItem(const FObjectInitializer& Objec
 void ARockInventoryWorldItem::BeginPlay()
 {
 	Super::BeginPlay();
-	SetItemStack(ItemStack);
+	// Normally we shouldn't call the implementation directly, but 🤷‍♂️
+	SetItemStack_Implementation(ItemStack);
 }
 
 void ARockInventoryWorldItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -37,7 +39,7 @@ void ARockInventoryWorldItem::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(ARockInventoryWorldItem, ItemStack);
 }
 
-void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
+void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& InItemStack)
 {
 	// Should we properly initialize this InItemStack (e.g. create the item instance now or 'later'?)
 	// currently assuming we will only create it upon 'looting' the item.
@@ -76,9 +78,38 @@ void ARockInventoryWorldItem::SetItemStack(const FRockItemStack& InItemStack)
 	}
 }
 
-FRockItemStack ARockInventoryWorldItem::GetItemStack() const
+FRockItemStack ARockInventoryWorldItem::GetItemStack_Implementation() const
 {
 	return ItemStack;
+}
+
+void ARockInventoryWorldItem::PickedUp_Implementation(AActor* InInstigator)
+{
+	IRockWorldItemInterface::PickedUp_Implementation(InInstigator);
+	// if instigator has an inventory, add the item to it, then destroy this actor
+	URockInventoryComponent* Inventory = Cast<URockInventoryComponent>(InInstigator->GetComponentByClass(URockInventoryComponent::StaticClass()));
+	if (Inventory)
+	{
+		int32 outExcess;
+		FRockInventorySlotHandle outHandle;
+		if (Inventory->K2_LootItem(ItemStack, outHandle, outExcess))
+		{
+			ItemStack.StackSize = outExcess;
+			if (outExcess <= 0)
+			{
+				// Successfully added to inventory, destroy this actor
+				this->Destroy();
+			}
+		}
+		else
+		{
+			UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::PickedUp - Failed to add item to inventory"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::PickedUp - Instigator does not have an inventory"));
+	}
 }
 
 void ARockInventoryWorldItem::OnRep_ItemStack()

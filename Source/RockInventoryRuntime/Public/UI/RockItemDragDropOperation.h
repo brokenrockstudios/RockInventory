@@ -27,4 +27,6 @@ public:
 	// We can get the itemstack if we need it from the sourceslot's item handle
 	// UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "DragDrop")
 	// FRockItemStack SourceStack;
+
+	// virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;
 };

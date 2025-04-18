@@ -57,10 +57,11 @@ enum class ERockInventoryTransactionType : uint8
 // A transaction Base class
 // This is a base class for all transactions. It should be used to create a transaction system.
 // It should be used to create a transaction system that can be used to undo/redo transactions.
-USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockInventoryTransaction
+UCLASS(BlueprintType, Blueprintable)
+class ROCKINVENTORYRUNTIME_API URockInventoryTransaction : public UObject
 {
 	GENERATED_BODY()
+public:
 	// If a NPC or non player controller modified the inventory.
 	// We likely will want to invalidate the transaction history
 	// e.g. A NPC gave you a quest item, you don't want to be able to undo that!
@@ -74,18 +75,25 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryTransaction
 	ERockInventoryTransactionType TransactionType = ERockInventoryTransactionType::None;
 
 
-	FRockInventoryTransaction()
+	URockInventoryTransaction()
 		: Instigator(nullptr)
 		  , Timestamp(FDateTime::Now())
 	{
 	}
 
-	virtual ~FRockInventoryTransaction() = default;
-	virtual bool Execute() { return false; }
+
+	UFUNCTION(BlueprintNativeEvent, Category="Transaction")
+	bool Execute();
+	virtual bool Execute_Implementation() { return false; }
 	virtual bool Redo() { return Execute(); }
-	virtual bool Undo() { return false; }
-	/* For commands that can't be undone, override this */
+	
+	UFUNCTION(BlueprintNativeEvent, Category="Transaction")
+	bool Undo();
+	virtual bool Undo_Implementation() { return false; }
+	
+	/* For commands that can't be undone, override this or conditionally check if CanUndo occur */
 	virtual bool CanUndo() const { return true; }
+	
 	virtual FString GetDescription() const { return TEXT("No Description"); }
 
 	// Can check if the transaction can be applied to the inventory (e.g. is there free space, are you 'close enough' to the item

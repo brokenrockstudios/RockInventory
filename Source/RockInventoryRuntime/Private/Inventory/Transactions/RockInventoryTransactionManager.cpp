@@ -3,7 +3,6 @@
 
 #include "Inventory/Transactions/RockInventoryTransactionManager.h"
 
-#include "Blueprint/BlueprintExceptionInfo.h"
 #include "Inventory/Transactions/RockDropItemTransaction.h"
 #include "Inventory/Transactions/RockInventoryTransaction.h"
 
@@ -21,7 +20,7 @@ void URockInventoryTransactionManager::Initialize(URockInventoryComponent* InOwn
 	ClearHistory();
 }
 
-bool URockInventoryTransactionManager::BeginTransaction(const TSharedPtr<FRockInventoryTransaction>& Transaction)
+bool URockInventoryTransactionManager::BeginTransaction(URockInventoryTransaction* Transaction)
 {
 	if (!Transaction || !OwnerInventory)
 	{
@@ -52,10 +51,8 @@ bool URockInventoryTransactionManager::BeginTransaction(const TSharedPtr<FRockIn
 			TransactionHistory.RemoveAt(0);
 			CurrentTransactionIndex--;
 		}
-
 		return true;
 	}
-
 	return false;
 }
 
@@ -66,7 +63,7 @@ bool URockInventoryTransactionManager::UndoLastTransaction()
 		return false;
 	}
 
-	const TSharedPtr<FRockInventoryTransaction> Transaction = TransactionHistory[CurrentTransactionIndex];
+	URockInventoryTransaction* Transaction = TransactionHistory[CurrentTransactionIndex].Get();
 	if (Transaction->Undo())
 	{
 		CurrentTransactionIndex--;
@@ -83,7 +80,7 @@ bool URockInventoryTransactionManager::RedoTransaction()
 		return false;
 	}
 
-	const TSharedPtr<FRockInventoryTransaction> Transaction = TransactionHistory[CurrentTransactionIndex + 1];
+	URockInventoryTransaction* Transaction = TransactionHistory[CurrentTransactionIndex + 1];
 	if (Transaction->Redo())
 	{
 		CurrentTransactionIndex++;
@@ -120,13 +117,11 @@ bool URockInventoryTransactionManager::CanRedo() const
 	return TransactionHistory.Num() > 0 && CurrentTransactionIndex < TransactionHistory.Num() - 1;
 }
 
-bool URockInventoryTransactionManager::K2_BeginDrop(const FRockDropItemTransaction& Transaction)
+bool URockInventoryTransactionManager::K2_BeginDrop(URockDropItemTransaction* Transaction)
 {
-	// create a new transaction and pass it into BeginTransaction
-	TSharedPtr<FRockInventoryTransaction> NewTransaction = MakeShared<FRockDropItemTransaction>(Transaction);
-	return BeginTransaction(NewTransaction);
+	return BeginTransaction(Transaction);
 }
-//
+
 // bool URockInventoryTransactionManager::K2_BeginTransaction(const int32& Transaction)
 // {
 // 	// This will never be called, the exec version below will be hit instead

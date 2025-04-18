@@ -33,6 +33,7 @@ private:
 	friend class URockInventory;
 	friend class URockItemStackLibrary;
 	friend class URockInventoryLibrary;
+	friend class ARockInventoryWorldItem; // I don't like this being here, redesign to not need
 	
 	/** Unique identifier for the item */
 	UPROPERTY(EditAnywhere)

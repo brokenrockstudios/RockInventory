@@ -36,10 +36,10 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment_FuelData : public FRockItemFra
 public:
 	// total KJ per count
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fuel")
-	float EnergyContent;
+	float EnergyContent = 0.0f;
 	// Total burn time
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fuel")
-	float BurnDuration;
+	float BurnDuration = 1.0f;
 	// The temperature of the fuel output
 	// Fixed 300 C for now if/where it matters
 
@@ -73,7 +73,7 @@ struct FProductEntry
 	TSoftObjectPtr<URockItemDefinition> ItemDef;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Quantity;
+	int32 Quantity = 1;
 
 	// TODO: Optionally add product-specific properties here
 	// For example, if different products can have different temperatures:
@@ -94,17 +94,17 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment_ReactionData : public FRockIte
 
 	// Total Energy.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reaction")
-	float EnergyOutput;
+	float EnergyOutput = 0.0f;
 	// Internally we always use Celsius
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reaction", meta=(Units = "Celsius"))
-	float OutputTemperature;
+	float OutputTemperature = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reaction")
-	float BaseReactionTime;
+	float BaseReactionTime = 1.0f; // Base reaction time in seconds
 
 
 	// Optional temperature range for the reaction
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reaction")
-	float TemperatureMin;
+	float TemperatureMin = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reaction")
-	float TemperatureMax;
+	float TemperatureMax = 1000.0f;
 };

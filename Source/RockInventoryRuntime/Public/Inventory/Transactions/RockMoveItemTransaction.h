@@ -9,8 +9,8 @@
  * 
  */
 
-USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockMoveItemTransaction : public FRockInventoryTransaction
+UCLASS(BlueprintType, Blueprintable)
+class ROCKINVENTORYRUNTIME_API URockMoveItemTransaction : public URockInventoryTransaction
 {
 	GENERATED_BODY()
 public:
@@ -24,12 +24,12 @@ public:
 	FRockInventorySlotHandle TargetSlotHandle;
 
 
-	virtual bool Execute() override
+	virtual bool Execute_Implementation() override
 	{
 		return URockInventoryLibrary::MoveItem(SourceInventory, SourceSlotHandle, TargetInventory, TargetSlotHandle);
 	}
 
-	virtual bool Undo() override
+	virtual bool Undo_Implementation() override
 	{
 		return URockInventoryLibrary::MoveItem(TargetInventory, TargetSlotHandle, SourceInventory, SourceSlotHandle);
 	}

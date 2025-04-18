@@ -12,10 +12,11 @@ class URockInventory;
 /**
  *
  */
-USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockAddItemTransaction : public FRockInventoryTransaction
+UCLASS(BlueprintType, Blueprintable)
+class ROCKINVENTORYRUNTIME_API URockAddItemTransaction : public URockInventoryTransaction
 {
 	GENERATED_BODY()
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> TargetInventory = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -23,17 +24,17 @@ struct ROCKINVENTORYRUNTIME_API FRockAddItemTransaction : public FRockInventoryT
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockItemStack ItemStack;
 
-	virtual bool Execute() override
+	virtual bool Execute_Implementation() override
 	{
 		return false; // URockInventoryLibrary::AddItemToInventory(TargetInventory, ItemStack, TargetSlotHandle);
 	}
 
-	virtual bool Undo() override
+	virtual bool Undo_Implementation()
 	{
 		return false; // URockInventoryLibrary::RemoveItem(TargetInventory, ItemStack, TargetSlotHandle);
 	}
 
-	virtual FString GetDescription() const override
+	virtual FString GetDescription_Implementation() const
 	{
 		return FString::Printf(TEXT("Add Item"));
 	}
