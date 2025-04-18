@@ -7,13 +7,32 @@
 #include "Item/RockItemInstance.h"
 #include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
 
-URockItemDefinition* URockItemStackLibrary::GetItemDefinition(const FName& ItemId)
+URockItemDefinition* URockItemStackLibrary::GetItemDefinitionById(const FName& ItemId)
 {
 	if (const URockItemRegistrySubsystem* ItemRegistry = URockItemRegistrySubsystem::GetInstance())
 	{
 		return ItemRegistry->FindDefinition(ItemId);
 	}
 	return nullptr;
+}
+
+URockItemDefinition* URockItemStackLibrary::GetItemDefinition(const FRockItemStack& ItemStack)
+{
+	return ItemStack.GetDefinition();
+}
+
+URockItemInstance* URockItemStackLibrary::GetRuntimeInstance(const FRockItemStack& ItemStack)
+{
+	if (ItemStack.IsValid())
+	{
+		return ItemStack.GetRuntimeInstance();
+	}
+	return nullptr;
+}
+
+int32 URockItemStackLibrary::GetStackSize(const FRockItemStack& ItemStack)
+{
+	return ItemStack.StackSize;
 }
 
 FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
@@ -51,7 +70,7 @@ bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const 
 
 int32 URockItemStackLibrary::GetMaxStackSize(const FRockItemStack& ItemStack)
 {
-	if (const URockItemDefinition* Def = GetItemDefinition(ItemStack.GetItemId()))
+	if (const URockItemDefinition* Def = ItemStack.GetDefinition())
 	{
 		return Def->MaxStackSize;
 	}

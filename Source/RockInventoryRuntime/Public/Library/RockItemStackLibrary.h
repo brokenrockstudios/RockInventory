@@ -9,7 +9,7 @@
 
 class URockInventory;
 /**
- * 
+ * Since the ItemStack is a struct, Unreal doesn't support UFUNCTION on it directly. So we use the Blueprint Function Library.
  */
 UCLASS()
 class ROCKINVENTORYRUNTIME_API URockItemStackLibrary : public UBlueprintFunctionLibrary
@@ -19,7 +19,16 @@ class ROCKINVENTORYRUNTIME_API URockItemStackLibrary : public UBlueprintFunction
 public:
 	/** Returns the item definition for this item stack */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
-	static URockItemDefinition* GetItemDefinition(const FName& ItemId);
+	static URockItemDefinition* GetItemDefinitionById(const FName& ItemId);
+	
+	UFUNCTION(BlueprintPure, Category = "RockInventory|ItemStack")
+	static URockItemDefinition* GetItemDefinition(const FRockItemStack& ItemStack);
+
+	UFUNCTION(BlueprintPure, BlueprintCallable, Category = "RockInventory|ItemStack")
+	static URockItemInstance* GetRuntimeInstance(const FRockItemStack& ItemStack);
+
+	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
+	static int32 GetStackSize(const FRockItemStack& ItemStack);
 
 	/** Returns the size of the item stack in slots */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")

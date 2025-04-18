@@ -140,18 +140,31 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 bool URockInventoryLibrary::CanItemFitInGridPosition(
 	const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize)
 {
-	for (int32 ItemY = 0; ItemY < ItemSize.Y; ++ItemY)
+	const int32 ItemSizeX = ItemSize.X;
+	const int32 ItemSizeY = ItemSize.Y;
+	
+	// pre-check to avoid wasting time on partial fits
+	if  (X < 0 || Y < 0 || X + ItemSizeX > TabInfo.Width || Y + ItemSizeY > TabInfo.Height)
 	{
-		for (int32 ItemX = 0; ItemX < ItemSize.X; ++ItemX)
+		// Out of bounds
+		return false;
+	}
+
+	
+	for (int32 ItemY = 0; ItemY < ItemSizeY; ++ItemY)
+	{
+		for (int32 ItemX = 0; ItemX < ItemSizeX; ++ItemX)
 		{
 			const int32 GridIndex = TabInfo.FirstSlotIndex + ((Y + ItemY) * TabInfo.Width + (X + ItemX));
 			if (GridIndex < 0 || GridIndex >= OccupancyGrid.Num())
 			{
-				return false; // Out of bounds
+				// Out of bounds
+				return false;
 			}
 			if (OccupancyGrid[GridIndex])
 			{
-				return false; // Cell is occupied
+				// Cell is occupied
+				return false;
 			}
 		}
 	}
@@ -290,10 +303,6 @@ bool URockInventoryLibrary::MoveItem(
 		}
 		
 		return true;
-	}
-	else
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Failed to place item at target location"));
 	}
 
 	//////////////////////////////////////////////////////////////////////

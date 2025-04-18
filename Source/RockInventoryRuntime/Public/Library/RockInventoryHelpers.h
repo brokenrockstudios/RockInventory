@@ -39,7 +39,9 @@
 	void Reserve(int32 NewCapacity) { PropertyName.Reserve(NewCapacity); } \
 	void AddUninitialized(int32 Count) { PropertyName.AddUninitialized(Count); } \
 	int32 AddDefaulted(int32 Count) { return PropertyName.AddDefaulted(Count); } \
-    int32 AddDefaulted() { return PropertyName.AddDefaulted(); }
+    int32 AddDefaulted() { return PropertyName.AddDefaulted(); } \
+	/* Misc */ \
+	bool ContainsIndex(int32 Index) const { return Index >= 0 && PropertyName.Num(); }
 
 
 // No direct int32 access. Always assume we want to access via handle

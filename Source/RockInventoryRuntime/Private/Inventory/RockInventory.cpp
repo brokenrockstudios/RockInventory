@@ -98,7 +98,7 @@ int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
 FRockInventorySlotEntry URockInventory::GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
 	const int32 slotIndex = InSlotHandle.GetIndex();
-	if (slotIndex < 0 || slotIndex >= SlotData.Num())
+	if (!SlotData.ContainsIndex(slotIndex))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotByHandle - Invalid slot index"));
 		return FRockInventorySlotEntry::Invalid();
@@ -119,7 +119,7 @@ FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlo
 		return FRockItemStack::Invalid();
 	}
 	const int32 index = InSlotHandle.GetIndex();
-	if (index < 0 || index >= ItemData.Num())
+	if (!ItemData.ContainsIndex(index))
 	{
 		return FRockItemStack::Invalid();
 	}
@@ -134,7 +134,7 @@ FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlo
 void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, const FRockItemStack& InItemStack)
 {
 	const int32 slotIndex = InSlotHandle.GetIndex();
-	if (slotIndex < 0 || slotIndex >= ItemData.Num())
+	if (!ItemData.ContainsIndex(slotIndex))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("SetItemByHandle - Invalid item index"));
 		return;
@@ -148,7 +148,7 @@ void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, c
 void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry)
 {
 	const int32 slotIndex = InSlotHandle.GetIndex();
-	if (slotIndex < 0 || slotIndex >= SlotData.Num())
+	if (!SlotData.ContainsIndex(slotIndex))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("SetSlotByHandle - Invalid slot index"));
 		return;
@@ -237,7 +237,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		return FRockItemStackHandle::Invalid();
 	}
 
-	
+
 	// Initialize the item stack
 	if (ItemStack.Definition->bRequiresRuntimeInstance)
 	{
@@ -252,7 +252,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 			UE_LOG(LogRockInventory, Error, TEXT("Failed to create runtime instance for item stack %s"), *ItemStack.GetDebugString());
 		}
 	}
-		
+
 	// Set up the item
 	ItemStack.bIsOccupied = true;
 	ItemData[Index] = ItemStack;

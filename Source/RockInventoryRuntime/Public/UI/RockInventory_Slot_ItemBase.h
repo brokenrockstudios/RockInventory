@@ -54,8 +54,9 @@ public:
 	UFUNCTION()
 	void OnInventoryChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle);
 
-	
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void SetIconData(const FRockItemUIData& InIconData);
+	
 	void SetIsLoading(bool bIsLoading);
 	void OnIconLoaded();
 	

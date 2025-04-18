@@ -7,7 +7,6 @@
 #include "Components/RockInventoryComponent.h"
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
-#include "Library/RockItemStackLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 ARockInventoryWorldItem::ARockInventoryWorldItem(const FObjectInitializer& ObjectInitializer)
