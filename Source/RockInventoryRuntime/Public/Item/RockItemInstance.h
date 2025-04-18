@@ -86,14 +86,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|Core")
 	const URockItemDefinition* GetItemDefinition() const;
 
-	/** Finds the item stack associated with this instance */
-	UFUNCTION(BlueprintCallable, Category = "RockInventory|Core")
-	bool FindItemStackForThisInstance(FRockItemStack& OutItemStack) const;
-
-	/** Finds the inventory slot associated with this instance */
-	UFUNCTION(BlueprintCallable, Category = "RockInventory|Core")
-	bool FindItemSlotForThisInstance(FRockInventorySlotEntry& OutItemSlot) const;
-
 protected:
 	///////////////////////////////////////////////////////////////////////////
 	// UObject Interface

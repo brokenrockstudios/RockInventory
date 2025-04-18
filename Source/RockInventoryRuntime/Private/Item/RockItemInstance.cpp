@@ -1,8 +1,6 @@
 // Copyright Broken Rock Studios LLC. All Rights Reserved.
 
 #include "Item/RockItemInstance.h"
-#include "Library/RockItemInstanceLibrary.h"
-#include "Item/RockItemDefinition.h"
 
 void URockItemInstance::Init(URockInventory* InOwningInventory, URockItemDefinition* InDefinition, const FRockInventorySlotHandle& InSlotHandle)
 {
@@ -33,18 +31,8 @@ void URockItemInstance::BeginDestroy()
 	// Clean up any resources or references
 	OwningInventory = nullptr;
 	CachedDefinition = nullptr;
-	
+
 	Super::BeginDestroy();
-}
-
-bool URockItemInstance::FindItemStackForThisInstance(FRockItemStack& OutItemStack) const
-{
-	return URockItemInstanceLibrary::FindItemStackForInstance(this, OutItemStack);
-}
-
-bool URockItemInstance::FindItemSlotForThisInstance(FRockInventorySlotEntry& OutItemSlot) const
-{
-	return URockItemInstanceLibrary::FindItemSlotForInstance(this, OutItemSlot);
 }
 
 void URockItemInstance::SetOwningInventory(URockInventory* InOwningInventory)
@@ -64,6 +52,11 @@ FRockInventorySlotEntry URockItemInstance::GetItemSlot() const
 		return Inventory->GetSlotByHandle(GetSlotHandle());
 	}
 	return FRockInventorySlotEntry();
+}
+
+FRockItemStack URockItemInstance::GetItemStack() const
+{
+	return GetOwningInventory()->GetItemBySlotHandle(GetSlotHandle());
 }
 
 // FRockItemStack URockItemInstance::GetItemStack() const

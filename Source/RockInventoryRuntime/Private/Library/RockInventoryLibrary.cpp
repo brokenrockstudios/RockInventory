@@ -86,7 +86,7 @@ bool URockInventoryLibrary::PlaceItemAtSlot_Internal(
 }
 
 
-void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid)
+void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle)
 {
 	const int32 totalGridSize = Inventory->SlotData.Num();
 	OutOccupancyGrid.SetNum(totalGridSize);
@@ -108,6 +108,11 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 			const int32 Row = (SlotIndex) / TabInfo.Width;
 
 			const FRockInventorySlotEntry& ExistingItemSlot = Inventory->SlotData[TabOffset + SlotIndex];
+			if (ExistingItemSlot.ItemHandle == IgnoreItemHandle)
+			{
+				continue; // Skip the item we are ignoring
+			}
+			
 			const FRockItemStack& ExistingItemStack = Inventory->GetItemByHandle(ExistingItemSlot.ItemHandle);
 
 			if (ExistingItemStack.IsValid())
@@ -140,8 +145,10 @@ bool URockInventoryLibrary::CanItemFitInGridPosition(
 		for (int32 ItemX = 0; ItemX < ItemSize.X; ++ItemX)
 		{
 			const int32 GridIndex = TabInfo.FirstSlotIndex + ((Y + ItemY) * TabInfo.Width + (X + ItemX));
-			checkf(0 <= GridIndex && GridIndex < OccupancyGrid.Num(),
-				TEXT("Grid index out of range: %d (max: %d)"), GridIndex, OccupancyGrid.Num() - 1);
+			if (GridIndex < 0 || GridIndex >= OccupancyGrid.Num())
+			{
+				return false; // Out of bounds
+			}
 			if (OccupancyGrid[GridIndex])
 			{
 				return false; // Cell is occupied
@@ -176,6 +183,7 @@ FRockItemStack URockInventoryLibrary::RemoveItemAtLocation(URockInventory* Inven
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid SlotHandle: %s"), *SlotHandle.ToString());
 		return FRockItemStack::Invalid();
 	}
+	UE_LOG(LogRockInventory, Log, TEXT("Removing item %d"), Inventory->SlotData.Num());
 
 	FRockInventorySlotEntry Slot = Inventory->GetSlotByHandle(SlotHandle);
 	FRockItemStack Item = Inventory->GetItemByHandle(Slot.ItemHandle);
@@ -184,6 +192,7 @@ FRockItemStack URockInventoryLibrary::RemoveItemAtLocation(URockInventory* Inven
 	// Invalidate the slot
 	{
 		Slot.ItemHandle = FRockItemStackHandle::Invalid();
+		Slot.Orientation = ERockItemOrientation::Horizontal; 
 		Inventory->SetSlotByHandle(SlotHandle, Slot);
 	}
 	// make a copy of the ItemStack
@@ -248,7 +257,7 @@ bool URockInventoryLibrary::MoveItem(
 	//////////////////////////////////////////////////////////////////////////
 	/// Move
 	TArray<bool> OccupancyGrid;
-	PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid);
+	PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid, SourceSlot.ItemHandle);
 
 	const FRockInventorySectionInfo& targetSection = TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()];
 	const int32 SectionIndex = TargetSlotHandle.GetIndex() - targetSection.FirstSlotIndex;
@@ -258,20 +267,28 @@ bool URockInventoryLibrary::MoveItem(
 
 	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize))
 	{
-		FRockInventorySlotEntry SourceSlotRef = SourceInventory->GetSlotByHandle(SourceSlotHandle);
-		SourceSlotRef.ItemHandle = FRockItemStackHandle::Invalid();
-		SourceSlotRef.Orientation = ERockItemOrientation::Horizontal;
-		SourceInventory->SetSlotByHandle(SourceSlotHandle, SourceSlotRef);
+		if (SourceInventory == TargetInventory)
+		{
+			// We don't use the Remove and Place in the same inventory because
+			// those functions invalidates the itemslot and re-adds it, which is unnecessary and wasteful on same inventory
+			FRockInventorySlotEntry SourceSlotRef = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+			SourceSlotRef.ItemHandle = FRockItemStackHandle::Invalid();
+			SourceSlotRef.Orientation = ERockItemOrientation::Horizontal;
+			SourceInventory->SetSlotByHandle(SourceSlotHandle, SourceSlotRef);
 
-		FRockInventorySlotEntry TargetSlotRef = TargetInventory->GetSlotByHandle(TargetSlotHandle);
-		TargetSlotRef.ItemHandle = SourceSlot.ItemHandle;
-		TargetSlotRef.Orientation = DesiredOrientation;
-		TargetInventory->SetSlotByHandle(TargetSlotHandle, TargetSlotRef);
-
-		// If these are the same inventory, should we handle this differently?
-		// Technically we probably want a different 'event' for how this was handled?
-		SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
-		TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
+			FRockInventorySlotEntry TargetSlotRef = TargetInventory->GetSlotByHandle(TargetSlotHandle);
+			TargetSlotRef.ItemHandle = SourceSlot.ItemHandle;
+			TargetSlotRef.Orientation = DesiredOrientation;
+			TargetInventory->SetSlotByHandle(TargetSlotHandle, TargetSlotRef);
+			SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
+			TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
+		}
+		else
+		{
+			const FRockItemStack Item = RemoveItemAtLocation(SourceInventory, SourceSlotHandle);
+			PlaceItemAtSlot_Internal(TargetInventory, TargetSlotHandle, Item, DesiredOrientation);
+		}
+		
 		return true;
 	}
 	else

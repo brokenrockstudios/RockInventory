@@ -61,7 +61,7 @@ struct FReactantEntry
 	TSoftObjectPtr<URockItemDefinition> ItemDef;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Quantity;
+	int32 Quantity = 1;
 };
 
 USTRUCT(BlueprintType)

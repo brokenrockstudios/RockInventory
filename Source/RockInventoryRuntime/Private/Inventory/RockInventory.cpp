@@ -118,7 +118,12 @@ FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlo
 	{
 		return FRockItemStack::Invalid();
 	}
-	FRockItemStack Item = ItemData[InSlotHandle.GetIndex()];
+	const int32 index = InSlotHandle.GetIndex();
+	if (index < 0 || index >= ItemData.Num())
+	{
+		return FRockItemStack::Invalid();
+	}
+	FRockItemStack Item = ItemData[index];
 	if (Item.Generation == InSlotHandle.GetGeneration())
 	{
 		return Item;

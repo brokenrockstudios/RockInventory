@@ -3,16 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RockDropItemTransaction.h"
 #include "Components/RockInventoryComponent.h"
 #include "UObject/Object.h"
-#include "RockInventoryTransactionManager.generated.h"
+#include "RockInventoryManager.generated.h"
 
+class URockInventoryTransaction;
 /**
  * 
  */
 UCLASS(Blueprintable, BlueprintType)
-class ROCKINVENTORYRUNTIME_API URockInventoryTransactionManager : public UObject
+class ROCKINVENTORYRUNTIME_API URockInventoryManager : public UObject
 {
 	GENERATED_BODY()
 private:
@@ -26,12 +26,20 @@ private:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventoryComponent> OwnerInventory;
-	URockInventoryTransactionManager();
+	URockInventoryManager();
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	void Initialize(URockInventoryComponent* InOwnerInventory, int32 InMaxHistoryLength = 25);
 
+
+	/**
+	 * Enqueue and execute a transaction
+	 * This likely will fully execute in the same frame as call. Though this be subject to change later.
+	 *
+	 * @param Transaction The transaction to execute (must be derived from URockInventoryTransaction)
+	 */
 	// Execute and record a transaction
-	bool BeginTransaction(URockInventoryTransaction* Transaction);
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
+	bool EnqueueTransaction(URockInventoryTransaction* Transaction);
     
 	// Undo the last transaction
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
@@ -61,25 +69,5 @@ public:
 	// TArray<ActiveTransaction>, support only sequential for now.
 	// UpdateTransaction
 	// Tick | Parent actor or component would need to call this. Otherwise we could potentially leverage the WorldTimer to enable/disable ticks?
-	
-
-
-
-
-	UFUNCTION(BlueprintCallable,Category="Inventory|Transactions")
-	bool K2_BeginDrop(URockDropItemTransaction* Transaction);
-	
-
-	
-	/**
-	 * Execute a transaction 
-	 *
-	 * @param Transaction			The transaction to execute (must be derived from URockInventoryTransaction)
-	 */
-	// UFUNCTION(BlueprintCallable, CustomThunk, Category="Inventory|Transactions", meta=(CustomStructureParam="Transaction", AllowAbstract="false", DisplayName="Begin Transaction"))
-	// bool K2_BeginTransaction(const int32& Transaction);
-	// DECLARE_FUNCTION(execK2_BeginTransaction);
-
 private:
-
 };

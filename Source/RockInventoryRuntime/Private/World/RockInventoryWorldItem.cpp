@@ -1,6 +1,7 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
-#include "Item/World/RockInventoryWorldItem.h"
+
+#include "World/RockInventoryWorldItem.h"
 
 #include "RockInventoryLogging.h"
 #include "Components/RockInventoryComponent.h"

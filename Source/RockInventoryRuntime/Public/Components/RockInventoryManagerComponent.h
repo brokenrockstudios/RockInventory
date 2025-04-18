@@ -4,20 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Inventory/Transactions/RockInventoryTransactionManager.h"
-#include "RockInventoryTransactionManagerComponent.generated.h"
+#include "RockInventoryManagerComponent.generated.h"
 
+
+class URockInventoryManager;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class ROCKINVENTORYRUNTIME_API URockInventoryTransactionManagerComponent : public UActorComponent
+class ROCKINVENTORYRUNTIME_API URockInventoryManagerComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this component's properties
-	URockInventoryTransactionManagerComponent();
+	URockInventoryManagerComponent();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="RockInventory")
-	TObjectPtr<URockInventoryTransactionManager> RockInventoryTransactionManager; 
+	TObjectPtr<URockInventoryManager> TransactionManager; 
 
 };

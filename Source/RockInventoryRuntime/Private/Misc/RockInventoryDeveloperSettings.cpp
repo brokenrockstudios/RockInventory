@@ -1,9 +1,8 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 #include "Misc/RockInventoryDeveloperSettings.h"
-
-#include "Item/World/RockInventoryWorldItem.h"
 #include "Misc/DataValidation.h"
+#include "World/RockInventoryWorldItem.h"
 
 #define LOCTEXT_NAMESPACE "RockInventory"
 

@@ -1,26 +1,26 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 
-#include "Inventory/Transactions/RockInventoryTransactionManager.h"
+#include "Inventory/Transactions/Core/RockInventoryManager.h"
 
-#include "Inventory/Transactions/RockDropItemTransaction.h"
-#include "Inventory/Transactions/RockInventoryTransaction.h"
+#include "Inventory/Transactions/Core/RockInventoryTransaction.h"
 
-URockInventoryTransactionManager::URockInventoryTransactionManager() : Super(),
-                                                                       CurrentTransactionIndex(-1),
-                                                                       MaxHistoryLength(0),
-                                                                       OwnerInventory(nullptr)
+
+URockInventoryManager::URockInventoryManager() : Super(),
+                                                 CurrentTransactionIndex(-1),
+                                                 MaxHistoryLength(0),
+                                                 OwnerInventory(nullptr)
 {
 }
 
-void URockInventoryTransactionManager::Initialize(URockInventoryComponent* InOwnerInventory, int32 InMaxHistoryLength)
+void URockInventoryManager::Initialize(URockInventoryComponent* InOwnerInventory, int32 InMaxHistoryLength)
 {
 	OwnerInventory = InOwnerInventory;
 	MaxHistoryLength = InMaxHistoryLength;
 	ClearHistory();
 }
 
-bool URockInventoryTransactionManager::BeginTransaction(URockInventoryTransaction* Transaction)
+bool URockInventoryManager::EnqueueTransaction(URockInventoryTransaction* Transaction)
 {
 	if (!Transaction || !OwnerInventory)
 	{
@@ -56,7 +56,7 @@ bool URockInventoryTransactionManager::BeginTransaction(URockInventoryTransactio
 	return false;
 }
 
-bool URockInventoryTransactionManager::UndoLastTransaction()
+bool URockInventoryManager::UndoLastTransaction()
 {
 	if (!CanUndo())
 	{
@@ -73,7 +73,7 @@ bool URockInventoryTransactionManager::UndoLastTransaction()
 	return false;
 }
 
-bool URockInventoryTransactionManager::RedoTransaction()
+bool URockInventoryManager::RedoTransaction()
 {
 	if (!CanRedo())
 	{
@@ -90,13 +90,13 @@ bool URockInventoryTransactionManager::RedoTransaction()
 	return false;
 }
 
-void URockInventoryTransactionManager::ClearHistory()
+void URockInventoryManager::ClearHistory()
 {
 	TransactionHistory.Empty();
 	CurrentTransactionIndex = -1;
 }
 
-TArray<FString> URockInventoryTransactionManager::GetTransactionDescriptions() const
+TArray<FString> URockInventoryManager::GetTransactionDescriptions() const
 {
 	TArray<FString> Descriptions;
 	for (const auto& Transaction : TransactionHistory)
@@ -106,20 +106,15 @@ TArray<FString> URockInventoryTransactionManager::GetTransactionDescriptions() c
 	return Descriptions;
 }
 
-bool URockInventoryTransactionManager::CanUndo() const
+bool URockInventoryManager::CanUndo() const
 {
 	return TransactionHistory.Num() > 0 && CurrentTransactionIndex >= 0 &&
 		TransactionHistory[CurrentTransactionIndex]->CanUndo();
 }
 
-bool URockInventoryTransactionManager::CanRedo() const
+bool URockInventoryManager::CanRedo() const
 {
 	return TransactionHistory.Num() > 0 && CurrentTransactionIndex < TransactionHistory.Num() - 1;
-}
-
-bool URockInventoryTransactionManager::K2_BeginDrop(URockDropItemTransaction* Transaction)
-{
-	return BeginTransaction(Transaction);
 }
 
 // bool URockInventoryTransactionManager::K2_BeginTransaction(const int32& Transaction)

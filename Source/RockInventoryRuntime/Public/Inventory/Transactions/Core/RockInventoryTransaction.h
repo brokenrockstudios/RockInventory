@@ -61,19 +61,17 @@ UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockInventoryTransaction : public UObject
 {
 	GENERATED_BODY()
+
 public:
-	// If a NPC or non player controller modified the inventory.
-	// We likely will want to invalidate the transaction history
-	// e.g. A NPC gave you a quest item, you don't want to be able to undo that!
+	// This should be the Controller if it's a player. Otherwise, it can be the actor of a NPC
 	UPROPERTY()
-	TWeakObjectPtr<APlayerController> Instigator;
+	TWeakObjectPtr<AController> Instigator;
 
 	UPROPERTY()
 	FDateTime Timestamp;
 
 	UPROPERTY()
 	ERockInventoryTransactionType TransactionType = ERockInventoryTransactionType::None;
-
 
 	URockInventoryTransaction()
 		: Instigator(nullptr)
@@ -82,18 +80,19 @@ public:
 	}
 
 
-	UFUNCTION(BlueprintNativeEvent, Category="Transaction")
+	// Normal players shouldn't be calling this, but if you want to exeute the command without a transaction manager, just call this
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Transaction")
 	bool Execute();
 	virtual bool Execute_Implementation() { return false; }
 	virtual bool Redo() { return Execute(); }
-	
+
 	UFUNCTION(BlueprintNativeEvent, Category="Transaction")
 	bool Undo();
 	virtual bool Undo_Implementation() { return false; }
-	
+
 	/* For commands that can't be undone, override this or conditionally check if CanUndo occur */
 	virtual bool CanUndo() const { return true; }
-	
+
 	virtual FString GetDescription() const { return TEXT("No Description"); }
 
 	// Can check if the transaction can be applied to the inventory (e.g. is there free space, are you 'close enough' to the item
@@ -107,4 +106,3 @@ public:
 	// BeginExecute, IsExecuting, UpdateExecuting, OnExecutionComplete
 	// BeginUndo, IsUndoing, UpdateUndoing, OnUndoComplete
 };
-

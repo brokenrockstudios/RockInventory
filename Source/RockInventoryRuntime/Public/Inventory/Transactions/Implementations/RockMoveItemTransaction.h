@@ -1,8 +1,8 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 #pragma once
-#include "RockInventoryTransaction.h"
 
+#include "Inventory/Transactions/Core/RockInventoryTransaction.h"
 #include "RockMoveItemTransaction.generated.h"
 
 /**

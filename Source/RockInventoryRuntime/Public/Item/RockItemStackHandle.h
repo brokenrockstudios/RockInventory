@@ -55,10 +55,10 @@ public:
 	bool IsValid() const { return Handle != INDEX_NONE; }
 
 	/** Gets the index portion of the handle (lower 24 bits) */
-	uint32 GetIndex() const { return Handle & INDEX_MASK; }
+	int32 GetIndex() const { return Handle & INDEX_MASK; }
 
 	/** Gets the generation portion of the handle (upper 8 bits) */
-	uint8 GetGeneration() const { return (Handle & GENERATION_HANDLE_MASK) >> GENERATION_SHIFT; }
+	int32 GetGeneration() const { return (Handle & GENERATION_HANDLE_MASK) >> GENERATION_SHIFT; }
 
 	/** Converts the handle to a human-readable string representation */
 	FString ToString() const
