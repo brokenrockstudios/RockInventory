@@ -23,6 +23,11 @@
 			"Name": "RockInventoryEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "RockInventoryUI",
+			"Type": "ClientOnly",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [

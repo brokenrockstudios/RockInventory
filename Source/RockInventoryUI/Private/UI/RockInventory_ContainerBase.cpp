@@ -3,7 +3,6 @@
 
 #include "UI/RockInventory_ContainerBase.h"
 
-#include "RockInventoryLogging.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
 #include "Components/Image.h"
@@ -85,7 +84,6 @@ void URockInventory_ContainerBase::GenerateItems()
 {
 	if (!Inventory)
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("URockInventory_ContainerBase::GenerateItems - Inventory is null"));
 		return;
 	}
 

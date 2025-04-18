@@ -17,7 +17,7 @@ class URockInventory;
  * 
  */
 UCLASS()
-class ROCKINVENTORYRUNTIME_API URockInventory_Slot_ItemBase : public UUserWidget
+class ROCKINVENTORYUI_API URockInventory_Slot_ItemBase : public UUserWidget
 {
 	GENERATED_BODY()
 

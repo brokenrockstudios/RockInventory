@@ -3,7 +3,6 @@
 
 #include "UI/RockItemDragDropOperation.h"
 
-#include "RockInventoryLogging.h"
 #include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/Transactions/Core/RockInventoryManager.h"
 #include "Inventory/Transactions/Implementations/RockDropItemTransaction.h"
@@ -40,6 +39,5 @@ void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEven
 void URockItemDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEvent)
 {
 	Super::Drop_Implementation(PointerEvent);
-	UE_LOG(LogRockInventory, Warning, TEXT("URockItemDragDropOperation::Drop_Implementation"));
 	
 }
