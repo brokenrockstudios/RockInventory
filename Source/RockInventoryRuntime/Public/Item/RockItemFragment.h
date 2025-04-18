@@ -68,12 +68,12 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragmentInstance
 
 	/** Get the fragment as a specific type */
 	template <typename T>
-	requires std::is_base_of_v<FRockItemFragment, std::decay_t<T>>
+		requires std::is_base_of_v<FRockItemFragment, std::decay_t<T>>
 	const T* GetFragmentData() const
 	{
 		return Fragment.GetPtr<T>();
 	}
-	
+
 	/** Get mutable fragment as a specific type */
 	// template <typename T>
 	// requires std::is_base_of_v<FRockItemFragment, std::decay_t<T>>
@@ -89,13 +89,13 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragmentInstance
 	{
 		return Fragment.IsValid() && Fragment.GetScriptStruct() == TBaseStructure<T>::Get();
 	}
-	
+
 	/** Check if the fragment data is valid */
 	bool IsValid() const { return Fragment.IsValid(); }
 	/** Get the type name of the fragment for debugging */
 	FString GetFragmentTypeName() const { return Fragment.IsValid() ? Fragment.GetScriptStruct()->GetName() : TEXT("Invalid"); }
 
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = "Item", NoClear, meta=(ShowOnlyInnerProperties))
 	TInstancedStruct<FRockItemFragment> Fragment;
 

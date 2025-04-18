@@ -15,5 +15,3 @@ URockInventoryManagerComponent::URockInventoryManagerComponent()
 
 	TransactionManager = CreateDefaultSubobject<URockInventoryManager>(TEXT("RockInventoryTransactionManager"));
 }
-
-

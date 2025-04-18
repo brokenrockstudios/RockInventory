@@ -34,7 +34,7 @@ public:
 	// For a forward 'toss' velocity.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector Impulse = FVector::ZeroVector;
-	
+
 	///////////////////////////////////////////////////////////////////////////
 	// Required for Undo State
 	UPROPERTY()
@@ -50,4 +50,3 @@ public:
 	virtual bool CanApply(URockInventoryComponent* OwnerInventory) const override;
 	virtual FString GetDescription() const override;
 };
-

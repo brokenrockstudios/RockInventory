@@ -93,7 +93,7 @@ void URockInventory_Slot_ItemBase::SetIconData(const FRockItemUIData& InIconData
 {
 	IconData = InIconData;
 	// TODO: Use the IconData to set hover/tooltip?
-	
+
 	SetIsLoading(true);
 
 	// Handle null case

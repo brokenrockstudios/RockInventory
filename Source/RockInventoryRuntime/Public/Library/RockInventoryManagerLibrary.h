@@ -16,9 +16,6 @@ class ROCKINVENTORYRUNTIME_API URockInventoryManagerLibrary : public UBlueprintF
 	GENERATED_BODY()
 
 
-
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|Transaction")
 	static void EnqueueTransaction(UObject* Object, URockInventoryTransaction* transaction);
 };
-
-

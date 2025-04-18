@@ -32,8 +32,8 @@ UCLASS(Blueprintable, BlueprintType)
 class ROCKINVENTORYRUNTIME_API URockInventory : public UObject
 {
 	GENERATED_BODY()
-public:
 
+public:
 	URockInventory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
@@ -42,24 +42,25 @@ private:
 	/** The item data */
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FRockInventoryItemContainer ItemData;
-	
+
 	/** Stack of available slot indices for reuse */
 	UPROPERTY()
 	TArray<uint32> FreeIndices;
-	
+
 	/** The grid slot data */
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FRockInventorySlotContainer SlotData;
-	
+
 	/** Tab configuration for the inventory */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = true))
 	TArray<FRockInventorySectionInfo> SlotSections;
+
 public:
 	// Owning Actor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	TObjectPtr<AActor> OwningActor;
 
-	
+
 	/**
 	 * Initialize the inventory with a configuration
 	 * @param config - The configuration to use for initialization
@@ -72,14 +73,14 @@ public:
 	 * @return Pointer to the tab info, or nullptr if index is invalid
 	 */
 	FRockInventorySectionInfo GetSectionInfo(const FName& SectionName) const;
-	
+
 	/**
 	 * Find section index by name
 	 * @param SectionName - The ID of the tab to find
 	 * @return The index of the tab, or INDEX_NONE if not found
 	 */
 	int32 GetSectionIndexById(const FName& SectionName) const;
-	
+
 	/**
 	 * Get slot by handle
 	 * @param InSlotHandle - The handle of the slot to retrieve
@@ -87,9 +88,9 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	FRockInventorySlotEntry GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
-	
+
 	const FRockInventorySlotEntry& GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const;
-	
+
 	FRockItemStack GetItemBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 	FRockItemStack GetItemByHandle(const FRockItemStackHandle& InSlotHandle) const;
 	void SetItemByHandle(const FRockItemStackHandle& InSlotHandle, const FRockItemStack& InItemStack);
@@ -100,7 +101,7 @@ public:
 	 * @param InSlotEntry - The slot to set
 	 */
 	void SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry);
-	
+
 	/**
 	 * Add a new tab and initialize its slots
 	 * @param SectionName - The unique identifier for the tab
@@ -117,10 +118,10 @@ public:
 	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());
 	void BroadcastItemChanged(const FRockItemStackHandle& RockInventorySlotHandle = FRockItemStackHandle());
 
-	
+
 	/** Get a debug string representation of the inventory */
 	FString GetDebugString() const;
-	
+
 	FRockItemStackHandle AddItemToInventory(const FRockItemStack& InItemStack);
 
 	/** Called when the inventory changes */
@@ -135,4 +136,3 @@ FORCEINLINE const FRockInventorySlotEntry& URockInventory::GetSlotByAbsoluteInde
 {
 	return SlotData[AbsoluteIndex];
 }
-

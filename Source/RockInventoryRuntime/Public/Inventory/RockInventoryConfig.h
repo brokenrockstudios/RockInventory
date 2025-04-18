@@ -14,6 +14,7 @@ UCLASS()
 class ROCKINVENTORYRUNTIME_API URockInventoryConfig : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
+
 public:
 	// Define the height/width and tabID for each tab.
 	// A character might have 8 tabs. 7 tabs of 1x1 for character slots (head, armor, gun, etc.) and 1 large of 8x5 for general inventory
@@ -22,5 +23,4 @@ public:
 	// Note: that the TabIndex will equal the order they are defined here.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<FRockInventorySectionInfo> InventoryTabs;
-
 };

@@ -15,9 +15,10 @@ UCLASS()
 class ROCKINVENTORYRUNTIME_API URockInventory_Slot_BackgroundBase : public UUserWidget
 {
 	GENERATED_BODY()
+
 public:
 	URockInventory_Slot_BackgroundBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-	
+
 	// Information about this slot, the TabIndex, X, and Y position. So that drag/drop and other things can know what we are hovering over
 	// or dropping on.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")

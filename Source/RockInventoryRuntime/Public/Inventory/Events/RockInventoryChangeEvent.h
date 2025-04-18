@@ -19,11 +19,11 @@ enum class ERockInventoryChangeType : uint8
 	ItemRemoved,
 	ItemMoved,
 	ItemUpdated,
-	
+
 	TabAdded,
 	TabRemoved,
 	TabUpdated,
-	
+
 	SlotAdded,
 	SlotRemoved,
 	SlotUpdated
@@ -44,12 +44,12 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryChangeEvent
 	FRockItemStack PreviousItem;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FRockItemStack CurrentItem;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TWeakObjectPtr<URockInventory> SourceInventory;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FRockInventorySlotHandle SourceSlotHandle;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TWeakObjectPtr<URockInventory> TargetInventory;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

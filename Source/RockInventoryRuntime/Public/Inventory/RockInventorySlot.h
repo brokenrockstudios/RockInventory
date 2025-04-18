@@ -25,14 +25,15 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySlotEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
+
 public:
 	FRockInventorySlotEntry();
 	static FRockInventorySlotEntry& Invalid();
-	
+
 	/** The actual item in this slot */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockItemStackHandle ItemHandle;
-	
+
 	/** Handle to identify this slot's position in the inventory */
 	UPROPERTY()
 	FRockInventorySlotHandle SlotHandle;
@@ -48,7 +49,7 @@ public:
 
 	/** Resets the slot to its default state */
 	void Reset();
-	
+
 	/** Required for FFastArraySerializerItem */
 	void PreReplicatedRemove(const struct FRockInventorySlotContainer& InArraySerializer);
 	void PostReplicatedAdd(const struct FRockInventorySlotContainer& InArraySerializer);
@@ -65,7 +66,6 @@ public:
 };
 
 
-
 /**
  * Container for inventory slots that uses a packed handle format for efficient indexing.
  * The handle contains relative position within a tab, and the container manages the
@@ -75,6 +75,7 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySlotContainer : public FFastArraySerializer
 {
 	GENERATED_BODY()
+
 private:
 	// Force usage of the helpers, and not this array directly. 
 	// Replicated list of inventory slots

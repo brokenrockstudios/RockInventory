@@ -12,7 +12,7 @@ UCLASS()
 class ROCKINVENTORYRUNTIME_API URockItemInstanceLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
-public:
 
+public:
 	// TODO: Add any relevant functions for item instance manipulation here
 };

@@ -14,6 +14,7 @@ UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "RockInventory"))
 class ROCKINVENTORYRUNTIME_API URockInventoryDeveloperSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
+
 public:
 	URockInventoryDeveloperSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 

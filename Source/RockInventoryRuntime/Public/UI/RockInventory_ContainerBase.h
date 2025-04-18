@@ -18,6 +18,7 @@ UCLASS()
 class ROCKINVENTORYRUNTIME_API URockInventory_ContainerBase : public UUserWidget
 {
 	GENERATED_BODY()
+
 public:
 	// Bind to Widget
 	// UPROPERTY(BlueprintReadOnly, Category = "Inventory", meta = (BindWidget))
@@ -29,16 +30,16 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory", meta = (BindWidget))
 	TObjectPtr<UGridPanel> GridPanel;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UUserWidget> ItemSlotWidgetClass;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TSubclassOf<UUserWidget> ItemSlotWidgetClass_Empty;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	FRockInventorySectionInfo TabInfo;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<URockInventory> Inventory;
 
@@ -49,8 +50,7 @@ public:
 	void GenerateGrid();
 
 	void ClearItemsFromGrid();
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void GenerateItems();
-	
 };

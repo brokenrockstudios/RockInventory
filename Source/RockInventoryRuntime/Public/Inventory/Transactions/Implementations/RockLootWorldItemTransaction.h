@@ -19,6 +19,7 @@ UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockAddItemTransaction : public URockInventoryTransaction
 {
 	GENERATED_BODY()
+
 public:
 	///////////////////////////////////////////////////////////////////////////////
 	/// Core Transaction Data (Required)
@@ -37,11 +38,10 @@ protected:
 	FRockInventorySlotHandle TargetSlotHandle;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Excess;
-	
+
 public:
 	virtual bool Execute_Implementation() override
 	{
-		
 		return URockInventoryLibrary::LootItemToInventory(TargetInventory, ItemStack, TargetSlotHandle, Excess);
 	}
 

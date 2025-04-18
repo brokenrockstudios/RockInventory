@@ -33,7 +33,6 @@ public:
 	FVector DropLocationOffset = FVector(150, 0, 0);
 
 
-	
 	// We can get the itemstack if we need it from the sourceslot's item handle
 	// UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "DragDrop")
 	// FRockItemStack SourceStack;

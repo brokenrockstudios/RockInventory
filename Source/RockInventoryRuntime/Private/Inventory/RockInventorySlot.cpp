@@ -3,7 +3,7 @@
 #include "Inventory/RockInventorySlot.h"
 #include "RockInventoryLogging.h"
 
-FRockInventorySlotEntry::FRockInventorySlotEntry(): 
+FRockInventorySlotEntry::FRockInventorySlotEntry():
 	ItemHandle(),
 	SlotHandle(),
 	Orientation(ERockItemOrientation::Horizontal),

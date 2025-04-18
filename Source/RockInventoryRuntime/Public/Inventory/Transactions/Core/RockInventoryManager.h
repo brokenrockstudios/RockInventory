@@ -15,6 +15,7 @@ UCLASS(Blueprintable, BlueprintType)
 class ROCKINVENTORYRUNTIME_API URockInventoryManager : public UObject
 {
 	GENERATED_BODY()
+
 private:
 	// Transaction history
 	TArray<TObjectPtr<URockInventoryTransaction>> TransactionHistory;
@@ -40,27 +41,27 @@ public:
 	// Execute and record a transaction
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	bool EnqueueTransaction(URockInventoryTransaction* Transaction);
-    
+
 	// Undo the last transaction
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	bool UndoLastTransaction();
-    
+
 	// Redo the last undone transaction
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	bool RedoTransaction();
-    
+
 	// Clear transaction history
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	void ClearHistory();
-    
+
 	// Get transaction history as an array
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	TArray<FString> GetTransactionDescriptions() const;
-    
+
 	// Check if can undo
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	bool CanUndo() const;
-    
+
 	// Check if can redo
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	bool CanRedo() const;

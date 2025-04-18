@@ -25,7 +25,7 @@ bool URockDropItemTransaction::Execute_Implementation()
 	}
 
 	ExistingOrientation = SourceInventory->GetSlotByHandle(SourceSlotHandle).Orientation;
-	
+
 	FTransform transform = SourceInventory->OwningActor->GetActorTransform();
 	// Prefer the instigator's transform if available
 	if (const AController* DropInstigator = Instigator.Get())
@@ -37,7 +37,7 @@ bool URockDropItemTransaction::Execute_Implementation()
 	}
 
 	transform.AddToTranslation(transform.GetRotation().GetForwardVector() * DropLocationOffset.Size());
-	
+
 	ARockInventoryWorldItem* NewWorldItem = SourceInventory->OwningActor->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItem>(
 		GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass, transform);
 

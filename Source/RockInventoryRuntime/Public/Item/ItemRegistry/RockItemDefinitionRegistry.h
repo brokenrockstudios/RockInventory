@@ -16,6 +16,7 @@ UCLASS()
 class ROCKINVENTORYRUNTIME_API URockItemRegistrySubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
+
 public:
 	static URockItemRegistrySubsystem* GetInstance();
 	//~ Begin USubsystem Interface
@@ -41,7 +42,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Item Registry") // Expose to Blueprint if needed
 	void GetAllDefinitions(TArray<URockItemDefinition*>& OutDefinitions) const;
 
-
 private:
 	/** Map storing ItemId -> ItemDefinition associations for quick lookup. */
 	UPROPERTY(Transient) // Transient as it's populated at runtime
@@ -56,5 +56,4 @@ private:
 
 	/** Internal function to scan and load item definitions using the Asset Manager. */
 	void BuildRegistry();
-	
 };

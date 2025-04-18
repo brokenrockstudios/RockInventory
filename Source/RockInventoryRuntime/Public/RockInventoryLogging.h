@@ -7,7 +7,6 @@
 #include "RockInventoryLogging.generated.h"
 
 
-
 DECLARE_LOG_CATEGORY_EXTERN(LogRockInventory, Log, All);
 
 /**

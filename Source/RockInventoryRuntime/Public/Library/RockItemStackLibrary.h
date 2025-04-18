@@ -20,7 +20,7 @@ public:
 	/** Returns the item definition for this item stack */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
 	static URockItemDefinition* GetItemDefinitionById(const FName& ItemId);
-	
+
 	UFUNCTION(BlueprintPure, Category = "RockInventory|ItemStack")
 	static URockItemDefinition* GetItemDefinition(const FRockItemStack& ItemStack);
 

@@ -46,7 +46,8 @@ public:
 
 	// Used internally to place an item at a specific location
 	static bool PlaceItemAtSlot_Internal(
-		URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack, ERockItemOrientation DesiredOrientation);
+		URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack,
+		ERockItemOrientation DesiredOrientation);
 
 	/** Remove an item at a specific location
 	 * @param Inventory - The inventory to remove the item from
@@ -74,10 +75,12 @@ public:
 
 	// Misc helpers
 
-	static bool CanMergeItemAtGridPosition(const URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack, ERockItemStackMergeCondition MergeCondition = ERockItemStackMergeCondition::Full);
+	static bool CanMergeItemAtGridPosition(
+		const URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack,
+		ERockItemStackMergeCondition MergeCondition = ERockItemStackMergeCondition::Full);
 	static int32 MergeItemAtGridPosition(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack);
 
-	
+
 	/** Get the item at a specific location
 	 * @param Inventory - The inventory to get the item from
 	 * @param SlotHandle - The handle of the slot to get the item from
@@ -96,7 +99,8 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Misc Utility functions
-	static void PrecomputeOccupancyGrids(const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle = FRockItemStackHandle());
+	static void PrecomputeOccupancyGrids(
+		const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle = FRockItemStackHandle());
 	static bool CanItemFitInGridPosition(
 		const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
 };

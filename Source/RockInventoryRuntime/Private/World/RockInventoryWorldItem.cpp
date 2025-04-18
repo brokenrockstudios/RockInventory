@@ -58,7 +58,7 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	{
 		FStreamableManager Manager;
 		TSoftObjectPtr<UStaticMesh> Mesh = ItemStack.GetDefinition()->ItemMesh;
-		
+
 		// Check if the mesh is already loaded
 		if (Mesh.IsValid())
 		{

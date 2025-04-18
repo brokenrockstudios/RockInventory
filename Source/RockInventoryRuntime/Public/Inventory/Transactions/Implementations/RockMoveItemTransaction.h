@@ -13,6 +13,7 @@ UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockMoveItemTransaction : public URockInventoryTransaction
 {
 	GENERATED_BODY()
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> SourceInventory = nullptr;

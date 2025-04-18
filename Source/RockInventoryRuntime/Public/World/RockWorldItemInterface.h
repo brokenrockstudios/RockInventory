@@ -20,17 +20,14 @@ class URockWorldItemInterface : public UInterface
 class ROCKINVENTORYRUNTIME_API IRockWorldItemInterface
 {
 	GENERATED_BODY()
-public:
 
+public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "RockInventory")
 	void SetItemStack(const FRockItemStack& InItemStack);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "RockInventory")
 	FRockItemStack GetItemStack() const;
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "RockInventory")
 	void PickedUp(AActor* Instigator);
-
-
-	
 };

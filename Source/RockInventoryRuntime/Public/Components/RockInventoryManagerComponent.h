@@ -19,6 +19,5 @@ public:
 	URockInventoryManagerComponent();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="RockInventory")
-	TObjectPtr<URockInventoryManager> TransactionManager; 
-
+	TObjectPtr<URockInventoryManager> TransactionManager;
 };

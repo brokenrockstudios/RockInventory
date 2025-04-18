@@ -7,7 +7,6 @@
 void FRockInventoryRuntimeModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	 
 }
 
 void FRockInventoryRuntimeModule::ShutdownModule()
@@ -17,5 +16,5 @@ void FRockInventoryRuntimeModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FRockInventoryRuntimeModule, RockInventoryRuntime)
