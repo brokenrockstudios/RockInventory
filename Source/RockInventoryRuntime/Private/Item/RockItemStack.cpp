@@ -33,6 +33,16 @@ FName FRockItemStack::GetItemId() const
 	return NAME_None;
 }
 
+int32 FRockItemStack::GetMaxStackSize() const
+{
+	if (Definition)
+	{
+		return Definition->MaxStackSize;
+	}
+	// No definition, no max stack size because this is an Invalid stack
+	return 0;
+}
+
 bool FRockItemStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	bOutSuccess = true;

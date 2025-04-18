@@ -74,6 +74,10 @@ public:
 
 	// Misc helpers
 
+	static bool CanMergeItemAtGridPosition(const URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack, ERockItemStackMergeCondition MergeCondition = ERockItemStackMergeCondition::Full);
+	static int32 MergeItemAtGridPosition(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack);
+
+	
 	/** Get the item at a specific location
 	 * @param Inventory - The inventory to get the item from
 	 * @param SlotHandle - The handle of the slot to get the item from

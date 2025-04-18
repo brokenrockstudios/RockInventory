@@ -58,19 +58,28 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	{
 		FStreamableManager Manager;
 		TSoftObjectPtr<UStaticMesh> Mesh = ItemStack.GetDefinition()->ItemMesh;
-		Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
+		
+		// Check if the mesh is already loaded
+		if (Mesh.IsValid())
 		{
-			UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh loaded: %s"), *Mesh.ToString());
-			UStaticMesh* LoadedStaticMesh = Mesh.Get();
-			if (LoadedStaticMesh)
+			StaticMeshComponent->SetStaticMesh(Mesh.Get());
+		}
+		else
+		{
+			Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
 			{
-				StaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
-			}
-			else
-			{
-				UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh is null"));
-			}
-		}));
+				UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh loaded: %s"), *Mesh.ToString());
+				UStaticMesh* LoadedStaticMesh = Mesh.Get();
+				if (LoadedStaticMesh)
+				{
+					StaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
+				}
+				else
+				{
+					UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh is null"));
+				}
+			}));
+		}
 	}
 	else
 	{
@@ -90,7 +99,7 @@ void ARockInventoryWorldItem::PickedUp_Implementation(AActor* InInstigator)
 	URockInventoryComponent* Inventory = Cast<URockInventoryComponent>(InInstigator->GetComponentByClass(URockInventoryComponent::StaticClass()));
 	if (Inventory)
 	{
-		int32 outExcess;
+		int32 outExcess = ItemStack.StackSize;
 		FRockInventorySlotHandle outHandle;
 		if (Inventory->K2_LootItem(ItemStack, outHandle, outExcess))
 		{

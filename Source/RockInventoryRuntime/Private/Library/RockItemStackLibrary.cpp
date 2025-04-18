@@ -70,11 +70,7 @@ bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const 
 
 int32 URockItemStackLibrary::GetMaxStackSize(const FRockItemStack& ItemStack)
 {
-	if (const URockItemDefinition* Def = ItemStack.GetDefinition())
-	{
-		return Def->MaxStackSize;
-	}
-	return DEFAULT_MAX_STACK_SIZE;
+	return ItemStack.GetMaxStackSize();
 }
 
 bool URockItemStackLibrary::IsFull(const FRockItemStack& ItemStack)

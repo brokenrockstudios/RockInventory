@@ -11,7 +11,9 @@
 bool URockInventoryLibrary::LootItemToInventory(
 	URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess)
 {
-	OutExcess = 0;
+	// Start off with the full stack size in the event we can't place it
+	OutExcess = ItemStack.GetStackSize();
+
 	if (!Inventory || !ItemStack.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("LootItemToInventory::Invalid Parameters. Inventory or ItemStack"));
@@ -24,9 +26,15 @@ bool URockInventoryLibrary::LootItemToInventory(
 
 	TArray<FRockInventorySectionInfo> SlotSections = Inventory->SlotSections;
 	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
+	FRockItemStack ItemStackCopy = ItemStack;
 
 	for (const FRockInventorySlotEntry Slot : Inventory->SlotData)
 	{
+		if (ItemStackCopy.GetStackSize() <= 0)
+		{
+			// No more items to place
+			break;
+		}
 		FRockInventorySlotHandle SlotHandle = Slot.SlotHandle;
 		const FRockInventorySectionInfo& SectionInfo = SlotSections[SlotHandle.GetSectionIndex()];
 		const int32 SectionSlotIndex = SlotHandle.GetIndex() - SectionInfo.FirstSlotIndex;
@@ -35,17 +43,28 @@ bool URockInventoryLibrary::LootItemToInventory(
 
 		// TODO: If we have a stackable item, we should check if we can stack it instead of placing it
 		// And continue to the next slot
-		// if CanMergeItemAtLocation(Inventory, SlotHandle, ItemStack)
 		if (CanItemFitInGridPosition(OccupancyGrids, SectionInfo, Column, Row, ItemSize))
 		{
-			const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStack);
+			const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStackCopy);
 			OutHandle = SlotHandle;
+			OutExcess = 0;
 			PlaceItemAtSlot(Inventory, OutHandle, ItemHandle, ERockItemOrientation::Horizontal);
 			return true;
+		}
+		else if (CanMergeItemAtGridPosition(Inventory, SlotHandle, ItemStackCopy, ERockItemStackMergeCondition::Partial))
+		{
+			OutExcess = MergeItemAtGridPosition(Inventory, SlotHandle, ItemStackCopy);
+			ItemStackCopy.StackSize = OutExcess;
 		}
 	}
 	// What should we do if we were only able to partially place the item?
 	// Update remaining OutExcess
+	if (ItemStackCopy.StackSize <= 0)
+	{
+		OutExcess = 0;
+		return true;
+	}
+	// We technically should have consumed SOME of the item. Make sure the caller updates their ItemStack with the out excess
 	return false;
 }
 
@@ -86,7 +105,8 @@ bool URockInventoryLibrary::PlaceItemAtSlot_Internal(
 }
 
 
-void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle)
+void URockInventoryLibrary::PrecomputeOccupancyGrids(
+	const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle)
 {
 	const int32 totalGridSize = Inventory->SlotData.Num();
 	OutOccupancyGrid.SetNum(totalGridSize);
@@ -112,7 +132,7 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(const URockInventory* Inven
 			{
 				continue; // Skip the item we are ignoring
 			}
-			
+
 			const FRockItemStack& ExistingItemStack = Inventory->GetItemByHandle(ExistingItemSlot.ItemHandle);
 
 			if (ExistingItemStack.IsValid())
@@ -142,15 +162,15 @@ bool URockInventoryLibrary::CanItemFitInGridPosition(
 {
 	const int32 ItemSizeX = ItemSize.X;
 	const int32 ItemSizeY = ItemSize.Y;
-	
+
 	// pre-check to avoid wasting time on partial fits
-	if  (X < 0 || Y < 0 || X + ItemSizeX > TabInfo.Width || Y + ItemSizeY > TabInfo.Height)
+	if (X < 0 || Y < 0 || X + ItemSizeX > TabInfo.Width || Y + ItemSizeY > TabInfo.Height)
 	{
 		// Out of bounds
 		return false;
 	}
 
-	
+
 	for (int32 ItemY = 0; ItemY < ItemSizeY; ++ItemY)
 	{
 		for (int32 ItemX = 0; ItemX < ItemSizeX; ++ItemX)
@@ -201,11 +221,11 @@ FRockItemStack URockInventoryLibrary::RemoveItemAtLocation(URockInventory* Inven
 	FRockInventorySlotEntry Slot = Inventory->GetSlotByHandle(SlotHandle);
 	FRockItemStack Item = Inventory->GetItemByHandle(Slot.ItemHandle);
 	const FRockItemStackHandle handle = Slot.ItemHandle;
-	
+
 	// Invalidate the slot
 	{
 		Slot.ItemHandle = FRockItemStackHandle::Invalid();
-		Slot.Orientation = ERockItemOrientation::Horizontal; 
+		Slot.Orientation = ERockItemOrientation::Horizontal;
 		Inventory->SetSlotByHandle(SlotHandle, Slot);
 	}
 	// make a copy of the ItemStack
@@ -301,17 +321,115 @@ bool URockInventoryLibrary::MoveItem(
 			const FRockItemStack Item = RemoveItemAtLocation(SourceInventory, SourceSlotHandle);
 			PlaceItemAtSlot_Internal(TargetInventory, TargetSlotHandle, Item, DesiredOrientation);
 		}
-		
+
 		return true;
 	}
 
 	//////////////////////////////////////////////////////////////////////
-	/// TODO:Merge Item
+	/// For now, we only support if it we can fully merge the 2. 
+	if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem, ERockItemStackMergeCondition::Full))
+	{
+		const auto excess = MergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem);
+		checkf(excess == 0, TEXT("Excess should be 0 when merging at this time"));
+		// Partial merging likely would happen somewhere else?
+	}
 
 	//////////////////////////////////////////////////////////////////////
-	/// TODO: Swap Item
-
+	// NOTE: Only cross this bridge when we get there.
+	// TODO: Swap Item
+	// Some games like Diablo support this but Tarkov does not.
+	// The fact that some items can be placed 'into' other items makes this more complex.
+	// We might not ever support this scenario.
 	return true;
+}
+
+bool URockInventoryLibrary::CanMergeItemAtGridPosition(
+	const URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack,
+	ERockItemStackMergeCondition MergeCondition)
+{
+	if (!Inventory)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Inventory"));
+		return false;
+	}
+	if (!SlotHandle.IsValid())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Slot Handle"));
+		return false;
+	}
+	const FRockItemStack& ExistingItemStack = Inventory->GetItemBySlotHandle(SlotHandle);
+	if (!ExistingItemStack.IsValid() || !ExistingItemStack.IsOccupied())
+	{
+		return false;
+	}
+
+	if (!ExistingItemStack.CanStackWith(ItemStack))
+	{
+		return false;
+	}
+
+	const int32 CurrentStackSize = ExistingItemStack.GetStackSize();
+	const int32 MaxStackSize = ExistingItemStack.GetMaxStackSize();
+	const int32 IncomingStackSize = ItemStack.GetStackSize();
+
+	switch (MergeCondition)
+	{
+	case ERockItemStackMergeCondition::Full:
+		// Can we merge the entire incoming stack?
+		return (CurrentStackSize + IncomingStackSize) <= MaxStackSize;
+	case ERockItemStackMergeCondition::Partial:
+		// Is there any space at all in the existing stack?
+		return CurrentStackSize < MaxStackSize;
+	case ERockItemStackMergeCondition::None:
+		// Cannot merge at all
+		return CurrentStackSize >= MaxStackSize;
+	default:
+		UE_LOG(LogRockInventory, Warning, TEXT("Invalid merge condition"));
+		return false;
+	}
+}
+
+int32 URockInventoryLibrary::MergeItemAtGridPosition(
+	URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack)
+{
+	int32 stackSize = ItemStack.GetStackSize();
+	if (!Inventory)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Inventory"));
+		return stackSize;
+	}
+	if (!SlotHandle.IsValid())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Slot Handle"));
+		return stackSize;
+	}
+	const FRockInventorySlotEntry Slot = Inventory->GetSlotByHandle(SlotHandle);
+	FRockItemStack ExistingItemStack = Inventory->GetItemBySlotHandle(SlotHandle);
+
+	if (ExistingItemStack.IsValid() && ExistingItemStack.IsOccupied())
+	{
+		const int32 NewStackSize = ExistingItemStack.GetStackSize() + stackSize;
+		const int32 MaxStackSize = ExistingItemStack.GetMaxStackSize();
+
+		if (NewStackSize > MaxStackSize)
+		{
+			ExistingItemStack.StackSize = MaxStackSize;
+			stackSize = NewStackSize - MaxStackSize;
+		}
+		else
+		{
+			ExistingItemStack.StackSize = NewStackSize;
+			stackSize = 0;
+		}
+		Inventory->SetItemByHandle(Slot.ItemHandle, ExistingItemStack);
+		return stackSize;
+	}
+	else
+	{
+		// Should this ever even be reachable?
+		UE_LOG(LogRockInventory, Warning, TEXT("Merging Failed: Invalid ItemStack"));
+	}
+	return stackSize;
 }
 
 int32 URockInventoryLibrary::GetItemCount(const URockInventory* Inventory, const FName& ItemId)

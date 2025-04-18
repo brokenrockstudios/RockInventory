@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RockItemStackHandle.h"
 #include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
@@ -12,9 +11,6 @@
 
 class URockItemInstance;
 class URockItemDefinition;
-
-/** Default maximum stack size when no definition is available */
-constexpr int32 DEFAULT_MAX_STACK_SIZE = 1;
 
 /**
  * Represents a stack of items in the inventory system.
@@ -34,7 +30,7 @@ private:
 	friend class URockItemStackLibrary;
 	friend class URockInventoryLibrary;
 	friend class ARockInventoryWorldItem; // I don't like this being here, redesign to not need
-	
+
 	/** Unique identifier for the item */
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<URockItemDefinition> Definition = nullptr;
@@ -46,7 +42,7 @@ private:
 	/** Current number of items in the stack */
 	UPROPERTY(EditAnywhere)
 	int32 StackSize = 0;
-	
+
 	/** 
 	 * Generic value that can be used for various purposes (durability, charges, etc.)
 	 * The meaning of this value is determined by the item's definition
@@ -73,6 +69,7 @@ public:
 	FName GetItemId() const;
 	URockItemDefinition* GetDefinition() const { return Definition; }
 	int32 GetStackSize() const { return StackSize; }
+	int32 GetMaxStackSize() const;
 	URockItemInstance* GetRuntimeInstance() const { return RuntimeInstance; }
 
 	/** Gets the item definition for this item stack */
@@ -102,6 +99,7 @@ USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventoryItemContainer : public FFastArraySerializer
 {
 	GENERATED_BODY()
+
 private:
 	// Force usage of the helpers, and not this array directly. 
 	// Replicated list of inventory slots
