@@ -280,12 +280,6 @@ bool URockInventoryLibrary::MoveItem(
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Target Slot Handle"));
 		return false;
 	}
-	const FRockItemStack& TargetItem = TargetInventory->GetItemBySlotHandle(TargetSlotHandle);
-	if (TargetItem.IsOccupied())
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Target Slot is not empty. We don't support stacking or swapping yet"));
-		return false;
-	}
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Move
@@ -326,12 +320,41 @@ bool URockInventoryLibrary::MoveItem(
 	}
 
 	//////////////////////////////////////////////////////////////////////
-	/// For now, we only support if it we can fully merge the 2. 
-	if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem, ERockItemStackMergeCondition::Full))
+	/// Merge into an existing item
+	// if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem, ERockItemStackMergeCondition::Full))
+	// {
+	// 	const auto excess = MergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem);
+	// 	checkf(excess == 0, TEXT("Excess should be 0 when merging at this time"));
+	// 	// Partial merging likely would happen somewhere else?
+	// }
+	if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem, ERockItemStackMergeCondition::Partial))
 	{
-		const auto excess = MergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem);
-		checkf(excess == 0, TEXT("Excess should be 0 when merging at this time"));
-		// Partial merging likely would happen somewhere else?
+		// Get the target item to calculate how much we can move
+		const FRockItemStack& TargetItem = TargetInventory->GetItemByHandle(TargetSlot.ItemHandle);
+	
+		const int32 TargetCurrentStack = TargetItem.GetStackSize();
+		const int32 TargetMaxStack = TargetItem.GetMaxStackSize();
+		const int32 SourceCurrentStack = SourceItem.GetStackSize();
+		
+		// Calculate how much we can move
+		const int32 AvailableSpace = TargetMaxStack - TargetCurrentStack;
+		const int32 AmountToMove = FMath::Min(AvailableSpace, SourceCurrentStack);
+		
+		// Update target item with new stack size
+		FRockItemStack UpdatedTargetItem = TargetItem;
+		UpdatedTargetItem.StackSize = TargetCurrentStack + AmountToMove;
+		TargetInventory->SetItemByHandle(TargetSlot.ItemHandle, UpdatedTargetItem);
+		
+		// Update source item with remaining stack size
+		FRockItemStack UpdatedSourceItem = SourceItem;
+		UpdatedSourceItem.StackSize = SourceCurrentStack - AmountToMove;
+		SourceInventory->SetItemByHandle(SourceSlot.ItemHandle, UpdatedSourceItem);
+		
+		// Broadcast changes
+		SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
+		TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
+		
+		return true;
 	}
 
 	//////////////////////////////////////////////////////////////////////

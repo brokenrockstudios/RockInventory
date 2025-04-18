@@ -3,13 +3,20 @@
 
 #include "UI/RockItemDragDropOperation.h"
 
+#include "RockInventoryLogging.h"
 #include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/Transactions/Core/RockInventoryManager.h"
 #include "Inventory/Transactions/Implementations/RockDropItemTransaction.h"
 
+void URockItemDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerEvent)
+{
+	// Super::Dragged_Implementation(PointerEvent);
+	// Fires on every frame while dragging
+	// UE_LOG(LogRockInventory, Warning, TEXT("Dragged_Implementation"));
+}
+
 void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEvent& PointerEvent)
 {
-	Super::DragCancelled_Implementation(PointerEvent);
 	URockDropItemTransaction* Transaction = NewObject<URockDropItemTransaction>(this);
 
 	Transaction->Initialize(Instigator, SourceInventory, SourceSlot);
@@ -25,4 +32,14 @@ void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEven
 	{
 		Transaction->Execute();
 	}
+	
+	// Broadcasts the event that the drag operation was cancelled
+	Super::DragCancelled_Implementation(PointerEvent);
+}
+
+void URockItemDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEvent)
+{
+	Super::Drop_Implementation(PointerEvent);
+	UE_LOG(LogRockInventory, Warning, TEXT("URockItemDragDropOperation::Drop_Implementation"));
+	
 }

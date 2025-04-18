@@ -24,6 +24,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockInventorySlotHandle TargetSlotHandle;
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transaction")
+	static URockMoveItemTransaction* CreateMoveItemTransaction(
+		URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle,
+		URockInventory* InTargetInventory, const FRockInventorySlotHandle& InTargetSlotHandle);
 
 	virtual bool Execute_Implementation() override
 	{
@@ -52,3 +56,4 @@ public:
 		//" from %s to %s"), *SourceInventory->GetDebugString(), *TargetInventory->GetDebugString());
 	}
 };
+

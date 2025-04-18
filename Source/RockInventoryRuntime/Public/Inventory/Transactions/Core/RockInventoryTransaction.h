@@ -3,54 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Enums/RockEnums.h"
 #include "Library/RockInventoryLibrary.h"
 #include "UObject/Object.h"
 
 #include "RockInventoryTransaction.generated.h"
-
-// Maybe we want to support asynchronous transactions?
-UENUM(BlueprintType)
-enum class ERockTransactionState : uint8
-{
-	Pending,
-	Executing,
-	Completed,
-	Failed,
-	Undoing
-};
-
-UENUM(BlueprintType)
-enum class ERockTransactionResult : uint8
-{
-	InProgress UMETA(DisplayName = "In Progress", ToolTip = "Transaction is still executing"),
-	Complete UMETA(DisplayName = "Complete", ToolTip = "Transaction has completed successfully"),
-	Failed UMETA(DisplayName = "Failed", ToolTip = "Transaction has failed"),
-};
-
-
-UENUM(BlueprintType)
-enum class ERockInventoryTransactionType : uint8
-{
-	None,
-	AddItem, // instantiate a wholly new item from nowhere
-	LootItem, // Get an item from a source that isn't necessarily another container? 
-	MoveItem, // Move an item from any inventory to any other inventory.
-
-	// Destroy or remove or consume item?
-	// Modify an item somehow?
-
-	// ItemUpdated,
-
-	// TabAdded,
-	// TabRemoved,
-	// TabUpdated,
-
-	// SlotAdded,
-	// SlotRemoved,
-	// SlotUpdated
-
-	Max UMETA(Hidden)
-};
 
 
 // Experimental:

@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Blueprint/DragDropOperation.h"
 #include "Inventory/RockSlotHandle.h"
-#include "Item/RockItemStack.h"
 #include "RockItemDragDropOperation.generated.h"
 
 class URockInventory;
@@ -37,7 +36,11 @@ public:
 	// UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "DragDrop")
 	// FRockItemStack SourceStack;
 
+	virtual void Dragged_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
+	virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;
 
 	// virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;
 };
+
+

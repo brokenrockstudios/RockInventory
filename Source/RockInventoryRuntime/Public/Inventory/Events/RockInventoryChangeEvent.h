@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Enums/RockEnums.h"
 #include "Inventory/RockSlotHandle.h"
 #include "Item/RockItemStack.h"
 #include "UObject/Object.h"
@@ -11,23 +12,6 @@
 
 class URockInventory;
 
-UENUM(BlueprintType)
-enum class ERockInventoryChangeType : uint8
-{
-	None,
-	ItemAdded,
-	ItemRemoved,
-	ItemMoved,
-	ItemUpdated,
-
-	TabAdded,
-	TabRemoved,
-	TabUpdated,
-
-	SlotAdded,
-	SlotRemoved,
-	SlotUpdated
-};
 
 /**
  *

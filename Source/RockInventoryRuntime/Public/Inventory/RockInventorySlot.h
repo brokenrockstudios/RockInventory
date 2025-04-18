@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "RockItemOrientation.h"
 #include "RockSlotHandle.h"
+#include "Enums/RockEnums.h"
 #include "Item/RockItemStack.h"
 #include "Item/RockItemStackHandle.h"
 #include "Library/RockInventoryHelpers.h"

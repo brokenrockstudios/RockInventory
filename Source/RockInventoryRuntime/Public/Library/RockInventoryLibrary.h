@@ -80,7 +80,6 @@ public:
 		ERockItemStackMergeCondition MergeCondition = ERockItemStackMergeCondition::Full);
 	static int32 MergeItemAtGridPosition(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack);
 
-
 	/** Get the item at a specific location
 	 * @param Inventory - The inventory to get the item from
 	 * @param SlotHandle - The handle of the slot to get the item from
@@ -89,9 +88,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static FRockItemStack GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle);
 
-	/** Get the item at a specific location
+	/** Get the item count in an inventory
 	 * @param Inventory - The inventory to get the item from
-	 * @param SlotHandle - The handle of the slot to get the item from
+	 * @param ItemId - The ItemID for which you want to count
 	 * @return The item stack at the specified location
 	 */
 	UFUNCTION(BlueprintCallable)
