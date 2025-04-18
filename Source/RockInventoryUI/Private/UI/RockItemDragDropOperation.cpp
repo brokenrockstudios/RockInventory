@@ -6,6 +6,7 @@
 #include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/Transactions/Core/RockInventoryManager.h"
 #include "Inventory/Transactions/Implementations/RockDropItemTransaction.h"
+#include "Library/RockInventoryManagerLibrary.h"
 
 void URockItemDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerEvent)
 {
@@ -22,15 +23,8 @@ void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEven
 
 	Transaction->DropLocationOffset = DropLocationOffset;
 
-	const URockInventoryManagerComponent* TransactionComponent = Instigator->GetComponentByClass<URockInventoryManagerComponent>();
-	if (TransactionComponent && TransactionComponent->TransactionManager)
-	{
-		TransactionComponent->TransactionManager->EnqueueTransaction(Transaction);
-	}
-	else
-	{
-		Transaction->Execute();
-	}
+	
+	URockInventoryManagerLibrary::EnqueueTransaction(Instigator, Transaction);
 	
 	// Broadcasts the event that the drag operation was cancelled
 	Super::DragCancelled_Implementation(PointerEvent);

@@ -1,44 +1,103 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
-
 #include "Library/RockInventoryManagerLibrary.h"
 
 #include "RockInventoryLogging.h"
 #include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/Transactions/Core/RockInventoryManager.h"
 
-void URockInventoryManagerLibrary::EnqueueTransaction(UObject* Object, URockInventoryTransaction* transaction)
+bool URockInventoryManagerLibrary::EnqueueTransaction(UObject* Object, URockInventoryTransaction* Transaction)
 {
-	if (!Object || !transaction)
+	if (!Transaction)
 	{
-		UE_LOG(LogRockInventory, Error, TEXT("EnqueueTransaction: Invalid input parameters - Object or Transaction is null"));
-		return;
+		UE_LOG(LogRockInventory, Error, TEXT("EnqueueTransaction: Invalid transaction parameter"));
+		return false;
 	}
 
-	URockInventoryManager* transactionManager = nullptr;
+	URockInventoryManager* Manager = GetInventoryManager(Object);
+	if (Manager)
+	{
+		return Manager->EnqueueTransaction(Transaction);
+	}
 
-	if (URockInventoryManager* manager = Cast<URockInventoryManager>(Object))
+	// If no manager found, execute the transaction directly
+	Transaction->Execute();
+	return true;
+}
+
+URockInventoryManager* URockInventoryManagerLibrary::GetInventoryManager(UObject* Object)
+{
+	if (!Object)
 	{
-		transactionManager = manager;
+		return nullptr;
 	}
-	else if (const URockInventoryManagerComponent* inventoryComponent = Cast<URockInventoryManagerComponent>(Object))
+
+	// TODO: Check if object implements IInventoryManagerProvider
+	// if (const IInventoryManagerProvider* ManagerProvider = Cast<IInventoryManagerProvider>(Object))
+	// {
+	// 	return ManagerProvider->GetInventoryManager();
+	// }
+
+	// Check if the object is directly a manager
+	if (URockInventoryManager* Manager = Cast<URockInventoryManager>(Object))
 	{
-		transactionManager = inventoryComponent->TransactionManager;
+		return Manager;
 	}
-	else if (const AActor* actor = Cast<AActor>(Object))
+
+	// Check if the object is a manager component
+	if (const URockInventoryManagerComponent* ManagerComponent = Cast<URockInventoryManagerComponent>(Object))
 	{
-		if (const URockInventoryManagerComponent* managerComponent = actor->GetComponentByClass<URockInventoryManagerComponent>())
+		return ManagerComponent->TransactionManager;
+	}
+
+	// Check if the object is an actor with a manager component
+	if (const AActor* Actor = Cast<AActor>(Object))
+	{
+		if (const URockInventoryManagerComponent* ManagerComponent = Actor->GetComponentByClass<URockInventoryManagerComponent>())
 		{
-			transactionManager = managerComponent->TransactionManager;
+			return ManagerComponent->TransactionManager;
 		}
 	}
 
-	if (!transactionManager)
-	{
-		UE_LOG(LogRockInventory, Error, TEXT("EnqueueTransaction: Failed to find valid transaction manager for object of type %s"),
-			*GetNameSafe(Object->GetClass()));
-		return;
-	}
+	return nullptr;
+}
 
-	transactionManager->EnqueueTransaction(transaction);
+bool URockInventoryManagerLibrary::HasInventoryManager(UObject* Object)
+{
+	return GetInventoryManager(Object) != nullptr;
+}
+
+TArray<FString> URockInventoryManagerLibrary::GetTransactionHistory(UObject* Object)
+{
+	if (URockInventoryManager* Manager = GetInventoryManager(Object))
+	{
+		return Manager->GetTransactionDescriptions();
+	}
+	return TArray<FString>();
+}
+
+bool URockInventoryManagerLibrary::UndoLastTransaction(UObject* Object)
+{
+	if (URockInventoryManager* Manager = GetInventoryManager(Object))
+	{
+		return Manager->UndoLastTransaction();
+	}
+	return false;
+}
+
+bool URockInventoryManagerLibrary::RedoTransaction(UObject* Object)
+{
+	if (URockInventoryManager* Manager = GetInventoryManager(Object))
+	{
+		return Manager->RedoTransaction();
+	}
+	return false;
+}
+
+void URockInventoryManagerLibrary::ClearTransactionHistory(UObject* Object)
+{
+	if (URockInventoryManager* Manager = GetInventoryManager(Object))
+	{
+		Manager->ClearHistory();
+	}
 }
