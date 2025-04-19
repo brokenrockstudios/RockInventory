@@ -11,6 +11,10 @@
 #include "Item/RockItemDefinition.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Item/RockItemStack.h"
+#include "Library/RockInventoryManagerLibrary.h"
+#include "Transactions/Implementations/RockMoveItemTransaction.h"
+#include "UI/RockItemDragDropOperation.h"
+#include "UObject/ICookInfo.h"
 
 void URockInventory_Slot_ItemBase::NativeConstruct()
 {
@@ -87,6 +91,21 @@ void URockInventory_Slot_ItemBase::OnInventoryChanged(URockInventory* ChangedInv
 	{
 		UpdateItemCount();
 	}
+}
+
+bool URockInventory_Slot_ItemBase::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	const URockItemDragDropOperation* DragDropOp = Cast<URockItemDragDropOperation>(InOperation);
+	if (!DragDropOp)
+	{
+		return false;
+	}
+	
+	URockMoveItemTransaction* MoveTransaction = URockMoveItemTransaction::CreateMoveItemTransaction(
+		DragDropOp->SourceInventory, DragDropOp->SourceSlot,
+		Inventory, SlotHandle);
+
+	return URockInventoryManagerLibrary::EnqueueTransaction(GetOwningPlayer(), MoveTransaction);
 }
 
 void URockInventory_Slot_ItemBase::SetIconData(const FRockItemUIData& InIconData)

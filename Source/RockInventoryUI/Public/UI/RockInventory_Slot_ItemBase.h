@@ -54,6 +54,9 @@ public:
 	UFUNCTION()
 	void OnInventoryChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle);
 
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void SetIconData(const FRockItemUIData& InIconData);
 
