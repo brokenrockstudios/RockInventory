@@ -114,6 +114,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static int32 GetItemCount(const URockInventory* Inventory, const FName& ItemId);
 
+	/**
+	 * Checks if an item can be placed in a section based on its type restrictions
+	 * @param ItemStack - The item stack to check
+	 * @param SectionInfo - The section info to check against
+	 * @return True if the item can be placed in the section
+	 */
+	static bool CanItemBePlacedInSection(
+		const FRockItemStack& ItemStack,
+		const FRockInventorySectionInfo& SectionInfo);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Misc Utility functions
 	static void PrecomputeOccupancyGrids(

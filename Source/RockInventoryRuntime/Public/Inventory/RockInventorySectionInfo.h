@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Enums/RockEnums.h"
 #include "UObject/Object.h"
 
 #include "RockInventorySectionInfo.generated.h"
+
 
 /**
  * Tab dimension info
@@ -39,11 +41,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 Height = 0;
 
+	/** Type of section - determines special behavior like size restrictions */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	ERockItemSizePolicy SlotSizePolicy = ERockItemSizePolicy::RespectSize;
+
 	/** Optional tags to filter items in this tab.
 	 * e.g. a Head Slot only accepts hat items, or weapons only accept weapons, Keychain only accepts keys. 
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FGameplayTagQuery TabFilter;
+	FGameplayTagQuery SectionFilter;
 
 	/** Total number of slots in this tab */
 	int32 GetNumSlots() const;

@@ -55,8 +55,9 @@ public:
 	FRockItemUIData IconData;
 	//////////////////////////////////////////////////////////////////////////
 	/// Information
+	// An item can be 'multiple types' (e.g. a 'battery' can be a 'tool' and a 'battery')
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
-	FGameplayTag ItemType;
+	FGameplayTagContainer ItemType;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag ItemSubType;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")

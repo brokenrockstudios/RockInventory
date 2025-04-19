@@ -90,9 +90,11 @@ void URockInventory_ContainerBase::GenerateItems()
 	ClearItemsFromGrid();
 
 	int32 SectionIndex = INDEX_NONE;
+	ERockItemSizePolicy SizePolicy = ERockItemSizePolicy::RespectSize;
 	if (Inventory)
 	{
 		SectionIndex = Inventory->GetSectionIndexById(TabInfo.SectionName);
+		SizePolicy = Inventory->GetSectionInfo(TabInfo.SectionName).SlotSizePolicy;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -138,8 +140,20 @@ void URockInventory_ContainerBase::GenerateItems()
 			{
 				// Setting this more than 0 breaks things. Find another way to do 'padding' or internal spacing
 				GridSlot->SetPadding(FMargin(0));
-				GridSlot->SetColumnSpan(ItemSize.X);
-				GridSlot->SetRowSpan(ItemSize.Y);
+				// If this section is ignore size, we should use 1
+
+				if (SizePolicy == ERockItemSizePolicy::IgnoreSize)
+				{
+					GridSlot->SetColumnSpan(1);
+					GridSlot->SetRowSpan(1);
+				}
+				else
+				{
+					// If this section is respect size, we should use the item size
+					GridSlot->SetColumnSpan(ItemSize.X);
+					GridSlot->SetRowSpan(ItemSize.Y);
+				}
+
 				GridSlot->SetHorizontalAlignment(HAlign_Fill);
 				GridSlot->SetVerticalAlignment(VAlign_Fill);
 			}

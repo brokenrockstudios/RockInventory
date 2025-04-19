@@ -5,6 +5,7 @@
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventory.h"
 #include "Inventory/RockInventorySectionInfo.h"
+#include "Item/RockItemDefinition.h"
 #include "Library/RockItemStackLibrary.h"
 
 
@@ -41,8 +42,21 @@ bool URockInventoryLibrary::LootItemToInventory(
 		const int32 Column = SectionSlotIndex % SectionInfo.Width;
 		const int32 Row = SectionSlotIndex / SectionInfo.Width;
 
-		// TODO: If we have a stackable item, we should check if we can stack it instead of placing it
-		// And continue to the next slot
+		// First check if the item can be placed in this section based on type restrictions
+		if (!CanItemBePlacedInSection(ItemStackCopy, SectionInfo))
+		{
+			continue;
+		}
+
+		// Then check if we can stack it
+		if (CanMergeItemAtGridPosition(Inventory, SlotHandle, ItemStackCopy, ERockItemStackMergeCondition::Partial))
+		{
+			OutExcess = MergeItemAtGridPosition(Inventory, SlotHandle, ItemStackCopy);
+			ItemStackCopy.StackSize = OutExcess;
+			continue;
+		}
+
+		// Finally check if it fits spatially
 		if (CanItemFitInGridPosition(OccupancyGrids, SectionInfo, Column, Row, ItemSize))
 		{
 			const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStackCopy);
@@ -50,11 +64,6 @@ bool URockInventoryLibrary::LootItemToInventory(
 			OutExcess = 0;
 			PlaceItemAtSlot(Inventory, OutHandle, ItemHandle, ERockItemOrientation::Horizontal);
 			return true;
-		}
-		else if (CanMergeItemAtGridPosition(Inventory, SlotHandle, ItemStackCopy, ERockItemStackMergeCondition::Partial))
-		{
-			OutExcess = MergeItemAtGridPosition(Inventory, SlotHandle, ItemStackCopy);
-			ItemStackCopy.StackSize = OutExcess;
 		}
 	}
 	// What should we do if we were only able to partially place the item?
@@ -115,17 +124,17 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(
 
 	for (int32 TabIndex = 0; TabIndex < Inventory->SlotSections.Num(); ++TabIndex)
 	{
-		const FRockInventorySectionInfo& TabInfo = Inventory->SlotSections[TabIndex];
-		const int32 TabOffset = TabInfo.FirstSlotIndex;
+		const FRockInventorySectionInfo& SectionInfo = Inventory->SlotSections[TabIndex];
+		const int32 TabOffset = SectionInfo.FirstSlotIndex;
 
 		// Mark occupied cells
-		for (int32 SlotIndex = 0; SlotIndex < TabInfo.GetNumSlots(); ++SlotIndex)
+		for (int32 SlotIndex = 0; SlotIndex < SectionInfo.GetNumSlots(); ++SlotIndex)
 		{
 			checkf(0 <= SlotIndex && SlotIndex < Inventory->SlotData.Num(),
 				TEXT("SlotIndex is out of range: %d (max: %d)"), SlotIndex, Inventory->SlotData.Num() - 1);
 
-			const int32 Column = (SlotIndex) % TabInfo.Width;
-			const int32 Row = (SlotIndex) / TabInfo.Width;
+			const int32 Column = (SlotIndex) % SectionInfo.Width;
+			const int32 Row = (SlotIndex) / SectionInfo.Width;
 
 			const FRockInventorySlotEntry& ExistingItemSlot = Inventory->SlotData[TabOffset + SlotIndex];
 			if (ExistingItemSlot.ItemHandle == IgnoreItemHandle)
@@ -138,18 +147,30 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(
 			if (ExistingItemStack.IsValid())
 			{
 				const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ExistingItemStack);
-
-				// Mark all cells this item occupies as true
-				for (int32 Y = 0; Y < ItemSize.Y; ++Y)
+				auto SizePolicy = SectionInfo.SlotSizePolicy;
+				
+				// If size policy is IgnoreSize, only mark the single slot as occupied
+				if (SizePolicy == ERockItemSizePolicy::IgnoreSize)
 				{
-					for (int32 X = 0; X < ItemSize.X; ++X)
+					const int32 GridIndex = TabOffset + SlotIndex;
+					checkf(0 <= GridIndex && GridIndex < totalGridSize,
+						TEXT("Grid index out of range: %d (max: %d)"), GridIndex, totalGridSize - 1);
+					OutOccupancyGrid[GridIndex] = true;
+				}
+				else
+				{
+					// Mark all cells this item occupies as true
+					for (int32 Y = 0; Y < ItemSize.Y; ++Y)
 					{
-						const int32 GridX = Column + X;
-						const int32 GridY = Row + Y;
-						const int32 GridIndex = TabOffset + (GridY * TabInfo.Width + GridX);
-						checkf(0 <= GridIndex && GridIndex < totalGridSize,
-							TEXT("Grid index out of range: %d (max: %d)"), GridIndex, totalGridSize - 1);
-						OutOccupancyGrid[GridIndex] = true;
+						for (int32 X = 0; X < ItemSize.X; ++X)
+						{
+							const int32 GridX = Column + X;
+							const int32 GridY = Row + Y;
+							const int32 GridIndex = TabOffset + (GridY * SectionInfo.Width + GridX);
+							checkf(0 <= GridIndex && GridIndex < totalGridSize,
+								TEXT("Grid index out of range: %d (max: %d)"), GridIndex, totalGridSize - 1);
+							OutOccupancyGrid[GridIndex] = true;
+						}
 					}
 				}
 			}
@@ -160,6 +181,18 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(
 bool URockInventoryLibrary::CanItemFitInGridPosition(
 	const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize)
 {
+	// If this is an unrestricted section, we only need to check if the slot is occupied
+	// Item size is irrelevant.
+	if (TabInfo.SlotSizePolicy == ERockItemSizePolicy::IgnoreSize)
+	{
+		const int32 GridIndex = TabInfo.FirstSlotIndex + (Y * TabInfo.Width + X);
+		if (GridIndex < 0 || GridIndex >= OccupancyGrid.Num())
+		{
+			return false;
+		}
+		return !OccupancyGrid[GridIndex];
+	}
+
 	const int32 ItemSizeX = ItemSize.X;
 	const int32 ItemSizeY = ItemSize.Y;
 
@@ -169,7 +202,6 @@ bool URockInventoryLibrary::CanItemFitInGridPosition(
 		// Out of bounds
 		return false;
 	}
-
 
 	for (int32 ItemY = 0; ItemY < ItemSizeY; ++ItemY)
 	{
@@ -300,6 +332,13 @@ bool URockInventoryLibrary::MoveItem(
 		return false;
 	}
 
+	// Can CanItemBePlacedInSection of TargetInventory
+	if (!CanItemBePlacedInSection(SourceItem, TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()]))
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be placed in target section"));
+		return false;
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	/// Move
 	TArray<bool> OccupancyGrid;
@@ -317,6 +356,8 @@ bool URockInventoryLibrary::MoveItem(
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid move amount calculated"));
 		return false;
 	}
+
+	
 
 	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize))
 	{
@@ -547,3 +588,15 @@ int32 URockInventoryLibrary::GetItemCount(const URockInventory* Inventory, const
 // 	// Since this Library shouldn't be responsible for 'spawning' the item, because who knows where we want to spawn it.
 // 	
 // }
+
+bool URockInventoryLibrary::CanItemBePlacedInSection(
+	const FRockItemStack& ItemStack,
+	const FRockInventorySectionInfo& SectionInfo)
+{
+	// Check if the section has any type restrictions
+	if (SectionInfo.SectionFilter.IsEmpty())
+	{
+		return true;
+	}
+	return SectionInfo.SectionFilter.Matches(ItemStack.GetDefinition()->ItemType);
+}

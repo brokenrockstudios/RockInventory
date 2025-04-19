@@ -24,13 +24,13 @@ class ROCKINVENTORYUI_API URockInventory_Slot_ItemBase : public UUserWidget
 public:
 	// The main widget for an item that will exist in the canvas panel of a Container
 	// This needs to adjust it's size based upon the size of the item
+	// We might not need this, but it is here for now. This is the inventory that this slot belongs to.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
+	TObjectPtr<URockInventory> Inventory;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
 	FRockInventorySlotHandle SlotHandle;
 
-	// We might not need this, but it is here for now. This is the inventory that this slot belongs to.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
-	TObjectPtr<URockInventory> Inventory;
 
 	// Bind Image Widget
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))

@@ -103,3 +103,16 @@ enum class ERockItemMoveAmount : uint8
 	One,	// Move Single item
 	Custom, // Use MoveCount for a specific amount
 };
+
+
+// This allows us to have an 'unrestricted' item size in a 1x1 slot of a section, such as for equipment or hot bar slots.
+UENUM(BlueprintType)
+enum class ERockItemSizePolicy : uint8
+{
+	// Standard grid rules
+	RespectSize,
+	// Ignores the size of the item when checking for placement. Treats items like a 1x1 item.
+	IgnoreSize
+};
+
+
