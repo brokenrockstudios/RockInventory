@@ -34,4 +34,7 @@ public:
 
 	bool operator==(const FRockInventorySlotHandle& Other) const { return Index == Other.Index && Section == Other.Section; }
 	bool operator!=(const FRockInventorySlotHandle& Other) const { return !(*this == Other); }
+
+	/** Network serialization that compresses the values */
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 };
