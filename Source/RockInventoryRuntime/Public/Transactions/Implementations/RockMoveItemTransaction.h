@@ -29,14 +29,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockInventorySlotHandle TargetSlotHandle;
 
+	// User Configurable
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRockMoveItemParams MoveParams;
 
 	virtual bool Execute_Implementation() override
 	{
-		return URockInventoryLibrary::MoveItem(SourceInventory, SourceSlotHandle, TargetInventory, TargetSlotHandle);
+		// TODO: We need to save off the existing item's rotation and stack count so we can 'undo' it later.
+		
+		return URockInventoryLibrary::MoveItem(SourceInventory, SourceSlotHandle, TargetInventory, TargetSlotHandle, MoveParams);
 	}
 
 	virtual bool Undo_Implementation() override
 	{
+		
 		return URockInventoryLibrary::MoveItem(TargetInventory, TargetSlotHandle, SourceInventory, SourceSlotHandle);
 	}
 

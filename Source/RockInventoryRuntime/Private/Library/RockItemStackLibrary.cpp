@@ -77,3 +77,33 @@ bool URockItemStackLibrary::IsFull(const FRockItemStack& ItemStack)
 {
 	return ItemStack.StackSize >= GetMaxStackSize(ItemStack);
 }
+
+int32 URockItemStackLibrary::CalculateMoveAmount(const FRockItemStack& ItemStack, const FRockMoveItemParams& MoveParams)
+{
+	if (!ItemStack.IsValid())
+	{
+		return 0;
+	}
+
+	const int32 CurrentStackSize = ItemStack.GetStackSize();
+	if (CurrentStackSize <= 0)
+	{
+		return 0;
+	}
+
+	switch (MoveParams.MoveAmount)
+	{
+	case ERockItemMoveAmount::All:
+		return CurrentStackSize;
+	case ERockItemMoveAmount::One:
+		return 1;
+	case ERockItemMoveAmount::Half:
+		return (CurrentStackSize + 1) / 2; // Round up
+	case ERockItemMoveAmount::Custom:
+		// Clamp the custom amount to the current stack size
+		return FMath::Clamp(MoveParams.MoveCount, 0, CurrentStackSize);
+	default:
+		// Invalid move amount type, return 0
+		return 0;
+	}
+}

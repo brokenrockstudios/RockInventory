@@ -15,11 +15,16 @@ USTRUCT(BlueprintType)
 struct FRockMoveItemParams
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ERockItemOrientation DesiredOrientation = ERockItemOrientation::Horizontal;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	ERockItemMoveAmount MoveAmount = ERockItemMoveAmount::Max;
+	ERockItemMoveAmount MoveAmount = ERockItemMoveAmount::All;
+
+
+	// MoveCount <= 0 means full stack.  Should it be < or <=, or is there any special case where moving 0 items would be valid? 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MoveCount = -1;
 };
 
 

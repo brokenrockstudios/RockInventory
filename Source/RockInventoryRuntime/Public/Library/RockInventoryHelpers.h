@@ -41,7 +41,7 @@
 	int32 AddDefaulted(int32 Count) { return PropertyName.AddDefaulted(Count); } \
     int32 AddDefaulted() { return PropertyName.AddDefaulted(); } \
 	/* Misc */ \
-	bool ContainsIndex(int32 Index) const { return Index >= 0 && PropertyName.Num(); }
+	bool ContainsIndex(int32 Index) const { return Index >= 0 && Index < PropertyName.Num(); }
 
 
 // No direct int32 access. Always assume we want to access via handle

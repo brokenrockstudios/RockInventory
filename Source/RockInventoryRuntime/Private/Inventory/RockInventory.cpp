@@ -175,7 +175,8 @@ int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 He
 	for (int32 SlotIndex = 0; SlotIndex < NewTab.GetNumSlots(); ++SlotIndex)
 	{
 		const int32 AbsoluteSlotIndex = NewTab.FirstSlotIndex + SlotIndex;
-		checkf(0 <= AbsoluteSlotIndex && AbsoluteSlotIndex < SlotData.Num(), TEXT("Absolute slot index out of range:"));
+		checkf(0 <= AbsoluteSlotIndex && AbsoluteSlotIndex < SlotData.Num(),
+			TEXT("Absolute slot index out of range:"));
 
 		const FRockInventorySlotHandle SlotHandle(TabIndex, AbsoluteSlotIndex);
 		SlotData[AbsoluteSlotIndex].SlotHandle = SlotHandle;
@@ -249,7 +250,8 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		}
 		else
 		{
-			UE_LOG(LogRockInventory, Error, TEXT("Failed to create runtime instance for item stack %s"), *ItemStack.GetDebugString());
+			UE_LOG(LogRockInventory, Error, TEXT("Failed to create runtime instance for item stack %s"),
+				*ItemStack.GetDebugString());
 		}
 	}
 

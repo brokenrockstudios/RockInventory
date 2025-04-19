@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RockInventoryLibrary.h"
 #include "Item/RockItemStack.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "RockItemStackLibrary.generated.h"
@@ -45,4 +46,7 @@ public:
 	/** Returns true if the stack is at its maximum size */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
 	static bool IsFull(const FRockItemStack& ItemStack);
+
+	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
+	static int32 CalculateMoveAmount(const FRockItemStack& ItemStack, const FRockMoveItemParams& MoveParams);
 };

@@ -50,6 +50,11 @@ private:
 	/** The grid slot data */
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FRockInventorySlotContainer SlotData;
+	
+	// If you are holding an item, this could be the last slot you picked up, that might be 'dropped' or something soon?
+	// Should this be on the inventory or on the player or component/manager/or something?
+	// UPROPERTY(VisibleAnywhere, Transient)
+	// FRockInventorySlotHandle PendingItemHandle;
 
 	/** Tab configuration for the inventory */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = true))

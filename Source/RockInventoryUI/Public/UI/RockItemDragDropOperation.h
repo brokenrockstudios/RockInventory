@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/DragDropOperation.h"
 #include "Inventory/RockSlotHandle.h"
+#include "Library/RockInventoryLibrary.h"
 #include "RockItemDragDropOperation.generated.h"
 
 class URockInventory;
@@ -30,7 +31,10 @@ public:
 	// Override in BP version
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	FVector DropLocationOffset = FVector(150, 0, 0);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
+	FRockMoveItemParams MoveItemParams;
 
+	
 	virtual void Dragged_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;

@@ -300,7 +300,6 @@ bool URockInventoryLibrary::MoveItem(
 		return false;
 	}
 
-
 	//////////////////////////////////////////////////////////////////////////
 	/// Move
 	TArray<bool> OccupancyGrid;
@@ -312,32 +311,69 @@ bool URockInventoryLibrary::MoveItem(
 	const int32 Row = SectionIndex / targetSection.Width;
 	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(SourceItem);
 
+	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(SourceItem, MoveItemParams);
+	if (MoveAmount <= 0)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("Invalid move amount calculated"));
+		return false;
+	}
+
 	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize))
 	{
 		if (SourceInventory == TargetInventory)
 		{
-			// We don't use the Remove and Place in the same inventory because
-			// those functions invalidates the itemslot and re-adds it, which is unnecessary and wasteful on same inventory
-			FRockInventorySlotEntry SourceSlotRef = SourceInventory->GetSlotByHandle(SourceSlotHandle);
-			SourceSlotRef.ItemHandle = FRockItemStackHandle::Invalid();
-			SourceSlotRef.Orientation = ERockItemOrientation::Horizontal;
-			SourceInventory->SetSlotByHandle(SourceSlotHandle, SourceSlotRef);
+			// If we're moving the entire stack, we can just move the item handle
+			if (MoveAmount == SourceItem.GetStackSize())
+			{
+				// We don't use the Remove and Place in the same inventory because
+				// those functions invalidates the itemslot and re-adds it, which is unnecessary and wasteful on same inventory
+				FRockInventorySlotEntry SourceSlotRef = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+				SourceSlotRef.ItemHandle = FRockItemStackHandle::Invalid();
+				SourceSlotRef.Orientation = ERockItemOrientation::Horizontal;
+				SourceInventory->SetSlotByHandle(SourceSlotHandle, SourceSlotRef);
 
-			FRockInventorySlotEntry TargetSlotRef = TargetInventory->GetSlotByHandle(TargetSlotHandle);
-			TargetSlotRef.ItemHandle = SourceSlot.ItemHandle;
-			TargetSlotRef.Orientation = MoveItemParams.DesiredOrientation;
-			TargetInventory->SetSlotByHandle(TargetSlotHandle, TargetSlotRef);
+				FRockInventorySlotEntry TargetSlotRef = TargetInventory->GetSlotByHandle(TargetSlotHandle);
+				TargetSlotRef.ItemHandle = SourceSlot.ItemHandle;
+				TargetSlotRef.Orientation = MoveItemParams.DesiredOrientation;
+				TargetInventory->SetSlotByHandle(TargetSlotHandle, TargetSlotRef);
+			}
+			else
+			{
+				// We need to split the stack
+				const FRockItemStack ItemToMove = SplitItemStackAtLocation(SourceInventory, SourceSlotHandle, MoveAmount);
+				if (!ItemToMove.IsValid())
+				{
+					UE_LOG(LogRockInventory, Warning, TEXT("Failed to split item stack"));
+					return false;
+				}
+
+				// Place the split item in the target slot
+				const FRockItemStackHandle& NewItemHandle = TargetInventory->AddItemToInventory(ItemToMove);
+				FRockInventorySlotEntry TargetSlotRef = TargetInventory->GetSlotByHandle(TargetSlotHandle);
+				TargetSlotRef.ItemHandle = NewItemHandle;
+				TargetSlotRef.Orientation = MoveItemParams.DesiredOrientation;
+				TargetInventory->SetSlotByHandle(TargetSlotHandle, TargetSlotRef);
+			}
+
 			SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
 			TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
 		}
 		else
 		{
-			if (MoveItemParams.MoveAmount == ERockItemMoveAmount::All)
+			// Split the source item stack based on the move amount
+			const FRockItemStack ItemToMove = SplitItemStackAtLocation(SourceInventory, SourceSlotHandle, MoveAmount);
+			if (!ItemToMove.IsValid())
 			{
+				UE_LOG(LogRockInventory, Warning, TEXT("Failed to split item stack"));
+				return false;
 			}
-			int32 Quantity = 1;
-			const FRockItemStack Item = SplitItemStackAtLocation(SourceInventory, SourceSlotHandle, Quantity);
-			PlaceItemAtSlot_Internal(TargetInventory, TargetSlotHandle, Item, MoveItemParams.DesiredOrientation);
+
+			// Place the split item in the target inventory
+			if (!PlaceItemAtSlot_Internal(TargetInventory, TargetSlotHandle, ItemToMove, MoveItemParams.DesiredOrientation))
+			{
+				UE_LOG(LogRockInventory, Warning, TEXT("Failed to place item in target inventory"));
+				return false;
+			}
 		}
 
 		return true;
@@ -345,24 +381,29 @@ bool URockInventoryLibrary::MoveItem(
 
 	//////////////////////////////////////////////////////////////////////
 	/// Merge into an existing item
-	// if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem, ERockItemStackMergeCondition::Full))
-	// {
-	// 	const auto excess = MergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem);
-	// 	checkf(excess == 0, TEXT("Excess should be 0 when merging at this time"));
-	// 	// Partial merging likely would happen somewhere else?
-	// }
 	if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem, ERockItemStackMergeCondition::Partial))
 	{
 		// Get the target item to calculate how much we can move
 		const FRockItemStack& TargetItem = TargetInventory->GetItemByHandle(TargetSlot.ItemHandle);
+		if (!TargetItem.IsValid())
+		{
+			UE_LOG(LogRockInventory, Warning, TEXT("Invalid target item for merging"));
+			return false;
+		}
 
 		const int32 TargetCurrentStack = TargetItem.GetStackSize();
 		const int32 TargetMaxStack = TargetItem.GetMaxStackSize();
 		const int32 SourceCurrentStack = SourceItem.GetStackSize();
 
-		// Calculate how much we can move
+		// Calculate how much we can move, considering both the available space and the requested move amount
 		const int32 AvailableSpace = TargetMaxStack - TargetCurrentStack;
-		const int32 AmountToMove = FMath::Min(AvailableSpace, SourceCurrentStack);
+		const int32 AmountToMove = FMath::Min3(AvailableSpace, SourceCurrentStack, MoveAmount);
+
+		if (AmountToMove <= 0)
+		{
+			UE_LOG(LogRockInventory, Warning, TEXT("No items can be merged"));
+			return false;
+		}
 
 		// Update target item with new stack size
 		FRockItemStack UpdatedTargetItem = TargetItem;
@@ -387,6 +428,9 @@ bool URockInventoryLibrary::MoveItem(
 	// Some games like Diablo support this but Tarkov does not.
 	// The fact that some items can be placed 'into' other items makes this more complex.
 	// We might not ever support this scenario.
+	// return true;
+	UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be moved to target location"));
+	
 	return true;
 }
 

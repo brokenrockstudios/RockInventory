@@ -98,10 +98,8 @@ enum class ERockInventoryTransactionType : uint8
 UENUM(BlueprintType)
 enum class ERockItemMoveAmount : uint8
 {
-	None,
-	One,
-	Half,
-	All,
-	Custom,
-	Max UMETA(Hidden)
+	All,	// Move Entire Stack
+	Half,	// Move Half Stack (Rounded up)
+	One,	// Move Single item
+	Custom, // Use MoveCount for a specific amount
 };
