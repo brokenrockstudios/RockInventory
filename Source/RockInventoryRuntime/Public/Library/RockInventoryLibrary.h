@@ -9,9 +9,21 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "RockInventoryLibrary.generated.h"
 
-enum class ERockItemOrientation : uint8;
-
 class URockInventory;
+
+USTRUCT(BlueprintType)
+struct FRockMoveItemParams
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	ERockItemOrientation DesiredOrientation = ERockItemOrientation::Horizontal;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	ERockItemMoveAmount MoveAmount = ERockItemMoveAmount::Max;
+};
+
+
+
 /**
  * 
  */
@@ -52,10 +64,11 @@ public:
 	/** Remove an item at a specific location
 	 * @param Inventory - The inventory to remove the item from
 	 * @param SlotHandle - The handle of the slot to remove the item from
+	 * @param Quantity - The quantity of the item to remove. If -1, remove the entire stack
 	 * @return The item stack that was removed
 	 */
 	UFUNCTION(BlueprintCallable)
-	static FRockItemStack RemoveItemAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle);
+	static FRockItemStack SplitItemStackAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, int32 Quantity = -1);
 
 	/**
 	 * Move an item from one inventory to another
@@ -63,14 +76,14 @@ public:
 	 * @param SourceSlotHandle - The handle of the source slot
 	 * @param TargetInventory - The target inventory
 	 * @param TargetSlotHandle - The handle of the target slot
-	 * @param DesiredOrientation - The desired orientation of the item
+	 * @param MoveItemParams - The desired orientation of the item
 	 * @return true if the move was successful
 	 */
 	UFUNCTION(BlueprintCallable)
 	static bool MoveItem(
 		URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 		URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
-		ERockItemOrientation DesiredOrientation = ERockItemOrientation::Horizontal);
+		const FRockMoveItemParams& MoveItemParams = FRockMoveItemParams());
 
 
 	// Misc helpers

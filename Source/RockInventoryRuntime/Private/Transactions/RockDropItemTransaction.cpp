@@ -20,7 +20,7 @@ URockDropItemTransaction* URockDropItemTransaction::CreateDropItemTransaction(
 
 bool URockDropItemTransaction::Execute_Implementation()
 {
-	const FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(SourceInventory, SourceSlotHandle);
+	const FRockItemStack Item = URockInventoryLibrary::SplitItemStackAtLocation(SourceInventory, SourceSlotHandle);
 	if (!Item.IsValid())
 	{
 		return false;

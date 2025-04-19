@@ -31,7 +31,6 @@ void URockInventoryComponent::BeginPlay()
 	}
 }
 
-
 bool URockInventoryComponent::K2_AddItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess)
 {
 	return URockInventoryLibrary::LootItemToInventory(Inventory, InItemStack, outHandle, OutExcess);
@@ -44,7 +43,7 @@ bool URockInventoryComponent::K2_LootItem(const FRockItemStack& InItemStack, FRo
 
 FRockItemStack URockInventoryComponent::K2_DropItem(const FRockInventorySlotHandle& SlotHandle)
 {
-	FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(Inventory, SlotHandle);
+	FRockItemStack Item = URockInventoryLibrary::SplitItemStackAtLocation(Inventory, SlotHandle);
 	if (!Item.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("DropItem: Failed to remove item at location"));
@@ -52,10 +51,9 @@ FRockItemStack URockInventoryComponent::K2_DropItem(const FRockInventorySlotHand
 	return Item;
 }
 
-
 FRockItemStack URockInventoryComponent::K2_RemoveItem(const FRockInventorySlotHandle& InHandle)
 {
-	FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(Inventory, InHandle);
+	FRockItemStack Item = URockInventoryLibrary::SplitItemStackAtLocation(Inventory, InHandle);
 	if (!Item.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItem: Failed to remove item at location"));
