@@ -3,9 +3,7 @@
 
 #include "UI/RockItemDragDropOperation.h"
 
-#include "Components/RockInventoryManagerComponent.h"
-#include "Inventory/Transactions/Core/RockInventoryManager.h"
-#include "Inventory/Transactions/Implementations/RockDropItemTransaction.h"
+#include "Transactions/Implementations/RockDropItemTransaction.h"
 #include "Library/RockInventoryManagerLibrary.h"
 
 void URockItemDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerEvent)
@@ -17,12 +15,9 @@ void URockItemDragDropOperation::Dragged_Implementation(const FPointerEvent& Poi
 
 void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEvent& PointerEvent)
 {
-	URockDropItemTransaction* Transaction = NewObject<URockDropItemTransaction>(this);
-
-	Transaction->Initialize(Instigator, SourceInventory, SourceSlot);
+	URockDropItemTransaction* Transaction = URockDropItemTransaction::CreateDropItemTransaction(Instigator, SourceInventory, SourceSlot);
 
 	Transaction->DropLocationOffset = DropLocationOffset;
-
 	
 	URockInventoryManagerLibrary::EnqueueTransaction(Instigator, Transaction);
 	
