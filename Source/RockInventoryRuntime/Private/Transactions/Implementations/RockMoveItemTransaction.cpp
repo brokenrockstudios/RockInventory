@@ -1,7 +1,7 @@
 
 
 
-#include "Inventory/Transactions/Implementations/RockMoveItemTransaction.h"
+#include "Transactions/Implementations/RockMoveItemTransaction.h"
 
 URockMoveItemTransaction* URockMoveItemTransaction::CreateMoveItemTransaction(
 	URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle,

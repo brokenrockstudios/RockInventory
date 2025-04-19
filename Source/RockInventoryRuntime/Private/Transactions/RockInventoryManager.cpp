@@ -1,9 +1,9 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 
-#include "Inventory/Transactions/Core/RockInventoryManager.h"
+#include "Transactions/Core/RockInventoryManager.h"
 
-#include "Inventory/Transactions/Core/RockInventoryTransaction.h"
+#include "Transactions/Core/RockInventoryTransaction.h"
 
 
 URockInventoryManager::URockInventoryManager() : Super(),

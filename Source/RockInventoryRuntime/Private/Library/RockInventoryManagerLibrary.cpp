@@ -4,7 +4,7 @@
 
 #include "RockInventoryLogging.h"
 #include "Components/RockInventoryManagerComponent.h"
-#include "Inventory/Transactions/Core/RockInventoryManager.h"
+#include "Transactions/Core/RockInventoryManager.h"
 
 bool URockInventoryManagerLibrary::EnqueueTransaction(UObject* Object, URockInventoryTransaction* Transaction)
 {

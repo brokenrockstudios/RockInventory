@@ -2,18 +2,23 @@
 
 #pragma once
 
-#include "Inventory/Transactions/Core/RockInventoryTransaction.h"
+#include "Transactions/Core/RockInventoryTransaction.h"
 #include "RockMoveItemTransaction.generated.h"
 
 /**
  * 
  */
-
 UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockMoveItemTransaction : public URockInventoryTransaction
 {
 	GENERATED_BODY()
+public:
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Transaction")
+	static URockMoveItemTransaction* CreateMoveItemTransaction(
+		URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle,
+		URockInventory* InTargetInventory, const FRockInventorySlotHandle& InTargetSlotHandle);
 
+	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> SourceInventory = nullptr;
@@ -24,10 +29,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockInventorySlotHandle TargetSlotHandle;
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Transaction")
-	static URockMoveItemTransaction* CreateMoveItemTransaction(
-		URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle,
-		URockInventory* InTargetInventory, const FRockInventorySlotHandle& InTargetSlotHandle);
 
 	virtual bool Execute_Implementation() override
 	{

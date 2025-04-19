@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Inventory/RockSlotHandle.h"
-#include "Inventory/Transactions/Core/RockInventoryTransaction.h"
+#include "Transactions/Core/RockInventoryTransaction.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/RockInventoryDeveloperSettings.h"
 #include "UObject/Object.h"
@@ -18,9 +18,18 @@ class URockInventory;
 UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockAddItemTransaction : public URockInventoryTransaction
 {
+public:
 	GENERATED_BODY()
 
-public:
+	// call back for excess?
+	// should we consume a world item?
+	// a lot of game specific questions here
+	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transaction")
+	// static URockAddItemTransaction* CreateLootItemTransaction(
+	// 	const TSubclassOf<URockInventory>& InTargetInventory,
+	// 	const FRockItemStack& InItemStack);
+
+
 	///////////////////////////////////////////////////////////////////////////////
 	/// Core Transaction Data (Required)
 	// For a 'world loot', this should technically be a 'world item' that is being looted

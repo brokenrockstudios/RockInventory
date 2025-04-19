@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Inventory/Transactions/Core/RockInventoryTransaction.h"
+#include "Transactions/Core/RockInventoryTransaction.h"
 #include "RockDropItemTransaction.generated.h"
 
 class ARockInventoryWorldItem;
@@ -13,9 +13,13 @@ class ARockInventoryWorldItem;
 UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockDropItemTransaction : public URockInventoryTransaction
 {
+public:
 	GENERATED_BODY()
 
-public:
+	UFUNCTION(BlueprintCallable, Category = "RockInventory|Transactions")
+	static URockDropItemTransaction* CreateDropItemTransaction(
+		AController* InInstigator, URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle);
+	
 	////////////////////////////////////////////////////////////////////////////////////
 	/// Core Properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -43,7 +47,6 @@ public:
 	ERockItemOrientation ExistingOrientation;
 
 public:
-	void Initialize(AController* InInstigator, URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle);
 	virtual bool Execute_Implementation() override;
 	virtual bool Undo_Implementation() override;
 	virtual bool CanUndo() const override;

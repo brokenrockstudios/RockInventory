@@ -1,6 +1,6 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
-#include "Inventory/Transactions/Implementations/RockDropItemTransaction.h"
+#include "Transactions/Implementations/RockDropItemTransaction.h"
 
 #include "Inventory/RockInventory.h"
 #include "Kismet/GameplayStatics.h"
@@ -8,12 +8,14 @@
 #include "Misc/RockInventoryDeveloperSettings.h"
 #include "World/RockInventoryWorldItem.h"
 
-void URockDropItemTransaction::Initialize(
+URockDropItemTransaction* URockDropItemTransaction::CreateDropItemTransaction(
 	AController* InInstigator, URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle)
 {
-	Instigator = InInstigator;
-	SourceInventory = InSourceInventory;
-	SourceSlotHandle = InSourceSlotHandle;
+	URockDropItemTransaction* Transaction = NewObject<URockDropItemTransaction>();
+	Transaction->Instigator = InInstigator;
+	Transaction->SourceInventory = InSourceInventory;
+	Transaction->SourceSlotHandle = InSourceSlotHandle;
+	return Transaction;
 }
 
 bool URockDropItemTransaction::Execute_Implementation()

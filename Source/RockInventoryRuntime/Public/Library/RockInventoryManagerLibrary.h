@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Inventory/Transactions/Core/RockInventoryTransaction.h"
+#include "Transactions/Core/RockInventoryTransaction.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "RockInventoryManagerLibrary.generated.h"
 
