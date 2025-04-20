@@ -2,6 +2,8 @@
 
 #include "Inventory/RockSlotHandle.h"
 
+// All this just to save 4 bytes per slot :P 
+// But when you consider hundreds of slots, it can add up.
 namespace
 {
 	/** Bit counts for network serialization */
