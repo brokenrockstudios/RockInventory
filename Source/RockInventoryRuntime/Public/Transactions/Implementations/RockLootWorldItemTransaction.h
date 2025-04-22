@@ -51,10 +51,20 @@ protected:
 public:
 	virtual bool Execute_Implementation() override
 	{
+		// determine how much we looted
+		// auto existingStack = ItemStack.GetStackSize();
+		// auto bLooted = URockInventoryLibrary::LootItemToInventory(TargetInventory, ItemStack, TargetSlotHandle, Excess);
+		
 		return URockInventoryLibrary::LootItemToInventory(TargetInventory, ItemStack, TargetSlotHandle, Excess);
 	}
 
-	virtual bool Undo_Implementation()
+	virtual bool CanUndo() const override
+	{
+		// This transaction is not undoable at this time.
+		return false;
+	}
+
+	virtual bool Undo_Implementation() override
 	{
 		// const FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(TargetInventory, SourceSlotHandle);
 		// if (!Item.IsValid())

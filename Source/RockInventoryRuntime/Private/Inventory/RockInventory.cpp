@@ -213,53 +213,52 @@ FString URockInventory::GetDebugString() const
 
 FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& InItemStack)
 {
-	if (!InItemStack.IsValid())
+	// We shouldn't have items without a definition
+	checkf(InItemStack.IsValid(), TEXT("AddItemToInventory - Invalid item stack"));
+	checkf(InItemStack.Definition, TEXT("AddItemToInventory - Invalid item definition"));
+
+
+	const uint32 Index = AcquireAvailableItemIndex();
+	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
+	FRockItemStack& NewItemStack = ItemData[Index];
+	// Generation is reconciled in the AcquireAvailableItemData
+	NewItemStack.Definition = InItemStack.Definition;
+	NewItemStack.StackSize = InItemStack.StackSize;
+	NewItemStack.CustomValue1 = InItemStack.CustomValue1;
+	NewItemStack.CustomValue2 = InItemStack.CustomValue2;
+	NewItemStack.bIsOccupied = true;
+
+	// Initialize the item stack
+	if (InItemStack.Definition->bRequiresRuntimeInstance)
 	{
-		UE_LOG(LogRockInventory, Error, TEXT("Attempted to add an invalid item"));
-		return FRockItemStackHandle::Invalid();
+		// The outer should be the inventory that owns this item stack?
+		NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
+		checkf(NewItemStack.RuntimeInstance, TEXT("Failed to create item instance"));
+		NewItemStack.RuntimeInstance->OwningInventory = this;
 	}
-	FRockItemStack ItemStack = InItemStack;
+	// Set up the item
+	ItemData.MarkItemDirty(NewItemStack);
 
-	uint32 Index = INDEX_NONE;
+	// Return handle with current index and generation
+	return NewItemStack.ItemHandle;
+}
 
+uint32 URockInventory::AcquireAvailableItemIndex()
+{
 	if (FreeIndices.Num() > 0)
 	{
-		Index = FreeIndices.Pop(EAllowShrinking::No);
-		// Should we increase the generation here?
+		// The item should already have its handle and generation set
+		return FreeIndices.Pop(EAllowShrinking::No);
 	}
 	else if (ItemData.Num() <= SlotData.Num())
 	{
-		Index = ItemData.AddDefaulted();
-		ItemStack.Generation = 0;
+		// Generate a new item index
+		// Generation gets incremented during the 'release' of an item.
+		const uint32 Index = ItemData.AddDefaulted();
+		ItemData[Index].Generation = 0;
+		ItemData[Index].ItemHandle = FRockItemStackHandle::Create(Index, 0);
+		return Index;
 	}
-	else
-	{
-		UE_LOG(LogRockInventory, Error, TEXT("Inventory is full. Something went wrong!"));
-		return FRockItemStackHandle::Invalid();
-	}
-
-
-	// Initialize the item stack
-	if (ItemStack.Definition->bRequiresRuntimeInstance)
-	{
-		// The outer should be the inventory that owns this item stack?
-		ItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
-		if (ItemStack.RuntimeInstance)
-		{
-			ItemStack.RuntimeInstance->OwningInventory = this;
-		}
-		else
-		{
-			UE_LOG(LogRockInventory, Error, TEXT("Failed to create runtime instance for item stack %s"),
-				*ItemStack.GetDebugString());
-		}
-	}
-
-	// Set up the item
-	ItemStack.bIsOccupied = true;
-	ItemData[Index] = ItemStack;
-	ItemData.MarkItemDirty(ItemStack);
-
-	// Return handle with current index and generation
-	return FRockItemStackHandle::Create(Index, ItemStack.Generation);
+	checkf(false, TEXT("AcquireAvailableItemData - No space left. Inventory is full or not initialized properly."));
+	return INDEX_NONE;
 }

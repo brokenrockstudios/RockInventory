@@ -128,6 +128,7 @@ public:
 	FString GetDebugString() const;
 
 	FRockItemStackHandle AddItemToInventory(const FRockItemStack& InItemStack);
+	uint32 AcquireAvailableItemIndex();
 
 	/** Called when the inventory changes */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")

@@ -60,21 +60,23 @@ bool URockDropItemTransaction::Execute_Implementation()
 
 bool URockDropItemTransaction::Undo_Implementation()
 {
-	if (!SpawnedItemStack.IsValid())
-	{
-		return false;
-	}
-	// TODO: Do a range check to see if we are 'close enough' still to the item.
-
-	// Get the item stack from the world item before destroying it
-	const FRockItemStack Item = SpawnedItemStack->GetItemStack();
-
-	// Destroy the world item
-	SpawnedItemStack->Destroy();
-	SpawnedItemStack = nullptr;
-
-	// Return the item to the source inventory
-	return URockInventoryLibrary::PlaceItemAtSlot_Internal(SourceInventory, SourceSlotHandle, Item, ExistingOrientation);
+	return false;
+	//
+	// if (!SpawnedItemStack.IsValid())
+	// {
+	// 	return false;
+	// }
+	// // TODO: Do a range check to see if we are 'close enough' still to the item.
+	//
+	// // Get the item stack from the world item before destroying it
+	// const FRockItemStack Item = SpawnedItemStack->GetItemStack();
+	//
+	// // Destroy the world item
+	// SpawnedItemStack->Destroy();
+	// SpawnedItemStack = nullptr;
+	//
+	// // Return the item to the source inventory
+	// return URockInventoryLibrary::PlaceItemAtSlot_Internal(SourceInventory, SourceSlotHandle, Item, ExistingOrientation);
 }
 
 bool URockDropItemTransaction::CanUndo() const

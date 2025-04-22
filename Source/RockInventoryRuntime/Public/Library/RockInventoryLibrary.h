@@ -48,24 +48,6 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	/// Inventory Location Manipulation
 
-
-	/** Place an item at a specific location
-	 * @param Inventory - The inventory to place the item in
-	 * @param SlotHandle - The handle of the slot to place the item in
-	 * @param ItemStackHandle - The handle of the item stack to place
-	 * @param DesiredOrientation - The desired orientation of the item
-	 * @return true if the item was placed successfully
-	 */
-	UFUNCTION(BlueprintCallable)
-	static bool PlaceItemAtSlot(
-		URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStackHandle& ItemStackHandle,
-		ERockItemOrientation DesiredOrientation);
-
-	// Used internally to place an item at a specific location
-	static bool PlaceItemAtSlot_Internal(
-		URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack,
-		ERockItemOrientation DesiredOrientation);
-
 	/** Remove an item at a specific location
 	 * @param Inventory - The inventory to remove the item from
 	 * @param SlotHandle - The handle of the slot to remove the item from

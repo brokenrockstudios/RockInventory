@@ -81,7 +81,7 @@ bool URockInventoryManagerLibrary::HasInventoryManager(UObject* Object)
 
 TArray<FString> URockInventoryManagerLibrary::GetTransactionHistory(UObject* Object)
 {
-	if (URockInventoryManager* Manager = GetInventoryManager(Object))
+	if (const URockInventoryManager* Manager = GetInventoryManager(Object))
 	{
 		return Manager->GetTransactionDescriptions();
 	}

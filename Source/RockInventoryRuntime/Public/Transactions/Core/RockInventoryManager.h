@@ -18,6 +18,7 @@ class ROCKINVENTORYRUNTIME_API URockInventoryManager : public UObject
 
 private:
 	// Transaction history
+	UPROPERTY()
 	TArray<TObjectPtr<URockInventoryTransaction>> TransactionHistory;
 	// Current position in the transaction history
 	int32 CurrentTransactionIndex = -1;

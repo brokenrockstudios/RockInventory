@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RockItemStackHandle.h"
 #include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
@@ -22,6 +23,10 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
+public:
+	// A reference to it's handle, for fast access to the containing array
+	FRockItemStackHandle ItemHandle;
+	
 private:
 	// Generally this item stack is read only.
 	// Because to modify it, requires special attention to marking the containing array dirty for replication.

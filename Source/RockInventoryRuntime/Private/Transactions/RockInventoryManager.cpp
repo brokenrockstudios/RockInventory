@@ -108,8 +108,14 @@ TArray<FString> URockInventoryManager::GetTransactionDescriptions() const
 
 bool URockInventoryManager::CanUndo() const
 {
-	return TransactionHistory.Num() > 0 && CurrentTransactionIndex >= 0 &&
-		TransactionHistory[CurrentTransactionIndex]->CanUndo();
+	if (TransactionHistory.Num() > 0 && CurrentTransactionIndex >= 0)
+	{
+		if (IsValid(TransactionHistory[CurrentTransactionIndex]))
+		{
+			return TransactionHistory[CurrentTransactionIndex]->CanUndo();
+		}
+	}
+	return false;
 }
 
 bool URockInventoryManager::CanRedo() const

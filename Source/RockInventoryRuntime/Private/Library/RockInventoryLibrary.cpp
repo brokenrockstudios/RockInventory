@@ -60,9 +60,13 @@ bool URockInventoryLibrary::LootItemToInventory(
 		if (CanItemFitInGridPosition(OccupancyGrids, SectionInfo, Column, Row, ItemSize))
 		{
 			const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStackCopy);
-			OutHandle = SlotHandle;
 			OutExcess = 0;
-			PlaceItemAtSlot(Inventory, OutHandle, ItemHandle, ERockItemOrientation::Horizontal);
+			FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(SlotHandle);
+			SlotEntry.ItemHandle = ItemHandle;
+			SlotEntry.Orientation = ERockItemOrientation::Horizontal;
+			Inventory->SetSlotByHandle(SlotHandle, SlotEntry);
+			Inventory->BroadcastSlotChanged(SlotHandle);
+			OutHandle = SlotHandle;
 			return true;
 		}
 	}
@@ -76,43 +80,6 @@ bool URockInventoryLibrary::LootItemToInventory(
 	// We technically should have consumed SOME of the item. Make sure the caller updates their ItemStack with the out excess
 	return false;
 }
-
-
-bool URockInventoryLibrary::PlaceItemAtSlot(
-	URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStackHandle& ItemStackHandle,
-	ERockItemOrientation DesiredOrientation)
-{
-	if (!Inventory || !ItemStackHandle.IsValid())
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("PlaceItemAtLocation: Invalid Inventory or ItemStack"));
-		return false;
-	}
-	if (SlotHandle.IsValid())
-	{
-		FRockInventorySlotEntry Slot = Inventory->GetSlotByHandle(SlotHandle);
-		Slot.ItemHandle = ItemStackHandle;
-		Slot.Orientation = DesiredOrientation;
-		Inventory->SetSlotByHandle(SlotHandle, Slot);
-
-		Inventory->BroadcastSlotChanged(SlotHandle);
-		return true;
-	}
-
-	UE_LOG(LogRockInventory, Warning, TEXT("PlaceItemAtLocation Failed"));
-	return false;
-}
-
-bool URockInventoryLibrary::PlaceItemAtSlot_Internal(
-	URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack, ERockItemOrientation DesiredOrientation)
-{
-	if (SlotHandle.IsValid())
-	{
-		const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStack);
-		return PlaceItemAtSlot(Inventory, SlotHandle, ItemHandle, DesiredOrientation);
-	}
-	return false;
-}
-
 
 void URockInventoryLibrary::PrecomputeOccupancyGrids(
 	const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle)
@@ -272,6 +239,7 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 
 	if (Quantity >= CurrentStackSize)
 	{
+		Inventory->FreeIndices.Add( Slot.ItemHandle.GetIndex() );
 		// Remove entire stack - invalidate the slot and item
 		Slot.ItemHandle = FRockItemStackHandle::Invalid();
 		Slot.Orientation = ERockItemOrientation::Horizontal;
@@ -311,29 +279,29 @@ bool URockInventoryLibrary::MoveItem(
 		return false;
 	}
 
-	const FRockInventorySlotEntry& SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
-	if (!SourceSlot.IsValid())
+	const FRockInventorySlotEntry& ValidatedSourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+	if (!ValidatedSourceSlot.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Source Slot Handle"));
 		return false;
 	}
-	const FRockItemStack& SourceItem = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
-	if (!SourceItem.IsValid())
+	const FRockItemStack& ValidatedSourceItem = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
+	if (!ValidatedSourceItem.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Source Slot is empty"));
 		return false;
 	}
 
 	// Check TargetInventory if slot is empty
-	const FRockInventorySlotEntry& TargetSlot = TargetInventory->GetSlotByHandle(TargetSlotHandle);
-	if (!TargetSlot.IsValid())
+	const FRockInventorySlotEntry& ValidatedTargetSlot = TargetInventory->GetSlotByHandle(TargetSlotHandle);
+	if (!ValidatedTargetSlot.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Target Slot Handle"));
 		return false;
 	}
 
 	// Can CanItemBePlacedInSection of TargetInventory
-	if (!CanItemBePlacedInSection(SourceItem, TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()]))
+	if (!CanItemBePlacedInSection(ValidatedSourceItem, TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()]))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be placed in target section"));
 		return false;
@@ -342,29 +310,27 @@ bool URockInventoryLibrary::MoveItem(
 	//////////////////////////////////////////////////////////////////////////
 	/// Move
 	TArray<bool> OccupancyGrid;
-	PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid, SourceSlot.ItemHandle);
+	PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid, ValidatedSourceSlot.ItemHandle);
 
 	const FRockInventorySectionInfo& targetSection = TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()];
 	const int32 SectionIndex = TargetSlotHandle.GetIndex() - targetSection.FirstSlotIndex;
 	const int32 Column = SectionIndex % targetSection.Width;
 	const int32 Row = SectionIndex / targetSection.Width;
-	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(SourceItem);
+	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ValidatedSourceItem);
 
-	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(SourceItem, MoveItemParams);
+	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(ValidatedSourceItem, MoveItemParams);
 	if (MoveAmount <= 0)
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid move amount calculated"));
 		return false;
 	}
 
-	
-
 	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize))
 	{
 		if (SourceInventory == TargetInventory)
 		{
 			// If we're moving the entire stack, we can just move the item handle
-			if (MoveAmount == SourceItem.GetStackSize())
+			if (MoveAmount == ValidatedSourceItem.GetStackSize())
 			{
 				// We don't use the Remove and Place in the same inventory because
 				// those functions invalidates the itemslot and re-adds it, which is unnecessary and wasteful on same inventory
@@ -374,7 +340,7 @@ bool URockInventoryLibrary::MoveItem(
 				SourceInventory->SetSlotByHandle(SourceSlotHandle, SourceSlotRef);
 
 				FRockInventorySlotEntry TargetSlotRef = TargetInventory->GetSlotByHandle(TargetSlotHandle);
-				TargetSlotRef.ItemHandle = SourceSlot.ItemHandle;
+				TargetSlotRef.ItemHandle = ValidatedSourceSlot.ItemHandle;
 				TargetSlotRef.Orientation = MoveItemParams.DesiredOrientation;
 				TargetInventory->SetSlotByHandle(TargetSlotHandle, TargetSlotRef);
 			}
@@ -387,7 +353,7 @@ bool URockInventoryLibrary::MoveItem(
 					UE_LOG(LogRockInventory, Warning, TEXT("Failed to split item stack"));
 					return false;
 				}
-
+				
 				// Place the split item in the target slot
 				const FRockItemStackHandle& NewItemHandle = TargetInventory->AddItemToInventory(ItemToMove);
 				FRockInventorySlotEntry TargetSlotRef = TargetInventory->GetSlotByHandle(TargetSlotHandle);
@@ -402,6 +368,7 @@ bool URockInventoryLibrary::MoveItem(
 		else
 		{
 			// Split the source item stack based on the move amount
+			// This will broadcast the removal of the item from the source inventory
 			const FRockItemStack ItemToMove = SplitItemStackAtLocation(SourceInventory, SourceSlotHandle, MoveAmount);
 			if (!ItemToMove.IsValid())
 			{
@@ -409,12 +376,20 @@ bool URockInventoryLibrary::MoveItem(
 				return false;
 			}
 
+			// AddItemToInventory shouldn't fail
+			FRockItemStackHandle ItemHandle = TargetInventory->AddItemToInventory(ItemToMove);
+			FRockInventorySlotEntry newItemSlotLocation = TargetInventory->GetSlotByHandle(TargetSlotHandle);
+			newItemSlotLocation.ItemHandle = ItemHandle;
+			newItemSlotLocation.Orientation = MoveItemParams.DesiredOrientation;
+			TargetInventory->SetSlotByHandle(TargetSlotHandle, newItemSlotLocation);
+			TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
+			
 			// Place the split item in the target inventory
-			if (!PlaceItemAtSlot_Internal(TargetInventory, TargetSlotHandle, ItemToMove, MoveItemParams.DesiredOrientation))
-			{
-				UE_LOG(LogRockInventory, Warning, TEXT("Failed to place item in target inventory"));
-				return false;
-			}
+			// if (!PlaceItemAtSlot_Internal(TargetInventory, TargetSlotHandle, ItemToMove, MoveItemParams.DesiredOrientation))
+			// {
+			// 	UE_LOG(LogRockInventory, Warning, TEXT("Failed to place item in target inventory"));
+			// 	return false;
+			// }
 		}
 
 		return true;
@@ -422,10 +397,10 @@ bool URockInventoryLibrary::MoveItem(
 
 	//////////////////////////////////////////////////////////////////////
 	/// Merge into an existing item
-	if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, SourceItem, ERockItemStackMergeCondition::Partial))
+	if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, ValidatedSourceItem, ERockItemStackMergeCondition::Partial))
 	{
 		// Get the target item to calculate how much we can move
-		const FRockItemStack& TargetItem = TargetInventory->GetItemByHandle(TargetSlot.ItemHandle);
+		const FRockItemStack& TargetItem = TargetInventory->GetItemByHandle(ValidatedTargetSlot.ItemHandle);
 		if (!TargetItem.IsValid())
 		{
 			UE_LOG(LogRockInventory, Warning, TEXT("Invalid target item for merging"));
@@ -434,7 +409,7 @@ bool URockInventoryLibrary::MoveItem(
 
 		const int32 TargetCurrentStack = TargetItem.GetStackSize();
 		const int32 TargetMaxStack = TargetItem.GetMaxStackSize();
-		const int32 SourceCurrentStack = SourceItem.GetStackSize();
+		const int32 SourceCurrentStack = ValidatedSourceItem.GetStackSize();
 
 		// Calculate how much we can move, considering both the available space and the requested move amount
 		const int32 AvailableSpace = TargetMaxStack - TargetCurrentStack;
@@ -449,12 +424,33 @@ bool URockInventoryLibrary::MoveItem(
 		// Update target item with new stack size
 		FRockItemStack UpdatedTargetItem = TargetItem;
 		UpdatedTargetItem.StackSize = TargetCurrentStack + AmountToMove;
-		TargetInventory->SetItemByHandle(TargetSlot.ItemHandle, UpdatedTargetItem);
+		TargetInventory->SetItemByHandle(ValidatedTargetSlot.ItemHandle, UpdatedTargetItem);
 
 		// Update source item with remaining stack size
-		FRockItemStack UpdatedSourceItem = SourceItem;
+		FRockItemStack UpdatedSourceItem = ValidatedSourceItem;
 		UpdatedSourceItem.StackSize = SourceCurrentStack - AmountToMove;
-		SourceInventory->SetItemByHandle(SourceSlot.ItemHandle, UpdatedSourceItem);
+		
+		if (UpdatedSourceItem.StackSize <= 0)
+		{
+			FRockInventorySlotEntry SourceSlotRef = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+			
+			// It's removed, so we update the generation during removals.
+			// When we increase generation, it basically nullifies existing stuff, but we don't need to reset the values, since it'll trigger
+			// premature and unnecessary replications
+			UpdatedSourceItem.Generation++;
+			
+			SourceInventory->FreeIndices.Add(SourceSlotRef.ItemHandle.GetIndex());
+			
+			// Remove the item from the source inventory
+			SourceSlotRef.ItemHandle = FRockItemStackHandle::Invalid();
+			SourceSlotRef.Orientation = ERockItemOrientation::Horizontal;
+			SourceInventory->SetSlotByHandle(SourceSlotHandle, SourceSlotRef);
+		}
+		else
+		{
+			// There is still some stack left, so all we needed to do was update the stacksize, nothing else
+		}
+		SourceInventory->SetItemByHandle(ValidatedSourceSlot.ItemHandle, UpdatedSourceItem);
 
 		// Broadcast changes
 		SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
