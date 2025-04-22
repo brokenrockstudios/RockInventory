@@ -57,6 +57,18 @@ URockInventoryManager* URockInventoryManagerLibrary::GetInventoryManager(UObject
 		{
 			return ManagerComponent->TransactionManager;
 		}
+		// if actor is a pawn, get its controller
+		if (const APawn* Pawn = Cast<APawn>(Actor))
+		{
+			if (const AController* Controller = Pawn->GetController())
+			{
+				// It's controller might have the manager component
+				if (const URockInventoryManagerComponent* ManagerComponent = Controller->GetComponentByClass<URockInventoryManagerComponent>())
+				{
+					return ManagerComponent->TransactionManager;
+				}
+			}
+		}
 	}
 
 	return nullptr;
