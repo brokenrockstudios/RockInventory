@@ -156,6 +156,7 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 
 	SlotData[slotIndex] = InSlotEntry;
 	SlotData.MarkItemDirty(SlotData[slotIndex]);
+	BroadcastSlotChanged(InSlotHandle);
 }
 
 int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 Height)
@@ -220,6 +221,8 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 
 	const uint32 Index = AcquireAvailableItemIndex();
 	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
+	
+	// Modify a reference
 	FRockItemStack& NewItemStack = ItemData[Index];
 	// Generation is reconciled in the AcquireAvailableItemData
 	NewItemStack.Definition = InItemStack.Definition;
@@ -238,7 +241,8 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	}
 	// Set up the item
 	ItemData.MarkItemDirty(NewItemStack);
-
+	BroadcastItemChanged(ItemData[Index].ItemHandle);
+	
 	// Return handle with current index and generation
 	return NewItemStack.ItemHandle;
 }

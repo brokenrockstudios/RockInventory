@@ -65,7 +65,6 @@ bool URockInventoryLibrary::LootItemToInventory(
 			SlotEntry.ItemHandle = ItemHandle;
 			SlotEntry.Orientation = ERockItemOrientation::Horizontal;
 			Inventory->SetSlotByHandle(SlotHandle, SlotEntry);
-			Inventory->BroadcastSlotChanged(SlotHandle);
 			OutHandle = SlotHandle;
 			return true;
 		}
@@ -243,11 +242,11 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 		// Remove entire stack - invalidate the slot and item
 		Slot.ItemHandle = FRockItemStackHandle::Invalid();
 		Slot.Orientation = ERockItemOrientation::Horizontal;
-		Inventory->SetSlotByHandle(SlotHandle, Slot);
 
 		Item.bIsOccupied = false;
 		Item.Generation++;
 		Inventory->SetItemByHandle(Slot.ItemHandle, Item);
+		Inventory->SetSlotByHandle(SlotHandle, Slot);
 	}
 	else
 	{
@@ -256,7 +255,6 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 		Inventory->SetItemByHandle(Slot.ItemHandle, Item);
 	}
 
-	Inventory->BroadcastSlotChanged(SlotHandle);
 	return OutItemStack;
 }
 
@@ -362,8 +360,6 @@ bool URockInventoryLibrary::MoveItem(
 				TargetInventory->SetSlotByHandle(TargetSlotHandle, TargetSlotRef);
 			}
 
-			SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
-			TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
 		}
 		else
 		{
@@ -382,7 +378,6 @@ bool URockInventoryLibrary::MoveItem(
 			newItemSlotLocation.ItemHandle = ItemHandle;
 			newItemSlotLocation.Orientation = MoveItemParams.DesiredOrientation;
 			TargetInventory->SetSlotByHandle(TargetSlotHandle, newItemSlotLocation);
-			TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
 			
 			// Place the split item in the target inventory
 			// if (!PlaceItemAtSlot_Internal(TargetInventory, TargetSlotHandle, ItemToMove, MoveItemParams.DesiredOrientation))
@@ -425,11 +420,12 @@ bool URockInventoryLibrary::MoveItem(
 		FRockItemStack UpdatedTargetItem = TargetItem;
 		UpdatedTargetItem.StackSize = TargetCurrentStack + AmountToMove;
 		TargetInventory->SetItemByHandle(ValidatedTargetSlot.ItemHandle, UpdatedTargetItem);
+		TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
 
+		
 		// Update source item with remaining stack size
 		FRockItemStack UpdatedSourceItem = ValidatedSourceItem;
 		UpdatedSourceItem.StackSize = SourceCurrentStack - AmountToMove;
-		
 		if (UpdatedSourceItem.StackSize <= 0)
 		{
 			FRockInventorySlotEntry SourceSlotRef = SourceInventory->GetSlotByHandle(SourceSlotHandle);
@@ -449,12 +445,13 @@ bool URockInventoryLibrary::MoveItem(
 		else
 		{
 			// There is still some stack left, so all we needed to do was update the stacksize, nothing else
-		}
-		SourceInventory->SetItemByHandle(ValidatedSourceSlot.ItemHandle, UpdatedSourceItem);
 
+			// The SourceInventory slot got a broadcast from the above, but the underlying item changed, so we need to broadcast that too
+			SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
+		}
+		
+		SourceInventory->SetItemByHandle(ValidatedSourceSlot.ItemHandle, UpdatedSourceItem);
 		// Broadcast changes
-		SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
-		TargetInventory->BroadcastSlotChanged(TargetSlotHandle);
 
 		return true;
 	}
