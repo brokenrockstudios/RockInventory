@@ -25,6 +25,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemStack : public FFastArraySerializerItem
 
 public:
 	// A reference to it's handle, for fast access to the containing array
+	UPROPERTY(VisibleAnywhere)
 	FRockItemStackHandle ItemHandle;
 	
 private:

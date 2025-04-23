@@ -11,6 +11,10 @@ void URockItemDragDropOperation::Dragged_Implementation(const FPointerEvent& Poi
 	// Super::Dragged_Implementation(PointerEvent);
 	// Fires on every frame while dragging
 	// UE_LOG(LogRockInventory, Warning, TEXT("Dragged_Implementation"));
+
+	// SetSlotLocked? So that no one else can interact with it?
+	
+	
 }
 
 void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEvent& PointerEvent)
