@@ -74,23 +74,25 @@ UENUM(BlueprintType)
 enum class ERockInventoryTransactionType : uint8
 {
 	None,
-	AddItem, // instantiate a wholly new item from nowhere
+	AddItem, // instantiate a wholly new item from nowhere. Such as a quest reward
 	LootItem, // Get an item from a source that isn't necessarily another container? 
 	MoveItem, // Move an item from any inventory to any other inventory.
+	DropItem, // Drop an item from an inventory to the world
 
-	// Destroy or remove or consume item?
-	// Modify an item somehow?
 
-	// ItemUpdated,
+	EquipItem, // Equip an item from the inventory to a slot
+	UnequipItem, // Unequip an item from a slot to the inventory
+	// Alt: Activate/Deactivate Item?
+	
 
-	// TabAdded,
-	// TabRemoved,
-	// TabUpdated,
+	UseItem, // Use an item from the inventory. This could be a consumable or something else.
+	// Consume? Inspect? 
+	
+	
+	
+	// Destroy an item
 
-	// SlotAdded,
-	// SlotRemoved,
-	// SlotUpdated
-
+	
 	Max UMETA(Hidden)
 };
 
