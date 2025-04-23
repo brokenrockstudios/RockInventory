@@ -218,7 +218,6 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	checkf(InItemStack.IsValid(), TEXT("AddItemToInventory - Invalid item stack"));
 	checkf(InItemStack.Definition, TEXT("AddItemToInventory - Invalid item definition"));
 
-
 	const uint32 Index = AcquireAvailableItemIndex();
 	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
 	
@@ -265,4 +264,22 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 	}
 	checkf(false, TEXT("AcquireAvailableItemData - No space left. Inventory is full or not initialized properly."));
 	return INDEX_NONE;
+}
+
+void URockInventory::ReleaseItemIndex(uint32 InIndex)
+{
+	if (InIndex != INDEX_NONE && ItemData.ContainsIndex(InIndex))
+	{
+		FreeIndices.Add(InIndex);
+		// Invalidate the item stack
+		ItemData[InIndex].Generation++;
+		// Update the ItemHandle with new Generation
+		ItemData[InIndex].ItemHandle = FRockItemStackHandle::Create(InIndex, ItemData[InIndex].Generation);
+		ItemData.MarkItemDirty(ItemData[InIndex]);
+		BroadcastItemChanged(ItemData[InIndex].ItemHandle);
+	}
+	else
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("ReleaseItemIndex - Invalid index"));
+	}
 }

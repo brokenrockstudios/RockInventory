@@ -129,6 +129,7 @@ public:
 
 	FRockItemStackHandle AddItemToInventory(const FRockItemStack& InItemStack);
 	uint32 AcquireAvailableItemIndex();
+	void ReleaseItemIndex(uint32 InIndex);
 
 	/** Called when the inventory changes */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")

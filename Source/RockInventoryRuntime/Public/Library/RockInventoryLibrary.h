@@ -55,7 +55,7 @@ public:
 	 * @return The item stack that was removed
 	 */
 	UFUNCTION(BlueprintCallable)
-	static FRockItemStack SplitItemStackAtLocation(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, int32 Quantity = -1);
+	static FRockItemStack SplitItemStackAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, int32 Quantity = -1);
 
 	/**
 	 * Move an item from one inventory to another
