@@ -38,7 +38,7 @@ int32 URockItemStackLibrary::GetStackSize(const FRockItemStack& ItemStack)
 FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 {
 	// We shouldn't have ItemStacks without valid definitions
-	checkf(ItemStack.IsValid(), TEXT("ItemStack is invalid!"));
+	ensureMsgf(ItemStack.IsValid(), TEXT("ItemStack is invalid!"));
 	if (ItemStack.IsValid())
 	{
 		const FVector2D Size = ItemStack.GetDefinition()->SlotDimensions;
