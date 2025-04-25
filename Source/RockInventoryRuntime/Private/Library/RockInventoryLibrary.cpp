@@ -189,6 +189,31 @@ bool URockInventoryLibrary::CanItemFitInGridPosition(
 	return true;
 }
 
+TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInventory* Inventory)
+{
+	if (!Inventory)
+	{
+		return {TEXT("Invalid Inventory")};
+	}
+
+	TArray<FString> InventoryContents;
+	for (const FRockInventorySlotEntry& Slot : Inventory->SlotData)
+	{
+		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(Slot.ItemHandle);
+		if (ItemStack.IsValid())
+		{
+			FString LineItem = FString::Printf(
+				TEXT("Section:[%d] SlotIdx:[%d]; ItemIdx:[%d], Item:[%s] Count:[%d]"),
+				Slot.SlotHandle.GetSectionIndex(), Slot.SlotHandle.GetIndex(), ItemStack.ItemHandle.GetIndex(),
+				ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
+				ItemStack.GetStackSize());
+
+			InventoryContents.Add(LineItem);
+		}
+	}
+	return InventoryContents;
+}
+
 
 FRockItemStack URockInventoryLibrary::GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle)
 {

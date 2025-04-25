@@ -112,4 +112,9 @@ public:
 		const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle = FRockItemStackHandle());
 	static bool CanItemFitInGridPosition(
 		const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Debug")
+	static TArray<FString> GetInventoryContentsDebug(const URockInventory* Inventory);
 };
+
+
