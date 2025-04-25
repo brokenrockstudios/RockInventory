@@ -20,7 +20,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Config, Category = "RockInventory")
 	TSubclassOf<ARockInventoryWorldItem> DefaultWorldItemClass;
-
+	
 
 #if WITH_EDITOR
 	// data validator

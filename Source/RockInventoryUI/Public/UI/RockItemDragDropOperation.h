@@ -38,6 +38,13 @@ public:
 	virtual void Dragged_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;
+
+
+	// Set this in the blueprint parent
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop")
+	TObjectPtr<USoundBase> DefaultDropSound = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop")
+	TObjectPtr<USoundBase> DefaultDragSound = nullptr;
 };
 
 
