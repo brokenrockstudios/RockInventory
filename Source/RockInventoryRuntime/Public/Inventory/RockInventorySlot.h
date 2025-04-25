@@ -64,6 +64,20 @@ public:
 
 	/** Returns true if the slot can accept the given item */
 	// bool CanAcceptItem(const FRockItemStack& NewItem) const;
+
+	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess);
+	bool operator==(const FRockInventorySlotEntry& Other) const { return SlotHandle == Other.SlotHandle; }
+	bool operator!=(const FRockInventorySlotEntry& Other) const { return !(*this == Other); }
+};
+
+template <>
+struct TStructOpsTypeTraits<FRockInventorySlotEntry> : public TStructOpsTypeTraitsBase2<FRockInventorySlotEntry>
+{
+	enum
+	{
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true,
+	};
 };
 
 

@@ -62,6 +62,9 @@ void URockInventory::Init(const URockInventoryConfig* config)
 			SlotData[AbsoluteSlotIndex].bIsLocked = false;
 		}
 	}
+
+	SlotData.MarkArrayDirty();
+	ItemData.MarkArrayDirty();
 }
 
 FRockInventorySectionInfo URockInventory::GetSectionInfo(const FName& SectionName) const
@@ -182,6 +185,7 @@ int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 He
 		const FRockInventorySlotHandle SlotHandle(TabIndex, AbsoluteSlotIndex);
 		SlotData[AbsoluteSlotIndex].SlotHandle = SlotHandle;
 	}
+	SlotData.MarkArrayDirty();
 
 	return TabIndex;
 }
@@ -193,6 +197,11 @@ void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(URockInventory, ItemData);
 	DOREPLIFETIME(URockInventory, SlotData);
 	DOREPLIFETIME(URockInventory, SlotSections);
+}
+
+bool URockInventory::IsSupportedForNetworking() const
+{
+	return true;
 }
 
 void URockInventory::BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle)
@@ -239,7 +248,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		NewItemStack.RuntimeInstance->OwningInventory = this;
 	}
 	// Set up the item
-	ItemData.MarkItemDirty(NewItemStack);
+	ItemData.MarkItemDirty(ItemData[Index]);
 	BroadcastItemChanged(ItemData[Index].ItemHandle);
 	
 	// Return handle with current index and generation
@@ -257,9 +266,14 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 	{
 		// Generate a new item index
 		// Generation gets incremented during the 'release' of an item.
+		// Should we grab in 'chunks' like perhaps 5 slots at a time? Though that could cause extra premature replications?
+		// though we won't have to trigger array dirty as much?
 		const uint32 Index = ItemData.AddDefaulted();
 		ItemData[Index].Generation = 0;
 		ItemData[Index].ItemHandle = FRockItemStackHandle::Create(Index, 0);
+
+		// Since we modified the array, we need to mark it dirty? Or can we just mark the item only?
+		ItemData.MarkItemDirty(ItemData[Index]);
 		return Index;
 	}
 	checkf(false, TEXT("AcquireAvailableItemData - No space left. Inventory is full or not initialized properly."));

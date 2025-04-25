@@ -118,6 +118,8 @@ public:
 
 	/** Override to specify which properties should be replicated */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool IsSupportedForNetworking() const override;
+	// IsNameStableForNetworking false?
 
 	/** Broadcast the inventory changed event */
 	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());

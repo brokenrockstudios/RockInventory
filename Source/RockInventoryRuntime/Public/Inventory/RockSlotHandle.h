@@ -32,9 +32,25 @@ public:
 	uint32 GetHash() const;
 	FString ToString() const;
 
+	friend FArchive& operator<<(FArchive& Ar, FRockInventorySlotHandle& SlotHandle)
+	{
+		Ar << SlotHandle.Index;
+		Ar << SlotHandle.Section;
+		return Ar;
+	}
 	bool operator==(const FRockInventorySlotHandle& Other) const { return Index == Other.Index && Section == Other.Section; }
 	bool operator!=(const FRockInventorySlotHandle& Other) const { return !(*this == Other); }
 
 	/** Network serialization that compresses the values */
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+};
+
+template<>
+struct TStructOpsTypeTraits<FRockInventorySlotHandle> : public TStructOpsTypeTraitsBase2<FRockInventorySlotHandle>
+{
+	enum
+	{
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true
+	};
 };

@@ -200,16 +200,25 @@ TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInve
 	for (const FRockInventorySlotEntry& Slot : Inventory->SlotData)
 	{
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(Slot.ItemHandle);
-		if (ItemStack.IsValid())
-		{
-			FString LineItem = FString::Printf(
-				TEXT("Section:[%d] SlotIdx:[%d]; ItemIdx:[%d], Item:[%s] Count:[%d]"),
-				Slot.SlotHandle.GetSectionIndex(), Slot.SlotHandle.GetIndex(), ItemStack.ItemHandle.GetIndex(),
-				ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
-				ItemStack.GetStackSize());
+		FString LineItem = FString::Printf(
+			TEXT("Section:[%d] SlotIdx:[%d]; ItemIdx:[%s], Item:[%s] Count:[%d]"),
+			Slot.SlotHandle.GetSectionIndex(), Slot.SlotHandle.GetIndex(), *ItemStack.ItemHandle.ToString(),
+			ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
+			ItemStack.GetStackSize());
 
-			InventoryContents.Add(LineItem);
-		}
+		InventoryContents.Add(LineItem);
+	}
+
+	for (const FRockItemStack& ItemStack : Inventory->ItemData)
+	{
+		FString LineItem = FString::Printf(
+			TEXT("ItemIdx:[%s], Item:[%s] Count:[%d]"),
+			*ItemStack.ItemHandle.ToString(),
+			ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
+			ItemStack.GetStackSize());
+
+		InventoryContents.Add(LineItem);
+	
 	}
 	return InventoryContents;
 }
@@ -373,6 +382,7 @@ bool URockInventoryLibrary::MoveItem(
 				// Different inventory. Release from source, add to target
 				SourceInventory->ReleaseItemIndex(ValidatedSourceItem.ItemHandle.GetIndex());
 				targetSlot.ItemHandle = TargetInventory->AddItemToInventory(ValidatedSourceItem);
+				UE_LOG(LogRockInventory, Warning, TEXT("Moved item from source to target inventory %s"), *targetSlot.ItemHandle.ToString());
 			}
 
 			// Set up target slot with existing item handle

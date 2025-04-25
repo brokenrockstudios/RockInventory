@@ -22,6 +22,14 @@ FRockItemStackHandle FRockItemStackHandle::Create(uint32 InIndex, uint32 InGener
 	return Result;
 }
 
+bool FRockItemStackHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << Handle;
+	
+	bOutSuccess = true;
+	return true;
+}
+
 
 // Deprecated: This function is not used in the current implementation.
 // It was originally intended to generate a new handle for the item stack.

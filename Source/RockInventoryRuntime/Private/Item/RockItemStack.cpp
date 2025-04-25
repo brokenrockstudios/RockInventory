@@ -52,13 +52,21 @@ bool FRockItemStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bO
 	Ar << StackSize;
 	Ar << CustomValue1;
 	Ar << CustomValue2;
-
+	Ar << bIsOccupied;
+	
 	UObject* Instance = RuntimeInstance.Get();
 	Map->SerializeObject(Ar, URockItemInstance::StaticClass(), Instance);
 	if (Ar.IsLoading())
 	{
 		RuntimeInstance = Cast<URockItemInstance>(Instance);
 	}
+
+	if (!ItemHandle.NetSerialize( Ar, Map, bOutSuccess))
+	{
+		bOutSuccess = false;
+		return false;
+	}
+	
 	return true;
 }
 

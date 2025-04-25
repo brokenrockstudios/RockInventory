@@ -4,18 +4,22 @@
 #include "Components/RockInventoryComponent.h"
 
 #include "RockInventoryLogging.h"
+#include "Engine/ActorChannel.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Misc/DataValidation.h"
+#include "Net/UnrealNetwork.h"
 
 #define LOCTEXT_NAMESPACE "RockInventoryComponent"
 
 // Sets default values for this component's properties
 URockInventoryComponent::URockInventoryComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+	SetIsReplicatedByDefault (true);
 	// Set this component to be initialized when the game starts, and to be ticked every frame.
 	PrimaryComponentTick.bCanEverTick = true;
 	// You can turn off ticking to improve performance if not needed
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+
 }
 
 void URockInventoryComponent::BeginPlay()
@@ -95,6 +99,23 @@ int32 URockInventoryComponent::K2_GetItemCount(const FName ItemId)
 	// }
 	//
 	//return TotalQuantity;
+}
+
+void URockInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(URockInventoryComponent, Inventory);
+}
+
+bool URockInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	if (Inventory)
+	{
+		bWroteSomething |= Channel->ReplicateSubobject(Inventory, *Bunch, *RepFlags);
+	}
+
+	return bWroteSomething;
 }
 
 #if WITH_EDITOR

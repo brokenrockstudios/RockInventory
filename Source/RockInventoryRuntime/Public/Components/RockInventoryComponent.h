@@ -31,7 +31,7 @@ public:
 	TObjectPtr<URockInventoryConfig> InventoryConfig;
 
 	/** The underlying inventory data */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="RockInventory")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="RockInventory", Replicated)
 	TObjectPtr<URockInventory> Inventory;
 
 	/**
@@ -64,6 +64,8 @@ public:
 	bool K2_HasItem(FName ItemId, int32 MinQuantity);
 	int32 K2_GetItemCount(FName ItemId);
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 #if WITH_EDITOR
 	// Validation
 	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;

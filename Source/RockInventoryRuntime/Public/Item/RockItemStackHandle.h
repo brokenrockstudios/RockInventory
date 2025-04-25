@@ -82,11 +82,25 @@ public:
 
 	/** Virtual hash function for derived classes */
 	uint32 GetHash() const { return GetTypeHash(Handle); }
+	
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+	
+
 
 	/** Equality comparison operator */
 	bool operator==(const FRockItemStackHandle& OtherSlotHandle) const { return Handle == OtherSlotHandle.Handle; }
-	bool operator!=(const FRockItemStackHandle& OtherSlotHandle) const { return Handle != OtherSlotHandle.Handle; }
+	bool operator!=(const FRockItemStackHandle& OtherSlotHandle) const { return !(*this ==OtherSlotHandle); }
 
 	/** Explicit cast to bool for conditional expressions */
 	explicit operator bool() const { return IsValid(); }
+};
+
+template<>
+struct TStructOpsTypeTraits<FRockItemStackHandle> : public TStructOpsTypeTraitsBase2<FRockItemStackHandle>
+{
+	enum
+	{
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true
+	};
 };
