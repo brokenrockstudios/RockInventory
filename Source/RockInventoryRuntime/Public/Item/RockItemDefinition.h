@@ -8,6 +8,7 @@
 #include "Engine/DataAsset.h"
 #include "RockItemDefinition.generated.h"
 
+class UGameplayAbility;
 class URockInventoryConfig;
 
 USTRUCT(BlueprintType)
@@ -21,6 +22,26 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
 	TSoftObjectPtr<UTexture2D> Icon;
+};
+
+
+USTRUCT()
+struct FRockEquipmentActorToSpawn
+{
+	GENERATED_BODY()
+
+	FRockEquipmentActorToSpawn()
+	{
+	}
+
+	UPROPERTY(EditAnywhere, Category=Equipment)
+	TSubclassOf<AActor> ActorToSpawn;
+
+	UPROPERTY(EditAnywhere, Category=Equipment)
+	FName AttachSocket;
+
+	UPROPERTY(EditAnywhere, Category=Equipment)
+	FTransform AttachTransform;
 };
 
 
@@ -75,6 +96,8 @@ public:
 	// Always prefer SM over Skeletal, but allow for both.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|World")
 	TSoftObjectPtr<USkeletalMesh> ItemSkeletalMesh;
+
+
 	UPROPERTY(EditDefaultsOnly, Category = "Item|World")
 	TSoftClassPtr<AActor> ActorClass;
 	//////////////////////////////////////////////////////////////////////////
@@ -108,13 +131,66 @@ public:
 	TArray<FRockItemFragmentInstance> ItemFragments;
 
 
+	// the equivalent to the 'right click menu'
+	// Actions that all items can do
+	// Drop / Split (Is there a scenario where we'd want an item to not be droppable or not be splittable?
+
+	// Generally this should be "Use" but perhaps it's "Consume" or other things?
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
+	FText UseItemTextOverride;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
+	TSubclassOf<UGameplayAbility> UseItemAbility;
+	// bActivateOnGranted = true;
+	// InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;
+	// bAutoRemoveOnEnd = true;
+
+	// UPROPERTY(EditDefaultsOnly, Category="Usage")
+	// EItemUseType UseType = EItemUseType::Immediate; // Immediate, Toggle?
+
+
+	// GA_ConsumeApple: Heal 10 HP.
+	// Is there a way we can generalize this?  Should GA_ConsumeApple be different then GA_ConsumePie
+	// Or perhaps we can leverage some 'attribute' that is referenced from a GA_ConsumeGeneric, like leveraging the OnEquipment AbilityInfo?
+	// How do we tell the ability that THIS item is the one that is being used? Can we pass it in with the context?
+
+	// GA_UnwrapPresent: Spawn item in inventory or world.
+	// GA_LearnSkillFireball: Add ability to player.
+
+	// Perhaps instead of a direct ability, we could fall back to some 'generic' ability or global 'function library' based upon this tag?
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
+	//FGameplayTag UseAbilityTag; // Optional fallback route
+
+
+	// This might want to be a singular GameplayAbility, slightly different from Equip.
+	// Note: In the case of a 'hotbar', depending upon which slot is selected, that system likely relies upon Equip/Unequip
+	// The hot bar will need to determine if we are attemping to 'use' the item, or 'equip' the item.
+	// Because you are 'equipping' the gun, and then relying on Primary+Secondary triggers on it. 
+	// Grenade is likely a 'equip'.
+
+	// ConsumeItem (Should this be equivalent to UseItem?
+
+
+	// OpenItem
+	// Is this inventory inherit, and part of the 'runtime instance', since this would likely involve opening a nested inventory
+	// In the case of like a 'wrapped gift', that should rely on UseItem instead.   
+
+	// InspectItem
+	// Is this Inventory inherit, or do we want some items to have special things. 
+
+	// EquipItem
+	// Apply gameplaytags, abilities, attributes, gameplayeffects on 'equip', for 'equipment
+
+	// UnequipItem
+	// Same as equip but reverse. 
+
+	// UnloadItem
+	// Not neccesarily only for 'guns', could also be like removing a battery
+
+
+	// Destroy
+
 	// destroy, drop, equip, inspect, open, unequip, unload, use
-	// Consumable Fragment "Consume Item"
-	// GA to occur on consume or GameplayEffect?
-	// On consume destroy item or consume charges or something?
-	// UsableFragment "Use" item
-	// GA to occur on use or GameplayEffect?
-	// These may be 'null', depending on if the item supports it.
 
 	// EquipmentFragment
 	// Supports Attachment
@@ -122,6 +198,21 @@ public:
 	// SkelMesh
 	// StaticMesh
 	// EquipSocket?
+
+	// TOOD: Should this be in a game specific fragment instead?
+	// UPROPERTY(EditDefaultsOnly, Category=Equipment)
+	// TSubclassOf<URockEquipmentInstance> InstanceType;
+
+	// TOOD: Should this be in a game specific fragment instead?
+	// Gameplay ability sets to grant when this is equipped
+	// UPROPERTY(EditDefaultsOnly, Category=Equipment)
+	// TArray<TObjectPtr<const URockItemAbilitySet>> AbilitySetsToGrant;
+
+	// TOOD: Should this be in a game specific fragment instead?
+	// Actors to spawn on the pawn when this is equipped
+	UPROPERTY(EditDefaultsOnly, Category=Equipment)
+	TArray<FRockEquipmentActorToSpawn> ActorsToSpawn;
+
 
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override
 	{
