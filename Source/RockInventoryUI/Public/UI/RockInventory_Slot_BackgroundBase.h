@@ -32,4 +32,10 @@ public:
 	// we might bind that here
 	// We might bind some 'color highlight' and other functionality here.
 	// The item itself will exist on the canvas panel in front of this background widget.
+
+
+	virtual void NativeOnDragEnter( const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation ) override;
+	virtual void NativeOnDragLeave( const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation )override;
+	
 };
+

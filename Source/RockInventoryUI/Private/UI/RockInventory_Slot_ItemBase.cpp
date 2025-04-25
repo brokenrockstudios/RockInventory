@@ -108,6 +108,24 @@ bool URockInventory_Slot_ItemBase::NativeOnDrop(const FGeometry& InGeometry, con
 	return URockInventoryManagerLibrary::EnqueueTransaction(GetOwningPlayer(), MoveTransaction);
 }
 
+void URockInventory_Slot_ItemBase::NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
+	// Update the inventory as the mouse is currently over this, and to help with updating drag/drop indicators
+	// This Item, will obstruct the mouse event from reaching the BG base, so we basically have duplicate code in this AND BG base.
+	
+
+	
+	// We could in theory either have a common parent, have some dupe code, or make all items 'non hit testable' and just have the BG base handle it.
+	// Verify this, perhaps if the base has NativeOnDragEnter, and this doesn't, maybe we can just call the base?
+}
+
+void URockInventory_Slot_ItemBase::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
+	// Update the inventory as the mouse is currently over this, and to help with updating drag/drop indicators
+}
+
 void URockInventory_Slot_ItemBase::SetIconData(const FRockItemUIData& InIconData)
 {
 	IconData = InIconData;
