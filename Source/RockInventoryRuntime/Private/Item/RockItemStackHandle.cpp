@@ -24,9 +24,9 @@ FRockItemStackHandle FRockItemStackHandle::Create(uint32 InIndex, uint32 InGener
 
 bool FRockItemStackHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
+	bOutSuccess = true;
 	Ar << Handle;
 	
-	bOutSuccess = true;
 	return true;
 }
 

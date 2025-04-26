@@ -53,4 +53,5 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void GenerateItems();
+
 };

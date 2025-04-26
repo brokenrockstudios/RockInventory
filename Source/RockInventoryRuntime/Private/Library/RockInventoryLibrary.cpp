@@ -218,7 +218,6 @@ TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInve
 			ItemStack.GetStackSize());
 
 		InventoryContents.Add(LineItem);
-	
 	}
 	return InventoryContents;
 }
@@ -252,7 +251,7 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 	FRockInventorySlotEntry SourceSlot = Inventory->GetSlotByHandle(SlotHandle);
 	FRockItemStack Item = Inventory->GetItemByHandle(SourceSlot.ItemHandle);
 
-	if (!Item.IsValid() || !Item.IsOccupied())
+	if (!Item.IsValid())
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("No valid item at slot"));
 		return FRockItemStack::Invalid();
@@ -277,7 +276,6 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 		SourceSlot.ItemHandle = FRockItemStackHandle::Invalid();
 		SourceSlot.Orientation = ERockItemOrientation::Horizontal;
 
-		Item.bIsOccupied = false;
 		Item.Generation++;
 	}
 	else
@@ -341,7 +339,18 @@ bool URockInventoryLibrary::MoveItem(
 	//////////////////////////////////////////////////////////////////////////
 	/// Move
 	TArray<bool> OccupancyGrid;
-	PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid, ValidatedSourceSlot.ItemHandle);
+
+	// If moving between 2 different inventories, the ItemHandle at destination could in theory have the same index as the source
+	// which means we need to only ignore the item if we are moving internal to the same inventory
+	if (SourceInventory == TargetInventory)
+	{
+		PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid, ValidatedSourceSlot.ItemHandle);
+	}
+	else
+	{
+		// Don't ignore any items in the target inventory
+		PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid);
+	}
 
 	const FRockInventorySectionInfo& targetSection = TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()];
 	const int32 SectionIndex = TargetSlotHandle.GetIndex() - targetSection.FirstSlotIndex;
@@ -483,7 +492,6 @@ bool URockInventoryLibrary::MoveItem(
 	// We might not ever support this scenario.
 	// return true;
 	UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be moved to target location"));
-
 	return true;
 }
 
@@ -502,7 +510,7 @@ bool URockInventoryLibrary::CanMergeItemAtGridPosition(
 		return false;
 	}
 	const FRockItemStack& ExistingItemStack = Inventory->GetItemBySlotHandle(SlotHandle);
-	if (!ExistingItemStack.IsValid() || !ExistingItemStack.IsOccupied())
+	if (!ExistingItemStack.IsValid())
 	{
 		return false;
 	}
@@ -548,31 +556,34 @@ int32 URockInventoryLibrary::MergeItemAtGridPosition(
 		return stackSize;
 	}
 	const FRockInventorySlotEntry Slot = Inventory->GetSlotByHandle(SlotHandle);
-	FRockItemStack ExistingItemStack = Inventory->GetItemBySlotHandle(SlotHandle);
-
-	if (ExistingItemStack.IsValid() && ExistingItemStack.IsOccupied())
+	if (!Slot.IsValid() || !Slot.ItemHandle.IsValid())
 	{
-		const int32 NewStackSize = ExistingItemStack.GetStackSize() + stackSize;
-		const int32 MaxStackSize = ExistingItemStack.GetMaxStackSize();
-
-		if (NewStackSize > MaxStackSize)
-		{
-			ExistingItemStack.StackSize = MaxStackSize;
-			stackSize = NewStackSize - MaxStackSize;
-		}
-		else
-		{
-			ExistingItemStack.StackSize = NewStackSize;
-			stackSize = 0;
-		}
-		Inventory->SetItemByHandle(Slot.ItemHandle, ExistingItemStack);
+		// might be noisy?
+		// UE_LOG(LogRockInventory, Warning, TEXT("Invalid Slot Handle"));
 		return stackSize;
+	}
+	
+	FRockItemStack ExistingItemStack = Inventory->GetItemBySlotHandle(SlotHandle);
+	if (!ExistingItemStack.IsValid())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("Merging Failed: Invalid ItemStack"));
+		return stackSize;
+	}
+	
+	const int32 NewStackSize = ExistingItemStack.GetStackSize() + stackSize;
+	const int32 MaxStackSize = ExistingItemStack.GetMaxStackSize();
+
+	if (NewStackSize > MaxStackSize)
+	{
+		ExistingItemStack.StackSize = MaxStackSize;
+		stackSize = NewStackSize - MaxStackSize;
 	}
 	else
 	{
-		// Should this ever even be reachable?
-		UE_LOG(LogRockInventory, Warning, TEXT("Merging Failed: Invalid ItemStack"));
+		ExistingItemStack.StackSize = NewStackSize;
+		stackSize = 0;
 	}
+	Inventory->SetItemByHandle(Slot.ItemHandle, ExistingItemStack);
 	return stackSize;
 }
 
@@ -586,7 +597,7 @@ int32 URockInventoryLibrary::GetItemCount(const URockInventory* Inventory, const
 	int32 ItemCount = 0;
 	for (const FRockItemStack& ItemStack : Inventory->ItemData)
 	{
-		if (ItemStack.IsValid() && ItemStack.IsOccupied() && ItemStack.GetItemId() == ItemId)
+		if (ItemStack.IsValid() && ItemStack.GetItemId() == ItemId)
 		{
 			ItemCount += ItemStack.GetStackSize();
 		}

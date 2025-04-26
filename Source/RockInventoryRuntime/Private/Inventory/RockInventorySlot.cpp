@@ -2,6 +2,7 @@
 
 #include "Inventory/RockInventorySlot.h"
 #include "RockInventoryLogging.h"
+#include "Inventory/RockInventory.h"
 
 FRockInventorySlotEntry::FRockInventorySlotEntry():
 	ItemHandle(),
@@ -66,19 +67,69 @@ bool FRockInventorySlotEntry::NetSerialize(FArchive& Ar, UPackageMap* Map, bool&
 	bOutSuccess = true;
 	Ar << Orientation;
 	Ar << bIsLocked;
-	
+
 	// We aren't using the overriden FArchive operator<< because we are saving a few network bytes with custom serializer 
 	if (!SlotHandle.NetSerialize(Ar, Map, bOutSuccess))
 	{
 		bOutSuccess = false;
 		return false;
 	}
-	if (!ItemHandle.NetSerialize( Ar, Map, bOutSuccess))
+	if (!ItemHandle.NetSerialize(Ar, Map, bOutSuccess))
 	{
 		bOutSuccess = false;
 		return false;
 	}
 	return true;
+}
+
+void FRockInventorySlotContainer::SetOwningInventory(URockInventory* InOwningInventory)
+{
+	OwnerInventory = InOwningInventory;
+}
+
+void FRockInventorySlotContainer::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
+{
+	if (!OwnerInventory)
+	{
+		return;
+	}
+	for (const int32 Index : RemovedIndices)
+	{
+		if (AllSlots.IsValidIndex(Index))
+		{
+			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle);
+		}
+	}
+}
+
+void FRockInventorySlotContainer::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
+{
+	if (!OwnerInventory)
+	{
+		return;
+	}
+	for (const int32 Index : AddedIndices)
+	{
+		if (AllSlots.IsValidIndex(Index))
+		{
+			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle);
+		}
+	}
+}
+
+void FRockInventorySlotContainer::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
+{
+	if (!OwnerInventory)
+	{
+		return;
+	}
+	for (const int32 Index : ChangedIndices)
+	{
+		if (AllSlots.IsValidIndex(Index))
+		{
+			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle);
+		}
+	}
 }
 
 // bool FRockInventorySlotEntry::IsEmpty() const

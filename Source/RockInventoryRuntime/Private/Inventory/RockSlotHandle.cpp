@@ -34,6 +34,10 @@ FRockInventorySlotHandle::FRockInventorySlotHandle(int32 InSectionIndex, int32 I
 
 FString FRockInventorySlotHandle::ToString() const
 {
+	if (!IsValid())
+	{
+		return TEXT("Invalid");
+	}
 	return FString::Printf(TEXT("SlotHandle[Index:%d,Section:%d]"), Index, Section);
 }
 
@@ -50,43 +54,45 @@ uint32 GetTypeHash(const FRockInventorySlotHandle& Slot)
 bool FRockInventorySlotHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	bOutSuccess = true;
-	
-	if (Ar.IsSaving())
-	{
-		// When saving, compress the values into a single 32-bit integer
-		uint32 PackedHandle = 0;
-		
-		// Only pack if the values are within our network bit range
-		if (Index >= 0 && Index <= NET_INDEX_MASK && 
-			Section >= 0 && Section <= NET_SECTION_MASK)
-		{
-			PackedHandle = (Index & NET_INDEX_MASK) | ((Section & NET_SECTION_MASK) << NET_SECTION_SHIFT);
-		}
-		else
-		{
-			// If values are too large, use a special invalid value
-			PackedHandle = INDEX_NONE;
-		}
-		
-		Ar << PackedHandle;
-	}
-	else if (Ar.IsLoading())
-	{
-		// When loading, unpack the values from the compressed format
-		uint32 PackedHandle = 0;
-		Ar << PackedHandle;
-		
-		if (PackedHandle == INDEX_NONE)
-		{
-			Index = INDEX_NONE;
-			Section = INDEX_NONE;
-		}
-		else
-		{
-			Index = PackedHandle & NET_INDEX_MASK;
-			Section = (PackedHandle & NET_SECTION_HANDLE_MASK) >> NET_SECTION_SHIFT;
-		}
-	}
+
+	Ar << Index;
+	Ar << Section;
+	// if (Ar.IsSaving())
+	// {
+	// 	// When saving, compress the values into a single 32-bit integer
+	// 	uint32 PackedHandle = 0;
+	// 	
+	// 	// Only pack if the values are within our network bit range
+	// 	if (Index >= 0 && Index <= NET_INDEX_MASK && 
+	// 		Section >= 0 && Section <= NET_SECTION_MASK)
+	// 	{
+	// 		PackedHandle = (Index & NET_INDEX_MASK) | ((Section & NET_SECTION_MASK) << NET_SECTION_SHIFT);
+	// 	}
+	// 	else
+	// 	{
+	// 		// If values are too large, use a special invalid value
+	// 		PackedHandle = INDEX_NONE;
+	// 	}
+	// 	
+	// 	Ar << PackedHandle;
+	// }
+	// else if (Ar.IsLoading())
+	// {
+	// 	// When loading, unpack the values from the compressed format
+	// 	uint32 PackedHandle = 0;
+	// 	Ar << PackedHandle;
+	// 	
+	// 	if (PackedHandle == INDEX_NONE)
+	// 	{
+	// 		Index = INDEX_NONE;
+	// 		Section = INDEX_NONE;
+	// 	}
+	// 	else
+	// 	{
+	// 		Index = PackedHandle & NET_INDEX_MASK;
+	// 		Section = (PackedHandle & NET_SECTION_HANDLE_MASK) >> NET_SECTION_SHIFT;
+	// 	}
+	// }
 	
 	return true;
 }

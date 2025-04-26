@@ -61,9 +61,7 @@ private:
 	/** This is used to detect stale item handles that may have pointed to previous items */
 	UPROPERTY(VisibleAnywhere)
 	uint8 Generation = 0;
-	UPROPERTY()
-	bool bIsOccupied = false;
-
+	
 public:
 	FRockItemStack() = default;
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
@@ -83,7 +81,6 @@ public:
 	bool operator==(const FRockItemStack& Other) const;
 	FString GetDebugString() const;
 	bool IsValid() const;
-	bool IsOccupied() const;
 	void Reset();
 
 	bool CanStackWith(const FRockItemStack& Other) const;
@@ -107,14 +104,27 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryItemContainer : public FFastArrayS
 	GENERATED_BODY()
 
 private:
-	// Force usage of the helpers, and not this array directly. 
-	// Replicated list of inventory slots
+	// Pointer to the owning inventory
+	UPROPERTY(NotReplicated)
+	TObjectPtr<URockInventory> OwnerInventory = nullptr;
+
+public:
+	// Replicated list of item stacks
 	UPROPERTY()
 	TArray<FRockItemStack> AllSlots;
 
-public:
-	ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(AllSlots);
+	// Set the owner inventory
+	void SetOwningInventory(URockInventory* InOwningInventory);
 
+	// Override PostReplicatedChange to notify the owner about changes
+	//~ FFastArraySerializer contract
+	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
+	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
+	//~ End of FFastArraySerializer contract
+	
+	ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(AllSlots);
+	
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return FFastArraySerializer::FastArrayDeltaSerialize<FRockItemStack, FRockInventoryItemContainer>(AllSlots, DeltaParms, *this);

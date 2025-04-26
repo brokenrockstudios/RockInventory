@@ -15,7 +15,8 @@
  * @param Inventory - The inventory that changed
  * @param SlotHandle - The handle of the slot that was modified
  */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, URockInventory*, Inventory, const FRockInventorySlotHandle&, SlotHandle);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventorySlotChanged, URockInventory*, Inventory, const FRockInventorySlotHandle&, SlotHandle);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemStackChanged, URockInventory*, Inventory, const FRockItemStackHandle&, ItemHandle);
 
 /**
  * The root class for the Rock Inventory System.
@@ -120,10 +121,11 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool IsSupportedForNetworking() const override;
 	// IsNameStableForNetworking false?
+	virtual void PostNetReceive () override;
 
 	/** Broadcast the inventory changed event */
 	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());
-	void BroadcastItemChanged(const FRockItemStackHandle& RockInventorySlotHandle = FRockItemStackHandle());
+	void BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle = FRockItemStackHandle());
 
 
 	/** Get a debug string representation of the inventory */
@@ -135,7 +137,12 @@ public:
 
 	/** Called when the inventory changes */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
-	FOnInventoryChanged OnInventoryChanged;
+	FOnInventorySlotChanged OnSlotChanged;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
+	FOnInventoryItemStackChanged OnItemChanged;
+	
+	
 };
 
 

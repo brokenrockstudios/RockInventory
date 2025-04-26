@@ -3,18 +3,17 @@
 
 #include "UI/RockInventory_Slot_ItemBase.h"
 
+#include "RockInventoryUILogging.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
-#include "Library/RockInventoryLibrary.h"
 #include "Item/RockItemStack.h"
 #include "Library/RockInventoryManagerLibrary.h"
 #include "Transactions/Implementations/RockMoveItemTransaction.h"
 #include "UI/RockItemDragDropOperation.h"
-#include "UObject/ICookInfo.h"
 
 void URockInventory_Slot_ItemBase::NativeConstruct()
 {
@@ -26,14 +25,6 @@ void URockInventory_Slot_ItemBase::NativeConstruct()
 	{
 		ItemCount->SetVisibility(ESlateVisibility::Hidden);
 	}
-
-	// Register for inventory change events
-	if (Inventory)
-	{
-		Inventory->OnInventoryChanged.AddDynamic(this, &URockInventory_Slot_ItemBase::OnInventoryChanged);
-		// Update the item count on construction
-		UpdateItemCount();
-	}
 }
 
 void URockInventory_Slot_ItemBase::NativeDestruct()
@@ -41,7 +32,8 @@ void URockInventory_Slot_ItemBase::NativeDestruct()
 	// Unregister from inventory change events
 	if (Inventory)
 	{
-		Inventory->OnInventoryChanged.RemoveDynamic(this, &URockInventory_Slot_ItemBase::OnInventoryChanged);
+		Inventory->OnItemChanged.RemoveDynamic(this, &URockInventory_Slot_ItemBase::OnInventoryItemChanged);
+		Inventory->OnSlotChanged.RemoveDynamic(this, &URockInventory_Slot_ItemBase::OnInventorySlotChanged);
 	}
 	// Clean up any pending loads when widget is destroyed
 	if (StreamHandle.IsValid() && !StreamHandle->HasLoadCompleted())
@@ -53,16 +45,33 @@ void URockInventory_Slot_ItemBase::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+void URockInventory_Slot_ItemBase::SetupBindings()
+{
+	// Register for inventory change events
+	if (Inventory)
+	{
+		Inventory->OnSlotChanged.AddDynamic(this, &URockInventory_Slot_ItemBase::OnInventorySlotChanged);
+
+		if (ItemHandle.IsValid())
+		{
+			Inventory->OnItemChanged.AddDynamic(this, &URockInventory_Slot_ItemBase::OnInventoryItemChanged);
+			// Update the item count on construction
+			UpdateItemCount();
+		}
+	}
+}
+
+
 void URockInventory_Slot_ItemBase::UpdateItemCount()
 {
-	if (!Inventory || !ItemCount || !SlotHandle.IsValid())
+	if (!Inventory || !ItemCount || !ItemHandle.IsValid())
 	{
 		return;
 	}
 
 	// Get the item at this slot
-	const FRockItemStack& ItemStack = URockInventoryLibrary::GetItemAtLocation(Inventory, SlotHandle);
-	if (ItemStack.IsValid() && ItemStack.IsOccupied())
+	const FRockItemStack& ItemStack = Inventory->GetItemByHandle(ItemHandle);
+	if (ItemStack.IsValid())
 	{
 		// Update the count text if stack size is greater than 1
 		if (ItemStack.GetStackSize() > 1)
@@ -83,14 +92,52 @@ void URockInventory_Slot_ItemBase::UpdateItemCount()
 	}
 }
 
-void URockInventory_Slot_ItemBase::OnInventoryChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle)
+void OnInventorySlotChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle);
+
+void URockInventory_Slot_ItemBase::OnInventorySlotChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle)
 {
 	// Only update if this change affects our slot
-	if (ChangedInventory == Inventory &&
-		(ChangedSlotHandle == SlotHandle || !ChangedSlotHandle.IsValid()))
+	if (ChangedInventory == Inventory && (ChangedSlotHandle == SlotHandle || !ChangedSlotHandle.IsValid()))
 	{
+		const FRockInventorySlotEntry& slot = Inventory->GetSlotByHandle(SlotHandle);
+
+		// If the item changed, update the item handle
+		if (slot.ItemHandle != ItemHandle)
+		{
+			const bool isBound = Inventory->OnItemChanged.IsAlreadyBound(this, &URockInventory_Slot_ItemBase::OnInventoryItemChanged);
+			const bool newItemValid = slot.ItemHandle.IsValid();
+			// if we aren't bound, and new item is valid, let's bind
+			if (!isBound && newItemValid)
+			{
+				Inventory->OnItemChanged.AddDynamic(this, &URockInventory_Slot_ItemBase::OnInventoryItemChanged);
+			}
+			// If we are bound, and the new item is invalid, let's unbind
+			else if (isBound && !newItemValid)
+			{
+				Inventory->OnItemChanged.RemoveDynamic( this, &URockInventory_Slot_ItemBase::OnInventoryItemChanged);
+			}
+			ItemHandle = slot.ItemHandle;
+			UpdateItemCount();
+		}
+	}
+}
+
+void URockInventory_Slot_ItemBase::OnInventoryItemChanged(URockInventory* ChangedInventory, const FRockItemStackHandle& ChangedItemHandle)
+{
+	if (ChangedInventory == Inventory && ChangedItemHandle == ItemHandle)
+	{
+		// Update the item count if this slot is affected
 		UpdateItemCount();
 	}
+	// Should we have cached the itemhandle? during a slot change?
+	// What if the itemchanges before the slot changes?
+	// We technically care about the item in a specific slot.
+
+	// Only update if this change affects our item
+	// if (ChangedInventory == Inventory && (ChangedItemHandle == SlotHandle.ItemHandle || !ChangedItemHandle.IsValid()))
+	// {
+	// 	UpdateItemCount();
+	// }
 }
 
 bool URockInventory_Slot_ItemBase::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
@@ -100,7 +147,7 @@ bool URockInventory_Slot_ItemBase::NativeOnDrop(const FGeometry& InGeometry, con
 	{
 		return false;
 	}
-	
+
 	URockMoveItemTransaction* MoveTransaction = URockMoveItemTransaction::CreateMoveItemTransaction(
 		DragDropOp->SourceInventory, DragDropOp->SourceSlot,
 		Inventory, SlotHandle);
@@ -108,14 +155,14 @@ bool URockInventory_Slot_ItemBase::NativeOnDrop(const FGeometry& InGeometry, con
 	return URockInventoryManagerLibrary::EnqueueTransaction(GetOwningPlayer(), MoveTransaction);
 }
 
-void URockInventory_Slot_ItemBase::NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+void URockInventory_Slot_ItemBase::NativeOnDragEnter(
+	const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
 	// Update the inventory as the mouse is currently over this, and to help with updating drag/drop indicators
 	// This Item, will obstruct the mouse event from reaching the BG base, so we basically have duplicate code in this AND BG base.
-	
 
-	
+
 	// We could in theory either have a common parent, have some dupe code, or make all items 'non hit testable' and just have the BG base handle it.
 	// Verify this, perhaps if the base has NativeOnDragEnter, and this doesn't, maybe we can just call the base?
 }

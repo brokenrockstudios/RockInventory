@@ -31,6 +31,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
 	FRockInventorySlotHandle SlotHandle;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
+	FRockItemStackHandle ItemHandle;
+	
 
 	// Bind Image Widget
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
@@ -45,14 +48,19 @@ public:
 
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	void SetupBindings();
 
+	
 	// Updates the ItemCount text based on current stack size
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void UpdateItemCount();
 
 	// Callback for when the inventory changes
 	UFUNCTION()
-	void OnInventoryChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle);
+	void OnInventorySlotChanged(URockInventory* ChangedInventory, const FRockInventorySlotHandle& ChangedSlotHandle);
+	UFUNCTION()
+	void OnInventoryItemChanged(URockInventory* ChangedInventory, const FRockItemStackHandle& ChangedItemHandle);
+
 
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragEnter( const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation ) override;

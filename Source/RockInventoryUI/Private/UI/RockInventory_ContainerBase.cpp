@@ -15,7 +15,6 @@
 
 void URockInventory_ContainerBase::SetInventory(URockInventory* InInventory, const FName& InSectionName)
 {
-	UE_LOG(LogRockInventoryUI, Warning, TEXT(  "SetInventory()"));
 	if (InInventory)
 	{
 		Inventory = InInventory;
@@ -28,7 +27,6 @@ void URockInventory_ContainerBase::SetInventory(URockInventory* InInventory, con
 
 void URockInventory_ContainerBase::GenerateGrid()
 {
-	UE_LOG(LogRockInventoryUI, Warning, TEXT(  "GenerateGrid()"));
 	GridPanel->ClearChildren();
 
 	int32 SectionIndex = INDEX_NONE;
@@ -85,7 +83,6 @@ void URockInventory_ContainerBase::ClearItemsFromGrid()
 
 void URockInventory_ContainerBase::GenerateItems()
 {
-	UE_LOG(LogRockInventoryUI, Warning, TEXT( "GenerateItems()"));
 	if (!Inventory)
 	{
 		UE_LOG(LogRockInventoryUI, Warning, TEXT( "Inventory is null"));
@@ -114,17 +111,19 @@ void URockInventory_ContainerBase::GenerateItems()
 	// 	CellHeight = 64.0f; // Default cell height, adjust as needed
 	// }
 	//////////////////////////////////////////////////////////////////////////
-	UE_LOG(LogRockInventoryUI, Warning, TEXT( "Generating items for section %s"), *TabInfo.SectionName.ToString());
+	
 	for (int32 slotIndex = 0; slotIndex < TabInfo.GetNumSlots(); ++slotIndex)
 	{
-		UE_LOG(LogRockInventoryUI, Warning, TEXT( "Generating item for slot %d"), slotIndex);
-		const int32 Column = slotIndex % TabInfo.Width;
-		const int32 Row = slotIndex / TabInfo.Width;
 		const int32 AbsoluteIndex = TabInfo.FirstSlotIndex + slotIndex;
 		const FRockInventorySlotEntry& SlotEntry = Inventory->GetSlotByAbsoluteIndex(AbsoluteIndex);
+		
+		if (!SlotEntry.ItemHandle.IsValid())
+		{
+			continue;
+		}
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(SlotEntry.ItemHandle);
-		UE_LOG(LogRockInventoryUI, Warning, TEXT("Adding item occupied? %d %d"), ItemStack.IsValid(), ItemStack.IsOccupied());
-		if (!ItemStack.IsValid() || !ItemStack.IsOccupied())
+
+		if (!ItemStack.IsValid() )
 		{
 			continue;
 		}
@@ -133,20 +132,22 @@ void URockInventory_ContainerBase::GenerateItems()
 		URockInventory_Slot_ItemBase* WidgetItem = CreateWidget<URockInventory_Slot_ItemBase>(this, ItemSlotWidgetClass,
 			FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
 		
-		UE_LOG(LogRockInventoryUI, Warning, TEXT("Adding item %p"), WidgetItem);
-
-		
 		if (WidgetItem)
 		{
-			// Setup Widget properties
-			WidgetItem->Inventory = Inventory;
-			WidgetItem->SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteIndex);
-			WidgetItem->SetIconData(ItemStack.GetDefinition()->IconData);
-			WidgetItem->UpdateItemCount();
-			UE_LOG(LogRockInventoryUI, Warning, TEXT("Adding item %s to slot %d"), *ItemStack.GetDefinition()->ItemId.ToString(), AbsoluteIndex);
+			const int32 Column = slotIndex % TabInfo.Width;
+			const int32 Row = slotIndex / TabInfo.Width;
 
+			// Note: For reasons this needs to happen before SetupBindings >:( 
 			// Add to grid with proper sizing
 			UGridSlot* GridSlot = GridPanel->AddChildToGrid(WidgetItem, Row, Column);
+			
+			// Setup Widget properties
+			WidgetItem->Inventory = Inventory;
+			WidgetItem->SlotHandle = SlotEntry.SlotHandle;
+			WidgetItem->ItemHandle = SlotEntry.ItemHandle;
+			WidgetItem->SetIconData(ItemStack.GetDefinition()->IconData);
+			WidgetItem->SetupBindings();
+
 			if (GridSlot)
 			{
 				// Setting this more than 0 breaks things. Find another way to do 'padding' or internal spacing

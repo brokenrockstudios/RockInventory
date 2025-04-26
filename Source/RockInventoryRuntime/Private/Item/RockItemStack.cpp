@@ -52,8 +52,8 @@ bool FRockItemStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bO
 	Ar << StackSize;
 	Ar << CustomValue1;
 	Ar << CustomValue2;
-	Ar << bIsOccupied;
-	
+	Ar << Generation;
+
 	UObject* Instance = RuntimeInstance.Get();
 	Map->SerializeObject(Ar, URockItemInstance::StaticClass(), Instance);
 	if (Ar.IsLoading())
@@ -61,12 +61,13 @@ bool FRockItemStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bO
 		RuntimeInstance = Cast<URockItemInstance>(Instance);
 	}
 
-	if (!ItemHandle.NetSerialize( Ar, Map, bOutSuccess))
+	// The handle to itself.
+	if (!ItemHandle.NetSerialize(Ar, Map, bOutSuccess))
 	{
 		bOutSuccess = false;
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -76,7 +77,9 @@ bool FRockItemStack::operator==(const FRockItemStack& Other) const
 		StackSize == Other.StackSize &&
 		CustomValue1 == Other.CustomValue1 &&
 		CustomValue2 == Other.CustomValue2 &&
-		RuntimeInstance == Other.RuntimeInstance;
+		RuntimeInstance == Other.RuntimeInstance &&
+		Generation == Other.Generation &&
+		ItemHandle == Other.ItemHandle;
 }
 
 FString FRockItemStack::GetDebugString() const
@@ -87,11 +90,6 @@ FString FRockItemStack::GetDebugString() const
 bool FRockItemStack::IsValid() const
 {
 	return (StackSize > 0) && Definition;
-}
-
-bool FRockItemStack::IsOccupied() const
-{
-	return bIsOccupied;
 }
 
 void FRockItemStack::Reset()
@@ -127,6 +125,35 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 bool FRockItemStack::IsEmpty() const
 {
 	return StackSize <= 0;
+}
+
+void FRockInventoryItemContainer::SetOwningInventory(URockInventory* InOwningInventory)
+{
+	OwnerInventory = InOwningInventory;
+}
+
+void FRockInventoryItemContainer::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
+{
+}
+
+void FRockInventoryItemContainer::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
+{
+}
+
+void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
+{
+	if (!OwnerInventory)
+	{
+		return;
+	}
+
+	for (const int32 Index : ChangedIndices)
+	{
+		if (AllSlots.IsValidIndex(Index))
+		{
+			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle);
+		}
+	}
 }
 
 // UE_OBJPTR_DEPRECATED(5.0, "Conversion to a mutable pointer is deprecated.  Please pass a TObjectPtr<T>& instead so that assignment can be tracked accurately.")

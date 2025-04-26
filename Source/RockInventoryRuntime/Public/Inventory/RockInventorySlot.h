@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RockItemOrientation.h"
 #include "RockSlotHandle.h"
 #include "Enums/RockEnums.h"
 #include "Item/RockItemStack.h"
@@ -66,7 +65,8 @@ public:
 	// bool CanAcceptItem(const FRockItemStack& NewItem) const;
 
 	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess);
-	bool operator==(const FRockInventorySlotEntry& Other) const { return SlotHandle == Other.SlotHandle; }
+	bool operator==(const FRockInventorySlotEntry& Other) const { return SlotHandle == Other.SlotHandle && ItemHandle == Other.ItemHandle
+		&& Orientation == Other.Orientation && bIsLocked == Other.bIsLocked; }
 	bool operator!=(const FRockInventorySlotEntry& Other) const { return !(*this == Other); }
 };
 
@@ -92,15 +92,27 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotContainer : public FFastArrayS
 	GENERATED_BODY()
 
 private:
-	// Force usage of the helpers, and not this array directly. 
-	// Replicated list of inventory slots
+	// Pointer to the owning inventory
+	UPROPERTY()
+	TObjectPtr<URockInventory> OwnerInventory = nullptr;
+
 public:
+	// Replicated list of slots
 	UPROPERTY()
 	TArray<FRockInventorySlotEntry> AllSlots;
 
-public:
-	ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(AllSlots);
+	// Set the owner inventory
+	void SetOwningInventory(URockInventory* InOwningInventory);
 
+	// Override PostReplicatedChange to notify the owner about changes
+	//~ FFastArraySerializer contract
+	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
+	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
+	//~ End of FFastArraySerializer contract
+
+	ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(AllSlots);
+	
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return FFastArraySerializer::FastArrayDeltaSerialize<FRockInventorySlotEntry, FRockInventorySlotContainer>(AllSlots, DeltaParms, *this);
