@@ -15,9 +15,14 @@ bool URockInventoryLibrary::LootItemToInventory(
 	// Start off with the full stack size in the event we can't place it
 	OutExcess = ItemStack.GetStackSize();
 
-	if (!Inventory || !ItemStack.IsValid())
+	if (!Inventory)
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("LootItemToInventory::Invalid Parameters. Inventory or ItemStack"));
+		UE_LOG(LogRockInventory, Warning, TEXT("LootItemToInventory::Invalid Parameters. Inventory"));
+		return false;
+	}
+	if ( !ItemStack.IsValid())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("LootItemToInventory::Invalid Parameters. ItemStack"));
 		return false;
 	}
 
@@ -65,7 +70,7 @@ bool URockInventoryLibrary::LootItemToInventory(
 			SlotEntry.ItemHandle = ItemHandle;
 			SlotEntry.Orientation = ERockItemOrientation::Horizontal;
 			Inventory->SetSlotByHandle(SlotHandle, SlotEntry);
-			OutHandle = SlotHandle;
+			OutHandle = SlotHandle;		
 			return true;
 		}
 	}
@@ -293,7 +298,7 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 bool URockInventoryLibrary::MoveItem(
 	URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 	URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
-	const FRockMoveItemParams& MoveItemParams)
+	const FRockMoveItemParams& InMoveParams)
 {
 	if (SourceInventory == TargetInventory && SourceSlotHandle == TargetSlotHandle)
 	{
@@ -358,7 +363,7 @@ bool URockInventoryLibrary::MoveItem(
 	const int32 Row = SectionIndex / targetSection.Width;
 	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ValidatedSourceItem);
 
-	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(ValidatedSourceItem, MoveItemParams);
+	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(ValidatedSourceItem, InMoveParams.MoveMode, InMoveParams.MoveCount);
 	if (MoveAmount <= 0)
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid move amount calculated"));
@@ -395,7 +400,7 @@ bool URockInventoryLibrary::MoveItem(
 			}
 
 			// Set up target slot with existing item handle
-			targetSlot.Orientation = MoveItemParams.DesiredOrientation;
+			targetSlot.Orientation = InMoveParams.DesiredOrientation;
 			TargetInventory->SetSlotByHandle(TargetSlotHandle, targetSlot);
 		}
 		else
@@ -415,7 +420,7 @@ bool URockInventoryLibrary::MoveItem(
 
 			// Update target slot with new item
 			targetSlot.ItemHandle = newItemHandle;
-			targetSlot.Orientation = MoveItemParams.DesiredOrientation;
+			targetSlot.Orientation = InMoveParams.DesiredOrientation;
 			TargetInventory->SetSlotByHandle(TargetSlotHandle, targetSlot);
 		}
 		return true;

@@ -31,8 +31,19 @@ public:
 	// Override in BP version
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	FVector DropLocationOffset = FVector(150, 0, 0);
+	
+	// UPROPERTY()
+	// FRockItemStack ItemStack;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	FRockMoveItemParams MoveItemParams;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
+	ERockItemOrientation Orientation = ERockItemOrientation::Horizontal;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
+	ERockItemMoveMode MoveMode = ERockItemMoveMode::SingleItem;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
+	int32 MoveCount = 1;
 
 	
 	virtual void Dragged_Implementation(const FPointerEvent& PointerEvent) override;
@@ -46,5 +57,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop")
 	TObjectPtr<USoundBase> DefaultDragSound = nullptr;
 };
+
+// Overlap mode potential default colors?
+// CanOverlap	| 007209FF | 00B334FF
+// CantOverlap	| 3B0604FF | 852D23FF
+// CanMerge		| 5D5704FF | A39E21FF
+// CanPush		| 532B00FF | 9B7200FF
+
+// Note: CanPush is basically can nest into it's sub inventory
+
+
 
 

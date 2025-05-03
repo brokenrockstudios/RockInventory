@@ -28,8 +28,8 @@ public:
 	bool IsValid() const { return Index != INDEX_NONE && Section != INDEX_NONE; }
 
 	// Helper Utility functions
-	friend uint32 GetTypeHash(const FRockInventorySlotHandle& Slot);
-	uint32 GetHash() const;
+	uint32 GetHash() const { return HashCombine(Index, Section); }
+	friend uint32 GetTypeHash(const FRockInventorySlotHandle& Slot) { return Slot.GetHash(); }
 	FString ToString() const;
 
 	friend FArchive& operator<<(FArchive& Ar, FRockInventorySlotHandle& SlotHandle)
@@ -38,6 +38,7 @@ public:
 		Ar << SlotHandle.Section;
 		return Ar;
 	}
+
 	bool operator==(const FRockInventorySlotHandle& Other) const { return Index == Other.Index && Section == Other.Section; }
 	bool operator!=(const FRockInventorySlotHandle& Other) const { return !(*this == Other); }
 
@@ -45,7 +46,7 @@ public:
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 };
 
-template<>
+template <>
 struct TStructOpsTypeTraits<FRockInventorySlotHandle> : public TStructOpsTypeTraitsBase2<FRockInventorySlotHandle>
 {
 	enum

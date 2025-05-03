@@ -4,104 +4,47 @@
 
 #include "CoreMinimal.h"
 #include "Inventory/RockSlotHandle.h"
+#include "Item/RockItemStack.h"
 #include "Transactions/Core/RockInventoryTransaction.h"
-#include "Kismet/GameplayStatics.h"
-#include "Misc/RockInventoryDeveloperSettings.h"
-#include "UObject/Object.h"
-#include "World/RockInventoryWorldItem.h"
 #include "RockLootWorldItemTransaction.generated.h"
 
 class URockInventory;
-/**
- *
- */
-UCLASS(BlueprintType, Blueprintable)
-class ROCKINVENTORYRUNTIME_API URockAddItemTransaction : public URockInventoryTransaction
+
+USTRUCT(BlueprintType)
+struct FRockLootWorldItemUndoTransaction : public FRockItemTransactionBase
 {
-public:
 	GENERATED_BODY()
 
-	// call back for excess?
-	// should we consume a world item?
-	// a lot of game specific questions here
-	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transaction")
-	// static URockAddItemTransaction* CreateLootItemTransaction(
-	// 	const TSubclassOf<URockInventory>& InTargetInventory,
-	// 	const FRockItemStack& InItemStack);
-
-
-	///////////////////////////////////////////////////////////////////////////////
-	/// Core Transaction Data (Required)
-	// For a 'world loot', this should technically be a 'world item' that is being looted
-
-	// TODO replace
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> TargetInventory = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockItemStack ItemStack;
-
-protected:
-	//////////////////////////////////////////////////////////////////////////
-	/// Internal Undo state 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockInventorySlotHandle TargetSlotHandle;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Excess;
+	int32 Excess = -1;
+	bool bSuccess;
 
-public:
-	virtual bool Execute_Implementation() override
-	{
-		// determine how much we looted
-		// auto existingStack = ItemStack.GetStackSize();
-		// auto bLooted = URockInventoryLibrary::LootItemToInventory(TargetInventory, ItemStack, TargetSlotHandle, Excess);
-		
-		return URockInventoryLibrary::LootItemToInventory(TargetInventory, ItemStack, TargetSlotHandle, Excess);
-	}
+	bool CanUndo();
+	bool Undo();
+};
 
-	virtual bool CanUndo() const override
-	{
-		// This transaction is not undoable at this time.
-		return false;
-	}
+USTRUCT(Blueprintable, BlueprintType)
+struct ROCKINVENTORYRUNTIME_API FRockLootWorldItemTransaction : public FRockItemTransactionBase
+{
+	GENERATED_BODY()
 
-	virtual bool Undo_Implementation() override
-	{
-		// const FRockItemStack Item = URockInventoryLibrary::RemoveItemAtLocation(TargetInventory, SourceSlotHandle);
-		// if (!Item.IsValid())
-		// {
-		// 	return false;
-		// }
-		//
-		// ExistingOrientation = TargetInventory->GetSlotByHandle(SourceSlotHandle).Orientation;
-		//
-		// FTransform transform = TargetInventory->OwningActor->GetActorTransform();
-		// // Prefer the instigator's transform if available
-		// if (const AController* DropInstigator = Instigator.Get())
-		// {
-		// 	if (const auto pawn = DropInstigator->GetPawn())
-		// 	{
-		// 		transform = pawn->GetActorTransform();
-		// 	}
-		// }
-		//
-		// transform.AddToTranslation(transform.GetRotation().GetForwardVector() * DropLocationOffset.Size());
-		//
-		// ARockInventoryWorldItem* NewWorldItem = TargetInventory->OwningActor->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItem>(
-		// 	GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass, transform);
-		//
-		// if (IsValid(NewWorldItem))
-		// {
-		// 	NewWorldItem->Execute_SetItemStack(NewWorldItem, Item);
-		// 	UGameplayStatics::FinishSpawningActor(NewWorldItem, transform);
-		// 	SpawnedItemStack = NewWorldItem;
-		// 	return true;
-		// }
+	// This could be a world item attempting to give some items to the player.
+	// Generally this will just be a 'lootable' item on the ground.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<AActor> SourceWorldItemActor = nullptr;
 
-		return false;
-	}
+	// No specific location
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<URockInventory> TargetInventory = nullptr;
 
-	virtual FString GetDescription_Implementation() const
-	{
-		return FString::Printf(TEXT("Add Item"));
-	}
+	bool CanExecute() const;
+	FRockLootWorldItemUndoTransaction Execute() const;
+	bool AttemptPredict() const;
 };

@@ -2,32 +2,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/RockInventoryComponent.h"
-#include "Inventory/RockItemOrientation.h"
+#include "Enums/RockEnums.h"
+#include "Inventory/RockInventorySectionInfo.h"
 #include "Inventory/RockSlotHandle.h"
 #include "Item/RockItemStack.h"
+#include "Item/RockMoveItemParams.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "RockInventoryLibrary.generated.h"
 
 class URockInventory;
-
-USTRUCT(BlueprintType)
-struct FRockMoveItemParams
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	ERockItemOrientation DesiredOrientation = ERockItemOrientation::Horizontal;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	ERockItemMoveAmount MoveAmount = ERockItemMoveAmount::All;
-
-
-	// MoveCount <= 0 means full stack.  Should it be < or <=, or is there any special case where moving 0 items would be valid? 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MoveCount = -1;
-};
-
-
 
 /**
  * 
@@ -63,15 +46,14 @@ public:
 	 * @param SourceSlotHandle - The handle of the source slot
 	 * @param TargetInventory - The target inventory
 	 * @param TargetSlotHandle - The handle of the target slot
-	 * @param MoveItemParams - The desired orientation of the item
+	 * @param InMoveParams - The move parameters
 	 * @return true if the move was successful
 	 */
 	UFUNCTION(BlueprintCallable)
 	static bool MoveItem(
 		URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 		URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
-		const FRockMoveItemParams& MoveItemParams = FRockMoveItemParams());
-
+		const FRockMoveItemParams& InMoveParams = FRockMoveItemParams());
 
 	// Misc helpers
 
@@ -112,9 +94,7 @@ public:
 		const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle = FRockItemStackHandle());
 	static bool CanItemFitInGridPosition(
 		const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize);
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Debug")
 	static TArray<FString> GetInventoryContentsDebug(const URockInventory* Inventory);
 };
-
-

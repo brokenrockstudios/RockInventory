@@ -48,5 +48,5 @@ public:
 	static bool IsFull(const FRockItemStack& ItemStack);
 
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
-	static int32 CalculateMoveAmount(const FRockItemStack& ItemStack, const FRockMoveItemParams& MoveParams);
+	static int32 CalculateMoveAmount(const FRockItemStack& ItemStack, const ERockItemMoveMode& MoveMode, int32 MoveCount);
 };

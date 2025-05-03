@@ -41,15 +41,8 @@ FString FRockInventorySlotHandle::ToString() const
 	return FString::Printf(TEXT("SlotHandle[Index:%d,Section:%d]"), Index, Section);
 }
 
-uint32 FRockInventorySlotHandle::GetHash() const
-{
-	return GetTypeHash(*this);
-}
 
-uint32 GetTypeHash(const FRockInventorySlotHandle& Slot)
-{
-	return HashCombine(Slot.Index, Slot.Section);
-}
+
 
 bool FRockInventorySlotHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {

@@ -82,7 +82,7 @@ public:
 
 	/** Virtual hash function for derived classes */
 	uint32 GetHash() const { return GetTypeHash(Handle); }
-	
+	friend uint32 GetTypeHash(const FRockItemStackHandle& ItemStackHandle) { return ItemStackHandle.GetHash(); }
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 	
 

@@ -8,101 +8,80 @@
 #include "Misc/RockInventoryDeveloperSettings.h"
 #include "World/RockInventoryWorldItem.h"
 
-URockDropItemTransaction* URockDropItemTransaction::CreateDropItemTransaction(
-	AController* InInstigator, URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle)
+bool FRockDropItemTransaction::CanExecute() const
 {
-	URockDropItemTransaction* Transaction = NewObject<URockDropItemTransaction>();
-	Transaction->Instigator = InInstigator;
-	Transaction->SourceInventory = InSourceInventory;
-	Transaction->SourceSlotHandle = InSourceSlotHandle;
-	return Transaction;
+	return true;
 }
 
-bool URockDropItemTransaction::Execute_Implementation()
+FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 {
+	FRockDropItemUndoTransaction UndoTransaction;
+	UndoTransaction.bSuccess = false;
 	const FRockItemStack Item = URockInventoryLibrary::SplitItemStackAtLocation(SourceInventory, SourceSlotHandle);
 	if (!Item.IsValid())
 	{
-		return false;
+		return UndoTransaction;
 	}
 
-	ExistingOrientation = SourceInventory->GetSlotByHandle(SourceSlotHandle).Orientation;
+	UndoTransaction.ExistingOrientation = SourceInventory->GetSlotByHandle(SourceSlotHandle).Orientation;
 
-	FTransform transform = SourceInventory->OwningActor->GetActorTransform();
+	FTransform transform = SourceInventory->GetOwningActor()->GetActorTransform();
 	// Prefer the instigator's transform if available
-	if (const AController* DropInstigator = Instigator.Get())
+	const AController* DropInstigator = Instigator.Get();
+	if (!DropInstigator)
 	{
-		if (const auto pawn = DropInstigator->GetPawn())
-		{
-			transform = pawn->GetActorTransform();
-		}
+		// Where would we drop it if there is no controller
+		return UndoTransaction;
 	}
+	const auto pawn = DropInstigator->GetPawn();
+	if (!pawn)
+	{
+		return UndoTransaction;
+	}
+	transform = pawn->GetActorTransform();
+
 
 	transform.AddToTranslation(transform.GetRotation().GetForwardVector() * DropLocationOffset.Size());
 
-	ARockInventoryWorldItem* NewWorldItem = SourceInventory->OwningActor->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItem>(
+	ARockInventoryWorldItem* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItem>(
 		GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass, transform);
 
-	if (IsValid(NewWorldItem))
+	if (!IsValid(NewWorldItem))
 	{
-		NewWorldItem->Execute_SetItemStack(NewWorldItem, Item);
-		if (NewWorldItem->StaticMeshComponent->IsSimulatingPhysics())
-		{
-			NewWorldItem->StaticMeshComponent->AddImpulse(Impulse, NAME_None, true);
-		}
-		UGameplayStatics::FinishSpawningActor(NewWorldItem, transform);
-		SpawnedItemStack = NewWorldItem;
-		return true;
+		return UndoTransaction;
 	}
 
-	return false;
+	NewWorldItem->Execute_SetItemStack(NewWorldItem, Item);
+	if (NewWorldItem->StaticMeshComponent->IsSimulatingPhysics())
+	{
+		NewWorldItem->StaticMeshComponent->AddImpulse(Impulse, NAME_None, true);
+	}
+	UGameplayStatics::FinishSpawningActor(NewWorldItem, transform);
+
+	UndoTransaction.bSuccess = true;
+	UndoTransaction.SpawnedItemStack = NewWorldItem;
+	return UndoTransaction;
 }
 
-bool URockDropItemTransaction::Undo_Implementation()
+bool FRockDropItemTransaction::AttemptPredict() const
 {
 	return false;
-	//
-	// if (!SpawnedItemStack.IsValid())
-	// {
-	// 	return false;
-	// }
-	// // TODO: Do a range check to see if we are 'close enough' still to the item.
-	//
-	// // Get the item stack from the world item before destroying it
-	// const FRockItemStack Item = SpawnedItemStack->GetItemStack();
-	//
-	// // Destroy the world item
-	// SpawnedItemStack->Destroy();
-	// SpawnedItemStack = nullptr;
-	//
-	// // Return the item to the source inventory
-	// return URockInventoryLibrary::PlaceItemAtSlot_Internal(SourceInventory, SourceSlotHandle, Item, ExistingOrientation);
 }
 
-bool URockDropItemTransaction::CanUndo() const
+bool FRockDropItemUndoTransaction::CanUndo()
 {
-	return SpawnedItemStack.IsValid();
-}
-
-bool URockDropItemTransaction::CanApply(URockInventoryComponent* OwnerInventory) const
-{
-	if (!SourceInventory || !SourceSlotHandle.IsValid())
+	// If the original command wasn't successful, we can't undo it
+	if (!bSuccess)
 	{
 		return false;
 	}
-	// Check if we can remove the item from the source slot
-	return true; // URockInventoryLibrary::CanRemoveItemAtLocation(SourceInventory, SourceSlotHandle);
+	// check if item is still valid, and the target slot is still valid
+	// TODO
+	
+	return false;
 }
 
-FString URockDropItemTransaction::GetDescription() const
+bool FRockDropItemUndoTransaction::Undo()
 {
-	if (!SourceInventory)
-	{
-		return TEXT("Drop Item (Invalid Source)");
-	}
-
-	FRockItemStack Item = URockInventoryLibrary::GetItemAtLocation(SourceInventory, SourceSlotHandle);
-	return FString::Printf(TEXT("Drop %s from %s"),
-		*Item.GetDebugString(),
-		*SourceInventory->GetDebugString());
+	return false;
 }

@@ -34,7 +34,7 @@ public:
 
 	/** The inventory that currently owns this item instance */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
-	TWeakObjectPtr<URockInventory> OwningInventory = nullptr;
+	TObjectPtr<URockInventory> OwningInventory = nullptr;
 
 	/** Handle to the slot in the inventory where this item instance is located */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")

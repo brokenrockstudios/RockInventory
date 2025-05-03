@@ -15,31 +15,30 @@ class ROCKINVENTORYRUNTIME_API ARockInventoryWorldItem : public AActor, public I
 {
 	GENERATED_BODY()
 public:
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
 
 	// Sets default values for this actor's properties
-	ARockInventoryWorldItem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	ARockInventoryWorldItem(const FObjectInitializer &ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void BeginPlay() override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
 
-	
-	void SetItemStack_Implementation(const FRockItemStack& InItemStack);
-	FRockItemStack GetItemStack_Implementation() const;
-	void PickedUp_Implementation(AActor* InInstigator) override;
-	
+	// IRockWorldItemInterface
+	virtual FRockItemStack GetItemStack_Implementation(AActor *InstigatorPawn) const override;
+	virtual void SetItemStack_Implementation(const FRockItemStack &InItemStack) override;
+	virtual void OnPickedUp_Implementation(AActor *InInstigator) override;
+	virtual void OnLooted_Implementation(AActor *InstigatorPawn, const FRockItemStack &LootedItem, int32 Excess) override;
+
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing=OnRep_ItemStack)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_ItemStack)
 	FRockItemStack ItemStack;
-	
+
 	UFUNCTION()
 	void OnRep_ItemStack();
 
 #if WITH_EDITOR
 public:
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent &PropertyChangedEvent) override;
 #endif
 };
-

@@ -5,6 +5,7 @@
 
 #include "RockInventoryUILogging.h"
 #include "Components/Image.h"
+#include "Components/RockInventoryManagerComponent.h"
 #include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
@@ -114,7 +115,7 @@ void URockInventory_Slot_ItemBase::OnInventorySlotChanged(URockInventory* Change
 			// If we are bound, and the new item is invalid, let's unbind
 			else if (isBound && !newItemValid)
 			{
-				Inventory->OnItemChanged.RemoveDynamic( this, &URockInventory_Slot_ItemBase::OnInventoryItemChanged);
+				Inventory->OnItemChanged.RemoveDynamic(this, &URockInventory_Slot_ItemBase::OnInventoryItemChanged);
 			}
 			ItemHandle = slot.ItemHandle;
 			UpdateItemCount();
@@ -148,11 +149,23 @@ bool URockInventory_Slot_ItemBase::NativeOnDrop(const FGeometry& InGeometry, con
 		return false;
 	}
 
-	URockMoveItemTransaction* MoveTransaction = URockMoveItemTransaction::CreateMoveItemTransaction(
+	FRockMoveItemTransaction MoveTransaction(
+		Inventory, SlotHandle,
 		DragDropOp->SourceInventory, DragDropOp->SourceSlot,
-		Inventory, SlotHandle);
+		{
+			DragDropOp->Orientation,
+			DragDropOp->MoveMode,
+			DragDropOp->MoveCount
+		});
 
-	return URockInventoryManagerLibrary::EnqueueTransaction(GetOwningPlayer(), MoveTransaction);
+	URockInventoryManagerComponent* manager = URockInventoryManagerLibrary::GetInventoryManager(GetOwningPlayer());
+	bool bSuccess = false;
+	if (manager)
+	{
+		manager->MoveItem(MoveTransaction);
+	}
+	// We handled the drop
+	return true;
 }
 
 void URockInventory_Slot_ItemBase::NativeOnDragEnter(

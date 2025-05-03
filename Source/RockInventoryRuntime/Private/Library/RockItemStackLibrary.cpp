@@ -78,7 +78,7 @@ bool URockItemStackLibrary::IsFull(const FRockItemStack& ItemStack)
 	return ItemStack.StackSize >= GetMaxStackSize(ItemStack);
 }
 
-int32 URockItemStackLibrary::CalculateMoveAmount(const FRockItemStack& ItemStack, const FRockMoveItemParams& MoveParams)
+int32 URockItemStackLibrary::CalculateMoveAmount(const FRockItemStack& ItemStack, const ERockItemMoveMode& MoveMode, int32 MoveCount)
 {
 	if (!ItemStack.IsValid())
 	{
@@ -91,17 +91,18 @@ int32 URockItemStackLibrary::CalculateMoveAmount(const FRockItemStack& ItemStack
 		return 0;
 	}
 
-	switch (MoveParams.MoveAmount)
+	switch (MoveMode)
 	{
-	case ERockItemMoveAmount::All:
+	case ERockItemMoveMode::FullStack:
 		return CurrentStackSize;
-	case ERockItemMoveAmount::One:
+	case ERockItemMoveMode::SingleItem:
 		return 1;
-	case ERockItemMoveAmount::Half:
-		return (CurrentStackSize + 1) / 2; // Round up
-	case ERockItemMoveAmount::Custom:
+	case ERockItemMoveMode::HalfStack:
+		// Rounded up: (5 → 3), (1 → 1), (4 → 2)
+		return (CurrentStackSize + 1) / 2;
+	case ERockItemMoveMode::CustomAmount:
 		// Clamp the custom amount to the current stack size
-		return FMath::Clamp(MoveParams.MoveCount, 0, CurrentStackSize);
+		return FMath::Clamp(MoveCount, 0, CurrentStackSize);
 	default:
 		// Invalid move amount type, return 0
 		return 0;

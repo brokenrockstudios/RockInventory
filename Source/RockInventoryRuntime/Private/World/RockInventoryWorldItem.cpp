@@ -7,6 +7,7 @@
 #include "Components/RockInventoryComponent.h"
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
+#include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 ARockInventoryWorldItem::ARockInventoryWorldItem(const FObjectInitializer& ObjectInitializer)
@@ -37,6 +38,11 @@ void ARockInventoryWorldItem::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ARockInventoryWorldItem, ItemStack);
+}
+
+FRockItemStack ARockInventoryWorldItem::GetItemStack_Implementation(AActor* InstigatorPawn) const
+{
+	return ItemStack;
 }
 
 void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& InItemStack)
@@ -87,28 +93,18 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	}
 }
 
-FRockItemStack ARockInventoryWorldItem::GetItemStack_Implementation() const
+void ARockInventoryWorldItem::OnPickedUp_Implementation(AActor* InInstigator)
 {
-	return ItemStack;
-}
-
-void ARockInventoryWorldItem::PickedUp_Implementation(AActor* InInstigator)
-{
-	IRockWorldItemInterface::PickedUp_Implementation(InInstigator);
-	// if instigator has an inventory, add the item to it, then destroy this actor
-	URockInventoryComponent* Inventory = Cast<URockInventoryComponent>(InInstigator->GetComponentByClass(URockInventoryComponent::StaticClass()));
-	if (Inventory)
+	// // if instigator has an inventory, add the item to it, then destroy this actor
+	URockInventoryComponent* InventoryComp = Cast<URockInventoryComponent>(InInstigator->GetComponentByClass(URockInventoryComponent::StaticClass()));
+	if (InventoryComp)
 	{
 		int32 outExcess = ItemStack.StackSize;
 		FRockInventorySlotHandle outHandle;
-		if (Inventory->K2_LootItem(ItemStack, outHandle, outExcess))
+
+		if (URockInventoryLibrary::LootItemToInventory(InventoryComp->Inventory, ItemStack, outHandle, outExcess))
 		{
-			ItemStack.StackSize = outExcess;
-			if (outExcess <= 0)
-			{
-				// Successfully added to inventory, destroy this actor
-				this->Destroy();
-			}
+			OnLooted(InInstigator, ItemStack, outExcess);
 		}
 		else
 		{
@@ -118,6 +114,17 @@ void ARockInventoryWorldItem::PickedUp_Implementation(AActor* InInstigator)
 	else
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::PickedUp - Instigator does not have an inventory"));
+	}
+}
+
+void ARockInventoryWorldItem::OnLooted_Implementation(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 Excess)
+{
+	// If there is excess, we need to update the item stack
+	ItemStack.StackSize = Excess;
+	if (Excess <= 0)
+	{
+		// If there is no excess, we can destroy the item
+		this->Destroy();
 	}
 }
 

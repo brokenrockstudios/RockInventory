@@ -12,6 +12,35 @@ URockInventory::URockInventory(const FObjectInitializer& ObjectInitializer): Sup
 {
 }
 
+AActor* URockInventory::GetOwningActor() const
+{
+	const UObject* Current = this;
+	while (Current)
+	{
+		if (const AActor* Actor = Cast<AActor>(Current))
+		{
+			return const_cast<AActor*>(Actor);
+		}
+		else if (const UActorComponent* Comp = Cast<UActorComponent>(Current))
+		{
+			return Comp->GetOwner();
+		}
+		else if (const URockInventory* Inv = Cast<URockInventory>(Current))
+		{
+			Current = Inv->GetOwner();
+		}
+		else if (const URockItemInstance* ItemInstance = Cast<URockItemInstance>(Current))
+		{
+			Current = ItemInstance->OwningInventory;
+		}
+		else
+		{
+			break;
+		}
+	}
+	return nullptr;
+}
+
 void URockInventory::Init(const URockInventoryConfig* config)
 {
     if (!config)

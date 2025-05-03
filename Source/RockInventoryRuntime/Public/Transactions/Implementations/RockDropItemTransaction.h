@@ -3,53 +3,71 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Enums/RockEnums.h"
+#include "Inventory/RockSlotHandle.h"
 #include "Transactions/Core/RockInventoryTransaction.h"
 #include "RockDropItemTransaction.generated.h"
 
+class URockInventory;
 class ARockInventoryWorldItem;
-/**
- *
- */
-UCLASS(BlueprintType, Blueprintable)
-class ROCKINVENTORYRUNTIME_API URockDropItemTransaction : public URockInventoryTransaction
+
+USTRUCT(BlueprintType)
+struct FRockDropItemUndoTransaction
 {
-public:
 	GENERATED_BODY()
 
-	UFUNCTION(BlueprintCallable, Category = "RockInventory|Transactions")
-	static URockDropItemTransaction* CreateDropItemTransaction(
-		AController* InInstigator, URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle);
-	
-	////////////////////////////////////////////////////////////////////////////////////
-	/// Core Properties
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bSuccess = false;
+
+	// Place this item
+	UPROPERTY()
+	TWeakObjectPtr<ARockInventoryWorldItem> SpawnedItemStack = nullptr;
+	// In this inventory
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<URockInventory> TargetInventory = nullptr;
+	// In this slot
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRockInventorySlotHandle TargetSlotHandle;
+	// with this orientation
+	UPROPERTY()
+	ERockItemOrientation ExistingOrientation = ERockItemOrientation::Horizontal;
+
+	bool CanUndo();
+	bool Undo();
+};
+
+
+USTRUCT(BlueprintType)
+struct ROCKINVENTORYRUNTIME_API FRockDropItemTransaction : public FRockItemTransactionBase
+{
+	GENERATED_BODY()
+	FRockDropItemTransaction() = default;
+
+	FRockDropItemTransaction(
+		AController* InInstigator, URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle
+		, const FVector& InDropLocationOffset = FVector::ZeroVector, const FVector& InImpulse = FVector::ZeroVector
+	)
+		: Super(InInstigator), SourceInventory(InSourceInventory), SourceSlotHandle(InSourceSlotHandle),
+		  DropLocationOffset(InDropLocationOffset), Impulse(InImpulse)
+	{
+	}
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> SourceInventory = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockInventorySlotHandle SourceSlotHandle;
 
-	///////////////////////////////////////////////////////////////////////////////////
-	/// Optional Properties
-	// Consider optional parameters like where the player is looking or 'hit tracing' or something?
-	// Or should that be a different Transaction like Place instead of Drop.
-
 	// Relative to the instigator's pawn location.
+	// NetQuantize10 is used to reduce the size of the vector for replication. 72 bits as opposed to original 96 bits
+	// Behaves like a FVector otherwise. 
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector DropLocationOffset = FVector::ZeroVector;
+	FVector_NetQuantize10 DropLocationOffset = FVector::ZeroVector;
 	// For a forward 'toss' velocity.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector Impulse = FVector::ZeroVector;
+	FVector_NetQuantize Impulse = FVector::ZeroVector;
 
-	///////////////////////////////////////////////////////////////////////////
-	// Required for Undo State
-	UPROPERTY()
-	TWeakObjectPtr<ARockInventoryWorldItem> SpawnedItemStack = nullptr;
-	UPROPERTY()
-	ERockItemOrientation ExistingOrientation;
-
-public:
-	virtual bool Execute_Implementation() override;
-	virtual bool Undo_Implementation() override;
-	virtual bool CanUndo() const override;
-	virtual bool CanApply(URockInventoryComponent* OwnerInventory) const override;
-	virtual FString GetDescription() const override;
+	bool CanExecute() const;
+	FRockDropItemUndoTransaction Execute() const;
+	bool AttemptPredict() const;
 };

@@ -2,6 +2,8 @@
 
 #include "UI/RockItemDragDropOperation.h"
 
+#include "Components/RockInventoryManagerComponent.h"
+#include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
 #include "Transactions/Implementations/RockDropItemTransaction.h"
@@ -43,15 +45,15 @@ void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEven
 {
 	if (SourceInventory && SourceSlot.IsValid())
 	{
-		URockDropItemTransaction* Transaction = URockDropItemTransaction::CreateDropItemTransaction(Instigator, SourceInventory, SourceSlot);
-		if (Transaction)
+		const FRockDropItemTransaction& DropTransaction = FRockDropItemTransaction(
+			Instigator, SourceInventory, SourceSlot, DropLocationOffset, FVector::ZeroVector);
+
+		URockInventoryManagerComponent* const Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
+		if (Manager)
 		{
-			Transaction->DropLocationOffset = DropLocationOffset;
-			URockInventoryManagerLibrary::EnqueueTransaction(Instigator, Transaction);
+			Manager->DropItem(DropTransaction);
 		}
-
 		// Should we have a 'cancel' sound?
-
 		// Broadcasts the event that the drag operation was cancelled
 		Super::DragCancelled_Implementation(PointerEvent);
 	}

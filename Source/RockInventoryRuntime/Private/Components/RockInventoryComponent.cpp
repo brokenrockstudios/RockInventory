@@ -19,7 +19,6 @@ URockInventoryComponent::URockInventoryComponent(const FObjectInitializer& Objec
 	PrimaryComponentTick.bCanEverTick = true;
 	// You can turn off ticking to improve performance if not needed
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-
 }
 
 void URockInventoryComponent::BeginPlay()
@@ -31,7 +30,9 @@ void URockInventoryComponent::BeginPlay()
 	{
 		Inventory = NewObject<URockInventory>(this, TEXT("Inventory"), RF_Transient);
 		Inventory->Init(InventoryConfig);
-		Inventory->OwningActor = GetOwner();
+
+		// Should the owner be the component or the actor?
+		Inventory->Owner = GetOwner();
 	}
 }
 
