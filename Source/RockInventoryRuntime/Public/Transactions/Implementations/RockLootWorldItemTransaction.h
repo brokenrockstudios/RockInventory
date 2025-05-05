@@ -45,6 +45,6 @@ struct ROCKINVENTORYRUNTIME_API FRockLootWorldItemTransaction : public FRockItem
 	TObjectPtr<URockInventory> TargetInventory = nullptr;
 
 	bool CanExecute() const;
-	FRockLootWorldItemUndoTransaction Execute() const;
+	FRockLootWorldItemUndoTransaction Execute();
 	bool AttemptPredict() const;
 };

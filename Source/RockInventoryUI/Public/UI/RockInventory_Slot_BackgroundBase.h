@@ -7,6 +7,7 @@
 #include "Inventory/RockSlotHandle.h"
 #include "RockInventory_Slot_BackgroundBase.generated.h"
 
+class UImage;
 class URockInventory;
 /**
  * 
@@ -28,12 +29,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
 	TObjectPtr<URockInventory> Inventory;
 
+	
 	// In the event we had some information like if this slot is 'locked' or 'expecting a specific item
 	// we might bind that here
 	// We might bind some 'color highlight' and other functionality here.
 	// The item itself will exist on the canvas panel in front of this background widget.
 
+	// Used when this 'slot' or 'item' is locked
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
+	// TObjectPtr<UImage> ItemLockIcon;
 
+	
 	virtual void NativeOnDragEnter( const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation ) override;
 	virtual void NativeOnDragLeave( const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation )override;
 	

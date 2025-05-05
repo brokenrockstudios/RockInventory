@@ -53,6 +53,13 @@ bool URockInventoryLibrary::LootItemToInventory(
 			continue;
 		}
 
+		// Then check if this slot is pending an operation. We don't want to overwrite any pending operations
+		const FRockPendingSlotOperation TargetPendingSlot = Inventory->GetPendingSlotState(Slot.SlotHandle);
+		if (TargetPendingSlot.SlotStatus == ERockSlotStatus::Pending)
+		{
+			continue;
+		}
+
 		// Then check if we can stack it
 		if (CanMergeItemAtGridPosition(Inventory, SlotHandle, ItemStackCopy, ERockItemStackMergeCondition::Partial))
 		{
@@ -396,7 +403,6 @@ bool URockInventoryLibrary::MoveItem(
 				// Different inventory. Release from source, add to target
 				SourceInventory->ReleaseItemIndex(ValidatedSourceItem.ItemHandle.GetIndex());
 				targetSlot.ItemHandle = TargetInventory->AddItemToInventory(ValidatedSourceItem);
-				UE_LOG(LogRockInventory, Warning, TEXT("Moved item from source to target inventory %s"), *targetSlot.ItemHandle.ToString());
 			}
 
 			// Set up target slot with existing item handle

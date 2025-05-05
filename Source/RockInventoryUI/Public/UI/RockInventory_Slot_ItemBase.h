@@ -34,11 +34,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot")
 	FRockItemStackHandle ItemHandle;
 	
-
 	// Bind Image Widget
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
 	TObjectPtr<UImage> ItemIcon;
 
+	// Used when this 'slot' or 'item' is locked. Such as if the item is in use, or currently being 'dragged' by a player
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
+	TObjectPtr<UImage> ItemLockIcon;
+	
 	// Text widget for displaying item count
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
 	TObjectPtr<UTextBlock> ItemCount;
@@ -49,7 +52,6 @@ public:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	void SetupBindings();
-
 	
 	// Updates the ItemCount text based on current stack size
 	UFUNCTION(BlueprintCallable, Category = "Inventory")

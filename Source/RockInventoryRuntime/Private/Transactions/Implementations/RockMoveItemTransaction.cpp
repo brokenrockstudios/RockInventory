@@ -73,10 +73,10 @@ FRockMoveItemTransaction::FRockMoveItemTransaction()
 	GenerateNewHandle();
 }
 
-FRockMoveItemTransaction::FRockMoveItemTransaction(
+FRockMoveItemTransaction::FRockMoveItemTransaction(AController* Instigator, 
 	URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle, URockInventory* InTargetInventory,
 	const FRockInventorySlotHandle& InTargetSlotHandle, const FRockMoveItemParams& InMoveParam)
-	: Super(), SourceInventory(InSourceInventory), SourceSlotHandle(InSourceSlotHandle),
+	: Super(Instigator), SourceInventory(InSourceInventory), SourceSlotHandle(InSourceSlotHandle),
 	  TargetInventory(InTargetInventory), TargetSlotHandle(InTargetSlotHandle),
 	  MoveParams(InMoveParam)
 {
@@ -107,6 +107,19 @@ bool FRockMoveItemTransaction::CanExecute() const
 		UE_LOG(LogRockInventory, Warning, TEXT("MoveItemTransaction::CanApply - Source slot has no valid item"));
 		return false;
 	}
+	const FRockPendingSlotOperation SourcePendingSlot = SourceInventory->GetPendingSlotState(SourceSlotHandle);
+	if (SourcePendingSlot.IsClaimedByOther(Instigator.Get()))
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("MoveItemTransaction::CanApply - Source slot is locked by other %p %p"), Instigator.Get(), SourcePendingSlot.Controller.Get());
+		return false;
+	}
+	const FRockPendingSlotOperation TargetPendingSlot = TargetInventory->GetPendingSlotState(TargetSlotHandle);
+	if (TargetPendingSlot.IsClaimedByOther(Instigator.Get()))
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("MoveItemTransaction::CanApply - Target slot is locked by other"));
+		return false;
+	}
+
 	return true;
 }
 

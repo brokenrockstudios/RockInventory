@@ -64,7 +64,7 @@ struct ROCKINVENTORYRUNTIME_API FRockMoveItemTransaction : public FRockItemTrans
 	GENERATED_BODY()
 	FRockMoveItemTransaction();
 
-	FRockMoveItemTransaction(
+	FRockMoveItemTransaction(AController* Instigator,
 		URockInventory* InSourceInventory, const FRockInventorySlotHandle& InSourceSlotHandle,
 		URockInventory* InTargetInventory, const FRockInventorySlotHandle& InTargetSlotHandle,
 		const FRockMoveItemParams& InMoveParam = FRockMoveItemParams());

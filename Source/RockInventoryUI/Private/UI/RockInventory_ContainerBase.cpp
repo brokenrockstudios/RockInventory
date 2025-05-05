@@ -85,7 +85,7 @@ void URockInventory_ContainerBase::GenerateItems()
 {
 	if (!Inventory)
 	{
-		UE_LOG(LogRockInventoryUI, Warning, TEXT( "Inventory is null"));
+		UE_LOG(LogRockInventoryUI, Warning, TEXT( "GenerateItems: Inventory is null"));
 		return;
 	}
 

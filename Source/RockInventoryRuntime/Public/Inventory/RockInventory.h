@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "RockInventoryConfig.h"
 #include "RockInventorySlot.h"
+#include "RockPendingSlotOperation.h"
 #include "RockSlotHandle.h"
 #include "Item/RockItemStack.h"
 #include "UObject/Object.h"
@@ -16,6 +17,7 @@
  * @param SlotHandle - The handle of the slot that was modified
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventorySlotChanged, URockInventory*, Inventory, const FRockInventorySlotHandle&, SlotHandle);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemStackChanged, URockInventory*, Inventory, const FRockItemStackHandle&, ItemHandle);
 
 /**
@@ -51,21 +53,25 @@ private:
 	/** The grid slot data */
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FRockInventorySlotContainer SlotData;
-	
-	// If you are holding an item, this could be the last slot you picked up, that might be 'dropped' or something soon?
-	// Should this be on the inventory or on the player or component/manager/or something?
-	// UPROPERTY(VisibleAnywhere, Transient)
-	// FRockInventorySlotHandle PendingItemHandle;
 
 	/** Tab configuration for the inventory */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = true))
 	TArray<FRockInventorySectionInfo> SlotSections;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing=OnRep_PendingSlotOperations, meta = (AllowPrivateAccess = true))
+	TArray<FRockPendingSlotOperation> PendingSlotOperations;
+	UFUNCTION()
+	void OnRep_PendingSlotOperations();
+	UPROPERTY()
+	TArray<FRockPendingSlotOperation> PreviousPendingSlotOperations;
+
 public:
 	// Owning Actor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
-	TObjectPtr<AActor> OwningActor;
+	TObjectPtr<UObject> Owner;
 
+	UObject* GetOwner() const { return Owner; }
+	AActor* GetOwningActor() const;
 
 	/**
 	 * Initialize the inventory with a configuration
@@ -121,11 +127,20 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool IsSupportedForNetworking() const override;
 	// IsNameStableForNetworking false?
-	virtual void PostNetReceive () override;
+	virtual void PostNetReceive() override;
 
 	/** Broadcast the inventory changed event */
 	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());
 	void BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle = FRockItemStackHandle());
+
+
+	void RegisterSlotStatus(AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
+	void ReleaseSlotStatus(AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
+	
+	UFUNCTION(BlueprintCallable)
+	ERockSlotStatus GetSlotStatus(const FRockInventorySlotHandle& InSlotHandle) const;
+	UFUNCTION(BlueprintCallable)
+	FRockPendingSlotOperation GetPendingSlotState(const FRockInventorySlotHandle& InSlotHandle) const;
 
 
 	/** Get a debug string representation of the inventory */
@@ -138,11 +153,9 @@ public:
 	/** Called when the inventory changes */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
 	FOnInventorySlotChanged OnSlotChanged;
-	
+
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
 	FOnInventoryItemStackChanged OnItemChanged;
-	
-	
 };
 
 

@@ -26,6 +26,9 @@ void URockInventory_Slot_ItemBase::NativeConstruct()
 	{
 		ItemCount->SetVisibility(ESlateVisibility::Hidden);
 	}
+	
+	// We don't want to show the loading indicator by default
+	ItemLockIcon->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void URockInventory_Slot_ItemBase::NativeDestruct()
@@ -120,6 +123,26 @@ void URockInventory_Slot_ItemBase::OnInventorySlotChanged(URockInventory* Change
 			ItemHandle = slot.ItemHandle;
 			UpdateItemCount();
 		}
+
+		
+		const FRockPendingSlotOperation& PendingSlot = Inventory->GetPendingSlotState(SlotHandle);
+		
+		switch (PendingSlot.SlotStatus)
+		{
+		case ERockSlotStatus::Empty:
+			// Hide the lock icon
+			ItemLockIcon->SetVisibility(ESlateVisibility::Collapsed);
+			break;
+		case ERockSlotStatus::Pending:
+			// Show the lock icon
+			if (PendingSlot.IsClaimedByOther(GetOwningPlayer()))
+			{
+				ItemLockIcon->SetVisibility(ESlateVisibility::Visible);
+			}
+			break;
+		default:
+			break;
+		}
 	}
 }
 
@@ -149,9 +172,9 @@ bool URockInventory_Slot_ItemBase::NativeOnDrop(const FGeometry& InGeometry, con
 		return false;
 	}
 
-	FRockMoveItemTransaction MoveTransaction(
+	const FRockMoveItemTransaction MoveTransaction( GetOwningPlayer(),
 		Inventory, SlotHandle,
-		DragDropOp->SourceInventory, DragDropOp->SourceSlot,
+		DragDropOp->SourceInventory, DragDropOp->SourceSlotHandle,
 		{
 			DragDropOp->Orientation,
 			DragDropOp->MoveMode,

@@ -17,7 +17,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemTransactionBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TWeakObjectPtr<AController> Instigator = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY()
 	int32 TransactionID = 0;
 
 	void GenerateNewHandle();

@@ -25,7 +25,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	TObjectPtr<URockInventory> SourceInventory;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
-	FRockInventorySlotHandle SourceSlot;
+	FRockInventorySlotHandle SourceSlotHandle;
 
 	// Customizations
 	// Override in BP version
@@ -45,7 +45,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	int32 MoveCount = 1;
 
-	
+
+	bool bRunOnce = false;
+
+
 	virtual void Dragged_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;

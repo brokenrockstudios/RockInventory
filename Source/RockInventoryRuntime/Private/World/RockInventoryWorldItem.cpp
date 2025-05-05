@@ -7,6 +7,7 @@
 #include "Components/RockInventoryComponent.h"
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
+#include "Item/RockItemInstance.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
 
@@ -31,7 +32,7 @@ void ARockInventoryWorldItem::BeginPlay()
 {
 	Super::BeginPlay();
 	// Normally we shouldn't call the implementation directly, but 🤷‍♂️
-	SetItemStack_Implementation(ItemStack);
+	Execute_SetItemStack(this, ItemStack);
 }
 
 void ARockInventoryWorldItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -51,6 +52,12 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	// currently assuming we will only create it upon 'looting' the item.
 
 	ItemStack = InItemStack;
+	if (ItemStack.RuntimeInstance)
+	{
+		ItemStack.RuntimeInstance->Rename(nullptr, this);
+		// Has no owning inventory in a world item
+		ItemStack.RuntimeInstance->SetOwningInventory(nullptr);
+	}
 	if (GetLocalRole() == ROLE_Authority)
 	{
 		if (InItemStack.IsValid())
@@ -60,36 +67,40 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	}
 
 	// Update the static mesh component with the item definition's mesh
+	
+
+	FStreamableManager Manager;
+
+	TSoftObjectPtr<UStaticMesh> Mesh = nullptr;
 	if (ItemStack.IsValid())
 	{
-		FStreamableManager Manager;
-		TSoftObjectPtr<UStaticMesh> Mesh = ItemStack.GetDefinition()->ItemMesh;
+		Mesh = ItemStack.GetDefinition()->ItemMesh;
+	}
 
-		// Check if the mesh is already loaded
-		if (Mesh.IsValid())
-		{
-			StaticMeshComponent->SetStaticMesh(Mesh.Get());
-		}
-		else
-		{
-			Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
-			{
-				UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh loaded: %s"), *Mesh.ToString());
-				UStaticMesh* LoadedStaticMesh = Mesh.Get();
-				if (LoadedStaticMesh)
-				{
-					StaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
-				}
-				else
-				{
-					UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Mesh is null"));
-				}
-			}));
-		}
+	// Check if the mesh is already loaded
+	if (Mesh == nullptr)
+	{
+		StaticMeshComponent->SetStaticMesh(nullptr);
+		return;
+	}
+	else if (Mesh.IsValid())
+	{
+		StaticMeshComponent->SetStaticMesh(Mesh.Get());
 	}
 	else
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - ItemStack is invalid"));
+		Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
+		{
+			UStaticMesh* LoadedStaticMesh = Mesh.Get();
+			if (LoadedStaticMesh)
+			{
+				StaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
+			}
+			else
+			{
+				UE_LOG(LogRockInventory, Error, TEXT("ARockInventoryWorldItem::SetItemStack - Failed to load static mesh for item stack"));
+			}
+		}));
 	}
 }
 
@@ -130,7 +141,7 @@ void ARockInventoryWorldItem::OnLooted_Implementation(AActor* InstigatorPawn, co
 
 void ARockInventoryWorldItem::OnRep_ItemStack()
 {
-	SetItemStack(ItemStack);
+	Execute_SetItemStack(this, ItemStack);
 }
 
 #if WITH_EDITOR
@@ -146,7 +157,7 @@ void ARockInventoryWorldItem::PostEditChangeProperty(FPropertyChangedEvent& Prop
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(ARockInventoryWorldItem, ItemStack) ||
 			(MemberPropertyName == GET_MEMBER_NAME_CHECKED(ARockInventoryWorldItem, ItemStack)))
 		{
-			SetItemStack(ItemStack);
+			Execute_SetItemStack(this, ItemStack);
 		}
 	}
 	Super::PostEditChangeProperty(PropertyChangedEvent);

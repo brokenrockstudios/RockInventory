@@ -58,7 +58,7 @@ bool FRockLootWorldItemTransaction::CanExecute() const
 	return true;
 }
 
-FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute() const
+FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute()
 {
 	FRockLootWorldItemUndoTransaction UndoData;
 	UndoData.bSuccess = false;
@@ -68,12 +68,13 @@ FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute() const
 	checkf(TargetInventory, TEXT("TargetInventory is not valid"));
 	checkf(TargetInventory->GetOwningActor(), TEXT("TargetInventory OwningActor is not valid"));
 	checkf(SourceWorldItemActor, TEXT("SourceWorldItemActor is not valid"));
-	checkf(!SourceWorldItemActor->GetClass()->ImplementsInterface(URockWorldItemInterface::StaticClass()), TEXT("SourceWorldItemActor does not implement URockLootableWorldItem"));
+	checkf(SourceWorldItemActor->GetClass()->ImplementsInterface(URockWorldItemInterface::StaticClass()), TEXT("SourceWorldItemActor does not implement URockLootableWorldItem"));
 
 	// Anticheat: Check distance to inventory.
 	constexpr float MaxAddDistance = 1000.0f;
-	
-	if (SourceWorldItemActor->GetDistanceTo(TargetInventory->GetOwningActor()) > MaxAddDistance)
+	AActor * InventoryActor = TargetInventory->GetOwningActor();
+
+	if (SourceWorldItemActor->GetDistanceTo(InventoryActor) > MaxAddDistance)
 	{
 		return UndoData;
 	}

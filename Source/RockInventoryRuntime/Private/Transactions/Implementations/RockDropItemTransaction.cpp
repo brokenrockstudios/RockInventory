@@ -23,6 +23,13 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 		return UndoTransaction;
 	}
 
+	const FRockPendingSlotOperation TargetPendingSlot = SourceInventory->GetPendingSlotState(SourceSlotHandle);
+	if (TargetPendingSlot.IsClaimedByOther(Instigator.Get()))
+	{
+		// We can't drop here, someone else is using this slot
+		return UndoTransaction;
+	}
+
 	UndoTransaction.ExistingOrientation = SourceInventory->GetSlotByHandle(SourceSlotHandle).Orientation;
 
 	FTransform transform = SourceInventory->GetOwningActor()->GetActorTransform();
@@ -77,7 +84,7 @@ bool FRockDropItemUndoTransaction::CanUndo()
 	}
 	// check if item is still valid, and the target slot is still valid
 	// TODO
-	
+
 	return false;
 }
 

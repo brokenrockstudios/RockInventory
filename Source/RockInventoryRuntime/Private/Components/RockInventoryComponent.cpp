@@ -14,7 +14,7 @@
 // Sets default values for this component's properties
 URockInventoryComponent::URockInventoryComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	SetIsReplicatedByDefault (true);
+	SetIsReplicatedByDefault(true);
 	// Set this component to be initialized when the game starts, and to be ticked every frame.
 	PrimaryComponentTick.bCanEverTick = true;
 	// You can turn off ticking to improve performance if not needed
@@ -82,6 +82,7 @@ int32 URockInventoryComponent::K2_GetItemCount(const FName ItemId)
 	{
 		return 0;
 	}
+
 
 	return URockInventoryLibrary::GetItemCount(Inventory, ItemId);
 	//

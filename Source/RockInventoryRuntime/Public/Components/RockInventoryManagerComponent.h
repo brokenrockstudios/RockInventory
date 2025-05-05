@@ -76,20 +76,28 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void LootWorldItem(const FRockLootWorldItemTransaction& ItemTransaction);
 	UFUNCTION(Server, Reliable)
-	void Server_LootWorldItem(const FRockLootWorldItemTransaction& ItemTransaction);
-	void Server_LootWorldItem_Implementation(const FRockLootWorldItemTransaction& ItemTransaction);
+	void Server_LootWorldItem(FRockLootWorldItemTransaction ItemTransaction);
+	void Server_LootWorldItem_Implementation(FRockLootWorldItemTransaction ItemTransaction);
 	
 	UFUNCTION(BlueprintCallable)
 	bool MoveItem(const FRockMoveItemTransaction& ItemTransaction);
 	UFUNCTION(Server, Reliable)
-	void Server_MoveItem(const FRockMoveItemTransaction& ItemTransaction);
-	void Server_MoveItem_Implementation(const FRockMoveItemTransaction& ItemTransaction);
+	void Server_MoveItem(FRockMoveItemTransaction ItemTransaction);
+	void Server_MoveItem_Implementation(FRockMoveItemTransaction ItemTransaction);
 
 	UFUNCTION(BlueprintCallable)
 	void DropItem(const FRockDropItemTransaction& ItemTransaction);
 	UFUNCTION(Server, Reliable)
-	void Server_DropItem(const FRockDropItemTransaction& ItemTransaction);
-	void Server_DropItem_Implementation(const FRockDropItemTransaction& ItemTransaction);
+	void Server_DropItem(FRockDropItemTransaction ItemTransaction);
+	void Server_DropItem_Implementation(FRockDropItemTransaction ItemTransaction);
+
+
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void Server_RegisterSlotStatus(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
+	void Server_RegisterSlotStatus_Implementation(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void Server_ReleaseSlotStatus(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
+	void Server_ReleaseSlotStatus_Implementation(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
 
 	
 	// Clear transaction history

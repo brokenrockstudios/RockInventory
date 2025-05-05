@@ -4,6 +4,7 @@
 #include "Components/RockInventoryManagerComponent.h"
 
 #include "RockInventoryLogging.h"
+#include "Inventory/RockInventory.h"
 #include "Transactions/Core/RockInventoryTransaction.h"
 #include "Transactions/Implementations/RockMoveItemTransaction.h"
 
@@ -45,12 +46,13 @@ void URockInventoryManagerComponent::LootWorldItem(const FRockLootWorldItemTrans
 	{
 		return;
 	}
+	FRockLootWorldItemTransaction ItemTransactionCopy = ItemTransaction;
 	FRockLootWorldItemUndoTransaction Undo;
 	Undo.bSuccess = true;
 
 	if (bEnablePredictiveExecution && ItemTransaction.AttemptPredict())
 	{
-		Undo = ItemTransaction.Execute();
+		Undo = ItemTransactionCopy.Execute();
 	}
 
 	// If we predicted locally, and it succeeded, we need to send the transaction to the server and add to history
@@ -91,7 +93,7 @@ void URockInventoryManagerComponent::LootWorldItem(const FRockLootWorldItemTrans
 }
 
 
-void URockInventoryManagerComponent::Server_LootWorldItem_Implementation(const FRockLootWorldItemTransaction& AddItemTransaction)
+void URockInventoryManagerComponent::Server_LootWorldItem_Implementation(FRockLootWorldItemTransaction ItemTransaction)
 {
 	if (GetOwnerRole() != ROLE_Authority)
 	{
@@ -99,17 +101,17 @@ void URockInventoryManagerComponent::Server_LootWorldItem_Implementation(const F
 		return;
 	}
 	// If we can't execute, don't execute and don't add to history
-	if (!AddItemTransaction.CanExecute())
+	if (!ItemTransaction.CanExecute())
 	{
 		return;
 	}
-	const FRockLootWorldItemUndoTransaction& Undo = AddItemTransaction.Execute();
+	const FRockLootWorldItemUndoTransaction& Undo = ItemTransaction.Execute();
 
 	FRockInventoryTransactionRecord TransactionRecord;
-	TransactionRecord.Set<FRockLootWorldItemTransaction, FRockLootWorldItemUndoTransaction>(AddItemTransaction, Undo);
+	TransactionRecord.Set<FRockLootWorldItemTransaction, FRockLootWorldItemUndoTransaction>(ItemTransaction, Undo);
 	TransactionHistoryData.Add(TransactionRecord);
 
-	Client_TransactionResult(AddItemTransaction.TransactionID, Undo.bSuccess);
+	Client_TransactionResult(ItemTransaction.TransactionID, Undo.bSuccess);
 }
 
 
@@ -165,7 +167,7 @@ bool URockInventoryManagerComponent::MoveItem(const FRockMoveItemTransaction& It
 	return Undo.bSuccess;
 }
 
-void URockInventoryManagerComponent::Server_MoveItem_Implementation(const FRockMoveItemTransaction& ItemTransaction)
+void URockInventoryManagerComponent::Server_MoveItem_Implementation(FRockMoveItemTransaction ItemTransaction)
 {
 	if (GetOwnerRole() != ROLE_Authority)
 	{
@@ -236,13 +238,13 @@ void URockInventoryManagerComponent::DropItem(const FRockDropItemTransaction& It
 			// The server will add it to history when it executes the transaction.
 		}
 
-		
+
 		// If we predicted locally, and it succeeded, we need to send the transaction to the server
 		Server_DropItem(ItemTransaction);
 	}
 }
 
-void URockInventoryManagerComponent::Server_DropItem_Implementation(const FRockDropItemTransaction& ItemTransaction)
+void URockInventoryManagerComponent::Server_DropItem_Implementation(FRockDropItemTransaction ItemTransaction)
 {
 	if (GetOwnerRole() != ROLE_Authority)
 	{
@@ -261,6 +263,19 @@ void URockInventoryManagerComponent::Server_DropItem_Implementation(const FRockD
 	TransactionHistoryData.Add(TransactionRecord);
 
 	Client_TransactionResult(ItemTransaction.TransactionID, Undo.bSuccess);
+}
+
+void URockInventoryManagerComponent::Server_RegisterSlotStatus_Implementation(
+	URockInventory* Inventory, AController* Instigator,
+	const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus)
+{
+	Inventory->RegisterSlotStatus(Instigator, InSlotHandle, InStatus);
+}
+
+void URockInventoryManagerComponent::Server_ReleaseSlotStatus_Implementation(
+	URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle)
+{
+	Inventory->ReleaseSlotStatus(Instigator, InSlotHandle);
 }
 
 void URockInventoryManagerComponent::ClearHistory()
