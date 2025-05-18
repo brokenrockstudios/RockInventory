@@ -42,6 +42,7 @@ public:
 private:
 	friend class URockInventoryLibrary;
 	friend class URockItemInstanceLibrary;
+	
 	/** The item data */
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FRockInventoryItemContainer ItemData;
@@ -64,12 +65,20 @@ private:
 	void OnRep_PendingSlotOperations();
 	UPROPERTY()
 	TArray<FRockPendingSlotOperation> PreviousPendingSlotOperations;
-
+	
 public:
+	/** Called when the inventory changes */
+	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
+	FOnInventorySlotChanged OnSlotChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
+	FOnInventoryItemStackChanged OnItemChanged;
+	
 	// Owning Actor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	TObjectPtr<UObject> Owner;
 
+	
 	UObject* GetOwner() const { return Owner; }
 	AActor* GetOwningActor() const;
 
@@ -100,7 +109,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	FRockInventorySlotEntry GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
-
 	const FRockInventorySlotEntry& GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const;
 
 	FRockItemStack GetItemBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
@@ -126,36 +134,42 @@ public:
 	/** Override to specify which properties should be replicated */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool IsSupportedForNetworking() const override;
+#if UE_WITH_IRIS
+	/** Register all replication fragments */
+	virtual void RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags) override;
+#endif // UE_WITH_IRIS
+	
 	// IsNameStableForNetworking false?
 	virtual void PostNetReceive() override;
+	void RegisterReplicationWithOwner();
+	void UnregisterReplicationWithOwner();
 
+	
 	/** Broadcast the inventory changed event */
 	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());
 	void BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle = FRockItemStackHandle());
 
 
+	//////////////////////////////////////////////////////////////////////////
+	/// Slot Status Management
 	void RegisterSlotStatus(AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
 	void ReleaseSlotStatus(AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
-	
 	UFUNCTION(BlueprintCallable)
 	ERockSlotStatus GetSlotStatus(const FRockInventorySlotHandle& InSlotHandle) const;
 	UFUNCTION(BlueprintCallable)
 	FRockPendingSlotOperation GetPendingSlotState(const FRockInventorySlotHandle& InSlotHandle) const;
 
+	/////////////////////////////////////////////////////////////////
 
 	/** Get a debug string representation of the inventory */
 	FString GetDebugString() const;
 
 	FRockItemStackHandle AddItemToInventory(const FRockItemStack& InItemStack);
+	void RemoveItemFromInventory(const FRockItemStack& InItemStack);
+	
 	uint32 AcquireAvailableItemIndex();
-	void ReleaseItemIndex(uint32 InIndex);
 
-	/** Called when the inventory changes */
-	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
-	FOnInventorySlotChanged OnSlotChanged;
 
-	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
-	FOnInventoryItemStackChanged OnItemChanged;
 };
 
 

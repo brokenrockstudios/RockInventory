@@ -134,10 +134,34 @@ void FRockInventoryItemContainer::SetOwningInventory(URockInventory* InOwningInv
 
 void FRockInventoryItemContainer::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
+	if (!OwnerInventory)
+	{
+		return;
+	}
+
+	for (const int32 Index : AddedIndices)
+	{
+		if (AllSlots.IsValidIndex(Index))
+		{
+			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle);
+		}
+	}
 }
 
 void FRockInventoryItemContainer::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
+	if (!OwnerInventory)
+	{
+		return;
+	}
+
+	for (const int32 Index : RemovedIndices)
+	{
+		if (AllSlots.IsValidIndex(Index))
+		{
+			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle);
+		}
+	}
 }
 
 void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)

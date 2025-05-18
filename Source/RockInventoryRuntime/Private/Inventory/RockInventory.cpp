@@ -4,6 +4,7 @@
 
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventorySectionInfo.h"
+#include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
 #include "Net/UnrealNetwork.h"
@@ -60,6 +61,8 @@ void URockInventory::Init(const URockInventoryConfig* config)
 		return;
 	}
 
+
+
 	// Set owner references for containers
 	ItemData.SetOwningInventory(this);
 	SlotData.SetOwningInventory(this);
@@ -104,6 +107,7 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	SlotData.MarkArrayDirty();
 	ItemData.MarkArrayDirty();
 }
+
 
 FRockInventorySectionInfo URockInventory::GetSectionInfo(const FName& SectionName) const
 {
@@ -249,6 +253,7 @@ int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 He
 void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(URockInventory, Owner);
 	DOREPLIFETIME(URockInventory, ItemData);
 	DOREPLIFETIME(URockInventory, SlotData);
 	DOREPLIFETIME(URockInventory, SlotSections);
@@ -260,11 +265,54 @@ bool URockInventory::IsSupportedForNetworking() const
 	return true;
 }
 
+#if UE_WITH_IRIS
+void URockInventory::RegisterReplicationFragments(
+	UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags)
+{
+	UE::Net::FReplicationFragmentUtil::CreateAndRegisterFragmentsForObject (this, Context, RegistrationFlags);
+}
+#endif // UE_WITH_IRIS
+
+
 void URockInventory::PostNetReceive()
 {
 	UObject::PostNetReceive();
 	SlotData.SetOwningInventory(this);
 	ItemData.SetOwningInventory(this);
+}
+
+void URockInventory::RegisterReplicationWithOwner()
+{
+	if (const auto actor = GetOwningActor())
+	{
+		actor->AddReplicatedSubObject(this);
+	}
+
+	// Iterate over items and register them?
+	for (const FRockItemStack& Item : ItemData)
+	{
+		if (Item.RuntimeInstance)
+		{
+			Item.RuntimeInstance->RegisterReplicationWithOwner();
+		}
+	}
+}
+
+void URockInventory::UnregisterReplicationWithOwner()
+{
+	if (const auto actor = GetOwningActor())
+	{
+		actor->RemoveReplicatedSubObject(this);
+	}
+
+	// Iterate over items and unregister them?
+	for (const FRockItemStack& Item : ItemData)
+	{
+		if (Item.RuntimeInstance)
+		{
+			Item.RuntimeInstance->UnregisterReplicationWithOwner();
+		}
+	}
 }
 
 void URockInventory::BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle)
@@ -454,52 +502,6 @@ FString URockInventory::GetDebugString() const
 	return GetName();
 }
 
-FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& InItemStack)
-{
-	// We shouldn't have items without a definition
-	checkf(InItemStack.IsValid(), TEXT("AddItemToInventory - Invalid item stack"));
-	checkf(InItemStack.Definition, TEXT("AddItemToInventory - Invalid item definition"));
-
-	const uint32 Index = AcquireAvailableItemIndex();
-	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
-
-	// Modify a reference
-	FRockItemStack& NewItemStack = ItemData[Index];
-	// Generation is reconciled in the AcquireAvailableItemData
-	NewItemStack.Definition = InItemStack.Definition;
-	NewItemStack.RuntimeInstance = InItemStack.RuntimeInstance;
-	NewItemStack.StackSize = InItemStack.StackSize;
-	NewItemStack.CustomValue1 = InItemStack.CustomValue1;
-	NewItemStack.CustomValue2 = InItemStack.CustomValue2;
-
-	// Initialize the item stack
-	if (NewItemStack.GetDefinition()->bRequiresRuntimeInstance)
-	{
-		if (NewItemStack.RuntimeInstance != nullptr)
-		{
-			NewItemStack.RuntimeInstance->Rename(nullptr, this);
-			NewItemStack.RuntimeInstance->SetOwningInventory(this);
-		}
-		else
-		{
-			// The outer should be the inventory that owns this item stack?
-			NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
-			NewItemStack.RuntimeInstance->OwningInventory = this;
-
-			if (!NewItemStack.GetDefinition()->InventoryConfig.IsNull())
-			{
-				NewItemStack.RuntimeInstance->NestedInventory = NewObject<URockInventory>(NewItemStack.RuntimeInstance);
-				NewItemStack.RuntimeInstance->NestedInventory->Init(NewItemStack.Definition->InventoryConfig.LoadSynchronous());
-			}
-		}
-	}
-	// Set up the item
-	ItemData.MarkItemDirty(ItemData[Index]);
-	BroadcastItemChanged(ItemData[Index].ItemHandle);
-
-	// Return handle with current index and generation
-	return NewItemStack.ItemHandle;
-}
 
 uint32 URockInventory::AcquireAvailableItemIndex()
 {
@@ -525,17 +527,83 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 	return INDEX_NONE;
 }
 
-void URockInventory::ReleaseItemIndex(uint32 InIndex)
+
+FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& InItemStack)
 {
+	// We shouldn't have items without a definition
+	checkf(InItemStack.IsValid(), TEXT("AddItemToInventory - Invalid item stack"));
+	checkf(InItemStack.Definition, TEXT("AddItemToInventory - Invalid item definition"));
+
+	const uint32 Index = AcquireAvailableItemIndex();
+	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
+
+	// Modify a reference
+	FRockItemStack& NewItemStack = ItemData[Index];
+	// Generation is reconciled in the AcquireAvailableItemData
+	NewItemStack.Definition = InItemStack.Definition;
+	NewItemStack.RuntimeInstance = InItemStack.RuntimeInstance;
+	NewItemStack.StackSize = InItemStack.StackSize;
+	NewItemStack.CustomValue1 = InItemStack.CustomValue1;
+	NewItemStack.CustomValue2 = InItemStack.CustomValue2;
+
+	// Initialize the item stack
+	if (NewItemStack.GetDefinition()->bRequiresRuntimeInstance)
+	{
+		if (NewItemStack.RuntimeInstance != nullptr)
+		{
+			NewItemStack.RuntimeInstance->Rename(nullptr, this);
+		}
+		else
+		{
+			NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
+			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
+		}
+		NewItemStack.RuntimeInstance->SetOwningInventory(this);
+		NewItemStack.RuntimeInstance->RegisterReplicationWithOwner();
+	}
+	// Set up the item
+	ItemData.MarkItemDirty(ItemData[Index]);
+	BroadcastItemChanged(ItemData[Index].ItemHandle);
+
+	// Return handle with current index and generation
+	return NewItemStack.ItemHandle;
+}
+
+
+void URockInventory::RemoveItemFromInventory(const FRockItemStack& InItemStack)
+{
+	if (!InItemStack.IsValid())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItemFromInventory - Invalid item stack"));
+		return;
+	}
+	const int32 InIndex = InItemStack.ItemHandle.GetIndex();
 	if (InIndex != INDEX_NONE && ItemData.ContainsIndex(InIndex))
 	{
+		if (InItemStack.ItemHandle != ItemData[InIndex].ItemHandle)
+		{
+			// This is an outdated item handle, so we can't remove it
+			UE_LOG(LogRockInventory, Warning, TEXT("RemoveItemFromInventory - Invalid item handle"));
+			return;
+		}
+		
+		if (ItemData[InIndex].RuntimeInstance)
+		{
+			ItemData[InIndex].RuntimeInstance->UnregisterReplicationWithOwner();
+		}
+		FRockItemStackHandle OldHandle = ItemData[InIndex].ItemHandle;
 		FreeIndices.Add(InIndex);
 		// Invalidate the item stack
 		ItemData[InIndex].Generation++;
 		// Update the ItemHandle with new Generation
 		ItemData[InIndex].ItemHandle = FRockItemStackHandle::Create(InIndex, ItemData[InIndex].Generation);
+		// Invalidate the item instance, hopefully something else is holding the reference already.
+		ItemData[InIndex].RuntimeInstance = nullptr;
 		ItemData.MarkItemDirty(ItemData[InIndex]);
-		BroadcastItemChanged(ItemData[InIndex].ItemHandle);
+		
+		// We need to broadcast the old handle so that the client can remove it from their inventory.
+		BroadcastItemChanged(OldHandle);
+		// Anything caring about the 'new handle' should be notified by AddItemToInventory
 	}
 	else
 	{

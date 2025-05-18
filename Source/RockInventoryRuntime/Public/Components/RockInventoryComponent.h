@@ -25,6 +25,7 @@ public:
 
 	/** Called when the game starts */
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** Configuration for the inventory size, layout, and properties */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="RockInventory")
@@ -67,7 +68,7 @@ public:
 	int32 K2_GetItemCount(FName ItemId);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	// virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 #if WITH_EDITOR
 	// Validation
 	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;

@@ -93,7 +93,7 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotContainer : public FFastArrayS
 
 private:
 	// Pointer to the owning inventory
-	UPROPERTY()
+	UPROPERTY(NotReplicated)
 	TObjectPtr<URockInventory> OwnerInventory = nullptr;
 
 public:

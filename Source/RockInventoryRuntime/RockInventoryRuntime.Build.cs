@@ -31,8 +31,12 @@ public class RockInventoryRuntime : ModuleRules
 				"SlateCore",
 				"NetCore",
 				"AssetRegistry",
+				"Iris",
+				"IrisCore",
 				// ... add private dependencies that you statically link with here ...	
 			}
 		);
+		
+		SetupIrisSupport(Target);
 	}
 }

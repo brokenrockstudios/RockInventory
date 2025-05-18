@@ -94,6 +94,7 @@ struct TStructOpsTypeTraits<FRockItemStack> : public TStructOpsTypeTraitsBase2<F
 	enum
 	{
 		WithNetSerializer = true,
+		WithNetSharedSerialization = true,
 		WithIdenticalViaEquality = true,
 	};
 };

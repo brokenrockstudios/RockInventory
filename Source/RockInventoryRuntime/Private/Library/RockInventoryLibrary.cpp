@@ -14,7 +14,7 @@ bool URockInventoryLibrary::LootItemToInventory(
 {
 	// Start off with the full stack size in the event we can't place it
 	OutExcess = ItemStack.GetStackSize();
-
+	UE_LOG(LogRockInventory, Verbose, TEXT("LootItemToInventory::ItemStack: %s"), *ItemStack.GetDebugString());
 	if (!Inventory)
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("LootItemToInventory::Invalid Parameters. Inventory"));
@@ -214,7 +214,7 @@ TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInve
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(Slot.ItemHandle);
 		FString LineItem = FString::Printf(
 			TEXT("Section:[%d] SlotIdx:[%d]; ItemIdx:[%s], Item:[%s] Count:[%d]"),
-			Slot.SlotHandle.GetSectionIndex(), Slot.SlotHandle.GetIndex(), *ItemStack.ItemHandle.ToString(),
+			Slot.SlotHandle.GetSectionIndex(), Slot.SlotHandle.GetIndex(), *Slot.ItemHandle.ToString(),
 			ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
 			ItemStack.GetStackSize());
 
@@ -261,6 +261,7 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 	}
 
 	FRockInventorySlotEntry SourceSlot = Inventory->GetSlotByHandle(SlotHandle);
+
 	FRockItemStack Item = Inventory->GetItemByHandle(SourceSlot.ItemHandle);
 
 	if (!Item.IsValid())
@@ -280,27 +281,35 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 	// Create the return item stack with the requested quantity
 	FRockItemStack OutItemStack = Item;
 	OutItemStack.StackSize = FMath::Min(Quantity, CurrentStackSize);
+	
+	const FRockItemStackHandle CachedItemHandle = SourceSlot.ItemHandle;
 
-	if (Quantity >= CurrentStackSize)
+	const bool bIsFullStackMove = (Quantity >= CurrentStackSize);
+	if (bIsFullStackMove)
 	{
-		Inventory->FreeIndices.Add(SourceSlot.ItemHandle.GetIndex());
+		// They should be the same at this point, otherwise something else might be going on?
+		checkf(Item.ItemHandle == SourceSlot.ItemHandle, TEXT("ItemHandle mismatch"));
+
+		// Remove the item from the inventory. It's up to the caller to add it back if needed.
+		Inventory->RemoveItemFromInventory(Item);
+		
 		// Remove entire stack - invalidate the slot and item
 		SourceSlot.ItemHandle = FRockItemStackHandle::Invalid();
 		SourceSlot.Orientation = ERockItemOrientation::Horizontal;
-
-		Item.Generation++;
 	}
 	else
 	{
 		// Partial removal - just update the stack size
 		Item.StackSize = CurrentStackSize - Quantity;
+		checkf(Item.StackSize > 0, TEXT("ItemStack size is 0 or negative. Should have used full stack move path"));
+		Inventory->SetItemByHandle(CachedItemHandle, Item);
 	}
 	Inventory->SetSlotByHandle(SlotHandle, SourceSlot);
-	Inventory->SetItemByHandle(SourceSlot.ItemHandle, Item);
-
+	// Set the item handle to invalid, since we are returning a new item stack. It's not the same item anymore.
+	// If it gets added to an inventory, it will get a new handle.
+	OutItemStack.ItemHandle = FRockItemStackHandle::Invalid();
 	return OutItemStack;
 }
-
 
 bool URockInventoryLibrary::MoveItem(
 	URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
@@ -348,6 +357,13 @@ bool URockInventoryLibrary::MoveItem(
 		return false;
 	}
 
+	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(ValidatedSourceItem, InMoveParams.MoveMode, InMoveParams.MoveCount);
+	if (MoveAmount <= 0)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("Invalid move amount calculated"));
+		return false;
+	}
+	
 	//////////////////////////////////////////////////////////////////////////
 	/// Move
 	TArray<bool> OccupancyGrid;
@@ -370,29 +386,20 @@ bool URockInventoryLibrary::MoveItem(
 	const int32 Row = SectionIndex / targetSection.Width;
 	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ValidatedSourceItem);
 
-	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(ValidatedSourceItem, InMoveParams.MoveMode, InMoveParams.MoveCount);
-	if (MoveAmount <= 0)
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Invalid move amount calculated"));
-		return false;
-	}
-
 	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize))
 	{
-		FRockInventorySlotEntry sourceSlot = ValidatedSourceSlot;
 		FRockInventorySlotEntry targetSlot = ValidatedTargetSlot;
-
 		const bool isFullStackMove = (MoveAmount == ValidatedSourceItem.GetStackSize());
 		const bool isSameInventory = (SourceInventory == TargetInventory);
 
 		if (isFullStackMove)
 		{
+			FRockInventorySlotEntry sourceSlot = ValidatedSourceSlot;
 			// Invalidate the source slot
 			sourceSlot.ItemHandle = FRockItemStackHandle::Invalid();
 			sourceSlot.Orientation = ERockItemOrientation::Horizontal;
 			SourceInventory->SetSlotByHandle(SourceSlotHandle, sourceSlot);
-
-			// If different inventory, we need to invalidate the source item
+			
 			if (isSameInventory)
 			{
 				// Same Inventory - just move the handle to the target slot.
@@ -400,9 +407,11 @@ bool URockInventoryLibrary::MoveItem(
 			}
 			else
 			{
-				// Different inventory. Release from source, add to target
-				SourceInventory->ReleaseItemIndex(ValidatedSourceItem.ItemHandle.GetIndex());
+				// Different inventory.
+				// Add to target
 				targetSlot.ItemHandle = TargetInventory->AddItemToInventory(ValidatedSourceItem);
+				// Release from source
+				SourceInventory->RemoveItemFromInventory(ValidatedSourceItem);
 			}
 
 			// Set up target slot with existing item handle
@@ -478,7 +487,7 @@ bool URockInventoryLibrary::MoveItem(
 			FRockInventorySlotEntry sourceSlot = ValidatedSourceSlot;
 
 			// Release the item
-			SourceInventory->ReleaseItemIndex(ValidatedSourceItem.ItemHandle.GetIndex());
+			SourceInventory->RemoveItemFromInventory(ValidatedSourceItem);
 
 			// Clear the slot
 			sourceSlot.ItemHandle = FRockItemStackHandle::Invalid();
@@ -489,7 +498,6 @@ bool URockInventoryLibrary::MoveItem(
 		{
 			// Source item still has items left, so we need to broadcast that it changed.
 			SourceInventory->SetItemByHandle(ValidatedSourceSlot.ItemHandle, UpdatedSourceItem);
-			SourceInventory->BroadcastSlotChanged(SourceSlotHandle);
 		}
 
 		return true;

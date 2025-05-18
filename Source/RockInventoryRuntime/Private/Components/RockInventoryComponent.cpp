@@ -14,6 +14,7 @@
 // Sets default values for this component's properties
 URockInventoryComponent::URockInventoryComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+	bReplicateUsingRegisteredSubObjectList = true;
 	SetIsReplicatedByDefault(true);
 	// Set this component to be initialized when the game starts, and to be ticked every frame.
 	PrimaryComponentTick.bCanEverTick = true;
@@ -29,10 +30,19 @@ void URockInventoryComponent::BeginPlay()
 	if (InventoryConfig)
 	{
 		Inventory = NewObject<URockInventory>(this, TEXT("Inventory"), RF_Transient);
-		Inventory->Init(InventoryConfig);
-
 		// Should the owner be the component or the actor?
 		Inventory->Owner = GetOwner();
+		Inventory->Init(InventoryConfig);
+	}
+}
+
+void URockInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	if (Inventory)
+	{
+		RemoveReplicatedSubObject(Inventory);
+		Inventory = nullptr;
 	}
 }
 
@@ -107,17 +117,6 @@ void URockInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(URockInventoryComponent, Inventory);
-}
-
-bool URockInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
-{
-	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-	if (Inventory)
-	{
-		bWroteSomething |= Channel->ReplicateSubobject(Inventory, *Bunch, *RepFlags);
-	}
-
-	return bWroteSomething;
 }
 
 #if WITH_EDITOR

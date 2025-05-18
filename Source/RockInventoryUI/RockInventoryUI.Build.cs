@@ -8,6 +8,7 @@ public class RockInventoryUI : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		SetupIrisSupport(Target);
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
