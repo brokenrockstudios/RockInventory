@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "RockItemStackHandle.h"
+#include "Iris/ReplicationState/IrisFastArraySerializer.h"
 #include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
@@ -58,7 +59,8 @@ private:
 	/** Additional generic value for extended functionality */
 	UPROPERTY()
 	int32 CustomValue2 = 0;
-	/** This is used to detect stale item handles that may have pointed to previous items */
+	/** This is used to detect stale item handles that may have pointed to previous items.
+	 * Since we don't 'shrink' the inventory array, we need to have a way to indicate that this item stack is stale. Thus the Generation */
 	UPROPERTY(VisibleAnywhere)
 	uint8 Generation = 0;
 	
@@ -67,7 +69,6 @@ public:
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
 	// create invalid stack
 	static FRockItemStack Invalid();
-
 
 	// Core functionality
 	FName GetItemId() const;
@@ -78,6 +79,7 @@ public:
 
 	/** Gets the item definition for this item stack */
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
 	bool operator==(const FRockItemStack& Other) const;
 	FString GetDebugString() const;
 	bool IsValid() const;
@@ -86,6 +88,7 @@ public:
 	bool CanStackWith(const FRockItemStack& Other) const;
 	/** Returns true if the stack is empty (StackSize <= 0) */
 	inline bool IsEmpty() const;
+	void TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory);
 };
 
 template <>

@@ -92,25 +92,7 @@ int32 URockInventoryComponent::K2_GetItemCount(const FName ItemId)
 	{
 		return 0;
 	}
-
-
 	return URockInventoryLibrary::GetItemCount(Inventory, ItemId);
-	//
-	// // Iterate through all slots and sum quantities of matching items
-	// int32 TotalQuantity = 0;
-	//
-	// TArray<URockInventorySlot*> AllSlots;
-	// Inventory->GetAllSlots(AllSlots);
-	//
-	// for (URockInventorySlot* Slot : AllSlots)
-	// {
-	// 	if (Slot && Slot->ItemStack.Item && Slot->ItemStack.Item->IsA(ItemType))
-	// 	{
-	// 		TotalQuantity += Slot->ItemStack.Quantity;
-	// 	}
-	// }
-	//
-	//return TotalQuantity;
 }
 
 void URockInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

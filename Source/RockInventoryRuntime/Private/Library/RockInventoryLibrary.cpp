@@ -509,7 +509,6 @@ bool URockInventoryLibrary::MoveItem(
 	// Some games like Diablo support this but Tarkov does not.
 	// The fact that some items can be placed 'into' other items makes this more complex.
 	// We might not ever support this scenario.
-	// return true;
 	UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be moved to target location"));
 	return true;
 }

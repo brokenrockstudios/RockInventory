@@ -27,18 +27,4 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|Transaction", meta = (DisplayName = "Get Inventory Manager"))
 	static URockInventoryManagerComponent* GetInventoryManager(UObject* Object);
 
-	/**
-	 * Check if an object has an inventory manager.
-	 * @param Object The object to check
-	 * @return true if the object has an inventory manager, false otherwise
-	 */
-	UFUNCTION(BlueprintCallable, Category = "RockInventory|Transaction", meta = (DisplayName = "Has Inventory Manager"))
-	static bool HasInventoryManager(UObject* Object);
-
-	/**
-	 * Clear the transaction history from an object's inventory manager.
-	 * @param Object The object that has an inventory manager
-	 */
-	UFUNCTION(BlueprintCallable, Category = "RockInventory|Transaction", meta = (DisplayName = "Clear Transaction History"))
-	static void ClearTransactionHistory(UObject* Object);
 };

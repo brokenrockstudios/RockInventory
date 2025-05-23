@@ -2,7 +2,7 @@
 
 #include "Inventory/RockSlotHandle.h"
 
-// All this just to save 4 bytes per slot :P 
+// All this just to save 4 bytes per slot:P 
 // But when you consider hundreds of slots, it can add up.
 namespace
 {
@@ -40,9 +40,6 @@ FString FRockInventorySlotHandle::ToString() const
 	}
 	return FString::Printf(TEXT("SlotHandle[Index:%d,Section:%d]"), Index, Section);
 }
-
-
-
 
 bool FRockInventorySlotHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {

@@ -1,13 +1,11 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
-
 #include "Components/RockInventoryManagerComponent.h"
 
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventory.h"
 #include "Transactions/Core/RockInventoryTransaction.h"
 #include "Transactions/Implementations/RockMoveItemTransaction.h"
-
 
 URockInventoryManagerComponent::URockInventoryManagerComponent(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer),
 	CurrentTransactionIndex(-1),
@@ -238,7 +236,6 @@ void URockInventoryManagerComponent::DropItem(const FRockDropItemTransaction& It
 			// The server will add it to history when it executes the transaction.
 		}
 
-
 		// If we predicted locally, and it succeeded, we need to send the transaction to the server
 		Server_DropItem(ItemTransaction);
 	}
@@ -294,48 +291,3 @@ bool FRockInventoryTransactionRecord::ExecuteUndo()
 	return false;
 	// can't undo anything other than Move at this time. So don't even try.
 }
-
-// bool URockInventoryManagerComponent::UndoLastTransaction()
-// {
-// 	if (!CanUndo())
-// 	{
-// 		return false;
-// 	}
-//
-// 	//URockInventoryTransaction* Transaction = TransactionHistory[CurrentTransactionIndex].Get();
-// 	// if (Transaction->Undo())
-// 	// {
-// 	// 	CurrentTransactionIndex--;
-// 	// 	return true;
-// 	// }
-//
-// 	FRockInventoryTransactionRecord Transaction = TransactionHistoryData[CurrentTransactionIndex];
-// 	Transaction.ExecuteUndo();
-//
-// 	return false;
-// }
-
-// bool URockInventoryManagerComponent::RedoTransaction()
-// {
-// 	if (!CanRedo())
-// 	{
-// 		return false;
-// 	}
-// 	return false;
-// }
-
-// bool URockInventoryManagerComponent::CanUndo() const
-// {
-// 	if (TransactionHistoryData.Num() > 0 && CurrentTransactionIndex >= 0)
-// 	{
-// 		return false;
-// 		
-// 	}
-// 	return false;
-// }
-//
-// bool URockInventoryManagerComponent::CanRedo() const
-// {
-// 	return TransactionHistoryData.Num() > 0 && CurrentTransactionIndex < TransactionHistoryData.Num() - 1;
-// }
-//

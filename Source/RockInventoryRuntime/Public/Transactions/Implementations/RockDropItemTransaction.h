@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Enums/RockEnums.h"
+#include "Enums/RockItemOrientation.h"
 #include "Inventory/RockSlotHandle.h"
 #include "Transactions/Core/RockInventoryTransaction.h"
 #include "RockDropItemTransaction.generated.h"

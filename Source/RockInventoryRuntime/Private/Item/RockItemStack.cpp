@@ -127,6 +127,19 @@ bool FRockItemStack::IsEmpty() const
 	return StackSize <= 0;
 }
 
+
+void FRockItemStack::TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory)
+{
+	if (RuntimeInstance)
+	{
+		// Note: I think we need to ForceNetUpdate after a 'rename' (change of ownership)?
+		// The caller should be responsible for calling ForceNetUpdate.
+		RuntimeInstance->Rename(nullptr, NewOuter);
+		// Has no owning inventory in a world item
+		RuntimeInstance->SetOwningInventory(InOwningInventory);
+	}
+}
+
 void FRockInventoryItemContainer::SetOwningInventory(URockInventory* InOwningInventory)
 {
 	OwnerInventory = InOwningInventory;

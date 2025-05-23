@@ -131,26 +131,3 @@ void FRockInventorySlotContainer::PostReplicatedChange(const TArrayView<int32> C
 		}
 	}
 }
-
-// bool FRockInventorySlotEntry::IsEmpty() const
-// {
-// 	return !Item.IsValid();
-// }
-
-// bool FRockInventorySlotEntry::CanAcceptItem(const FRockItemStack& NewItem) const
-// {
-// 	// A slot can accept an item if:
-// 	// 1. The slot is not locked
-// 	// 2. The slot is either empty or can stack with the new item
-// 	if (bIsLocked)
-// 	{
-// 		return false;
-// 	}
-//
-// 	if (IsEmpty())
-// 	{
-// 		return true;
-// 	}
-//
-// 	return Item.CanStackWith(NewItem);
-// }

@@ -62,7 +62,6 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	}
 
 
-
 	// Set owner references for containers
 	ItemData.SetOwningInventory(this);
 	SlotData.SetOwningInventory(this);
@@ -269,7 +268,7 @@ bool URockInventory::IsSupportedForNetworking() const
 void URockInventory::RegisterReplicationFragments(
 	UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags)
 {
-	UE::Net::FReplicationFragmentUtil::CreateAndRegisterFragmentsForObject (this, Context, RegistrationFlags);
+	UE::Net::FReplicationFragmentUtil::CreateAndRegisterFragmentsForObject(this, Context, RegistrationFlags);
 }
 #endif // UE_WITH_IRIS
 
@@ -332,7 +331,6 @@ void URockInventory::RegisterSlotStatus(AController* Instigator, const FRockInve
 	{
 		return;
 	}
-
 
 	TArray<int32> PendingExpiredIndices;
 	constexpr float SlotReservationExpiration = 30.0f;
@@ -416,7 +414,7 @@ void URockInventory::ReleaseSlotStatus(AController* Instigator, const FRockInven
 
 	// The client-server won't get this OnRep call, so we need to call it manually.
 	// The client gets it when the PendingSlotOperation gets replicated
-
+	// TODO
 	//const AActor* OwningActor = GetOwningActor();
 	//if (OwningActor && OwningActor->HasAuthority())
 	{
@@ -586,12 +584,12 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStack& InItemStack)
 			UE_LOG(LogRockInventory, Warning, TEXT("RemoveItemFromInventory - Invalid item handle"));
 			return;
 		}
-		
+
 		if (ItemData[InIndex].RuntimeInstance)
 		{
 			ItemData[InIndex].RuntimeInstance->UnregisterReplicationWithOwner();
 		}
-		FRockItemStackHandle OldHandle = ItemData[InIndex].ItemHandle;
+		const FRockItemStackHandle OldHandle = ItemData[InIndex].ItemHandle;
 		FreeIndices.Add(InIndex);
 		// Invalidate the item stack
 		ItemData[InIndex].Generation++;
@@ -600,7 +598,7 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStack& InItemStack)
 		// Invalidate the item instance, hopefully something else is holding the reference already.
 		ItemData[InIndex].RuntimeInstance = nullptr;
 		ItemData.MarkItemDirty(ItemData[InIndex]);
-		
+
 		// We need to broadcast the old handle so that the client can remove it from their inventory.
 		BroadcastItemChanged(OldHandle);
 		// Anything caring about the 'new handle' should be notified by AddItemToInventory

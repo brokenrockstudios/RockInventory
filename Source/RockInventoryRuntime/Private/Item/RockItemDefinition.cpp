@@ -3,6 +3,7 @@
 
 #include "Item/RockItemDefinition.h"
 
+#include "RockInventoryLogging.h"
 #include "Engine/AssetManager.h"
 
 void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewItem)
@@ -11,21 +12,21 @@ void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewI
 
 	if (!NewItem)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RegisterItemDefinition called with null item."));
+		UE_LOG(LogRockInventory, Warning, TEXT("RegisterItemDefinition called with null item."));
 		return;
 	}
 
 	const FPrimaryAssetId AssetId = NewItem->GetPrimaryAssetId();
 	if (!AssetId.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RegisterItemDefinition: Invalid PrimaryAssetId for item %s."), *NewItem->GetName());
+		UE_LOG(LogRockInventory, Warning, TEXT("RegisterItemDefinition: Invalid PrimaryAssetId for item %s."), *NewItem->GetName());
 		return;
 	}
 
 	const FSoftObjectPath ItemPath(NewItem);
 	if (!ItemPath.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RegisterItemDefinition: Invalid SoftObjectPath for item %s."), *NewItem->GetName());
+		UE_LOG(LogRockInventory, Warning, TEXT("RegisterItemDefinition: Invalid SoftObjectPath for item %s."), *NewItem->GetName());
 		return;
 	}
 
@@ -36,5 +37,5 @@ void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewI
 	// Consider manually registering with RockItemRegistrySubsystem if needed
 	// URockItemRegistrySubsystem::GetInstance()->RegisterRuntimeItemDefinition(NewItem);
 
-	UE_LOG(LogTemp, Log, TEXT("Registered item %s with ID %s"), *NewItem->GetName(), *AssetId.ToString());
+	UE_LOG(LogRockInventory, Warning, TEXT("Registered item %s with ID %s"), *NewItem->GetName(), *AssetId.ToString());
 }

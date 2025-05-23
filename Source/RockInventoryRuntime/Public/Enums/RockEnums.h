@@ -2,11 +2,6 @@
 
 #pragma once
 
-/**
- * 
- */
-
-
 // TODO: Split these into their own files
 
 UENUM(BlueprintType)
@@ -27,15 +22,6 @@ enum class ERockInventoryChangeType : uint8
 	SlotUpdated
 };
 
-/**
- * 
- */
-UENUM(BlueprintType)
-enum class ERockItemOrientation : uint8
-{
-	Horizontal = 0,
-	Vertical = 1,
-};
 
 // an enum to help determine if the stack can be fully merged, partially, or not at all
 UENUM(BlueprintType)
@@ -48,7 +34,6 @@ enum class ERockItemStackMergeCondition : uint8
 	// will return false if it cannot be merged at all
 	None = 2,
 };
-
 
 // Maybe we want to support asynchronous transactions?
 UENUM(BlueprintType)
@@ -69,7 +54,6 @@ enum class ERockTransactionResult : uint8
 	Failed UMETA(DisplayName = "Failed", ToolTip = "Transaction has failed"),
 };
 
-
 UENUM(BlueprintType)
 enum class ERockInventoryTransactionType : uint8
 {
@@ -79,22 +63,16 @@ enum class ERockInventoryTransactionType : uint8
 	MoveItem, // Move an item from any inventory to any other inventory.
 	DropItem, // Drop an item from an inventory to the world
 
-
 	EquipItem, // Equip an item from the inventory to a slot
 	UnequipItem, // Unequip an item from a slot to the inventory
 	// Alt: Activate/Deactivate Item?
 
-
 	UseItem, // Use an item from the inventory. This could be a consumable or something else.
 	// Consume? Inspect? 
-
-
 	// Destroy an item
-
 
 	Max UMETA(Hidden)
 };
-
 
 UENUM(BlueprintType)
 enum class ERockItemMoveMode : uint8
@@ -103,15 +81,4 @@ enum class ERockItemMoveMode : uint8
 	HalfStack, // Move Half Stack (Rounded up)
 	SingleItem,
 	CustomAmount, // Use MoveCount for a specific amount
-};
-
-
-// This allows us to have an 'unrestricted' item size in a 1x1 slot of a section, such as for equipment or hot bar slots.
-UENUM(BlueprintType)
-enum class ERockItemSizePolicy : uint8
-{
-	// Standard grid rules
-	RespectSize,
-	// Ignores the size of the item when checking for placement. Treats items like a 1x1 item.
-	IgnoreSize
 };

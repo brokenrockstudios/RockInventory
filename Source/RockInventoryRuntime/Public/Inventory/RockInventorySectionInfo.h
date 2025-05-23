@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "Enums/RockEnums.h"
+#include "Enums/RockItemSizePolicy.h"
 #include "UObject/Object.h"
 
 #include "RockInventorySectionInfo.generated.h"

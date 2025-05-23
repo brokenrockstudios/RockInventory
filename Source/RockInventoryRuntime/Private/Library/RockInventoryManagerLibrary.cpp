@@ -46,16 +46,3 @@ URockInventoryManagerComponent* URockInventoryManagerLibrary::GetInventoryManage
 
 	return nullptr;
 }
-
-bool URockInventoryManagerLibrary::HasInventoryManager(UObject* Object)
-{
-	return GetInventoryManager(Object) != nullptr;
-}
-
-void URockInventoryManagerLibrary::ClearTransactionHistory(UObject* Object)
-{
-	if (URockInventoryManagerComponent* Manager = GetInventoryManager(Object))
-	{
-		Manager->ClearHistory();
-	}
-}

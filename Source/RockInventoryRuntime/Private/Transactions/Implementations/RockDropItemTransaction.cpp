@@ -47,7 +47,6 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 	}
 	transform = pawn->GetActorTransform();
 
-
 	transform.AddToTranslation(transform.GetRotation().GetForwardVector() * DropLocationOffset.Size());
 
 	ARockInventoryWorldItem* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItem>(

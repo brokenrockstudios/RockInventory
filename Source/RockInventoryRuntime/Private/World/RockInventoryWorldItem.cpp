@@ -1,6 +1,5 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
-
 #include "World/RockInventoryWorldItem.h"
 
 #include "RockInventoryLogging.h"
@@ -51,30 +50,20 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	// Should we properly initialize this InItemStack (e.g. create the item instance now or 'later'?)
 	// currently assuming we will only create it upon 'looting' the item.
 
+
 	ItemStack = InItemStack;
-	if (ItemStack.RuntimeInstance)
-	{
-		ItemStack.RuntimeInstance->Rename(nullptr, this);
-		// Has no owning inventory in a world item
-		ItemStack.RuntimeInstance->SetOwningInventory(nullptr);
-	}
+	ItemStack.TransferOwnership(this, nullptr);
 	if (GetLocalRole() == ROLE_Authority)
 	{
-		if (InItemStack.IsValid())
-		{
-			this->ForceNetUpdate();
-		}
+		this->ForceNetUpdate();
 	}
 
 	// Update the static mesh component with the item definition's mesh
-	
-
-	FStreamableManager Manager;
 
 	TSoftObjectPtr<UStaticMesh> Mesh = nullptr;
-	if (ItemStack.IsValid())
+	if (const URockItemDefinition* Definition = ItemStack.GetDefinition())
 	{
-		Mesh = ItemStack.GetDefinition()->ItemMesh;
+		Mesh = Definition->ItemMesh;
 	}
 
 	// Check if the mesh is already loaded
@@ -89,6 +78,7 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	}
 	else
 	{
+		FStreamableManager Manager;
 		Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
 		{
 			UStaticMesh* LoadedStaticMesh = Mesh.Get();
@@ -106,7 +96,6 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 
 void ARockInventoryWorldItem::OnPickedUp_Implementation(AActor* InInstigator)
 {
-	// // if instigator has an inventory, add the item to it, then destroy this actor
 	URockInventoryComponent* InventoryComp = Cast<URockInventoryComponent>(InInstigator->GetComponentByClass(URockInventoryComponent::StaticClass()));
 	if (InventoryComp)
 	{
@@ -119,6 +108,7 @@ void ARockInventoryWorldItem::OnPickedUp_Implementation(AActor* InInstigator)
 		}
 		else
 		{
+			// This might just be because the inventory is full, but presumably we should have prevented from reaching this far earlier.
 			UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::PickedUp - Failed to add item to inventory"));
 		}
 	}
@@ -130,11 +120,9 @@ void ARockInventoryWorldItem::OnPickedUp_Implementation(AActor* InInstigator)
 
 void ARockInventoryWorldItem::OnLooted_Implementation(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 Excess)
 {
-	// If there is excess, we need to update the item stack
 	ItemStack.StackSize = Excess;
-	if (Excess <= 0)
+	if (ItemStack.StackSize <= 0)
 	{
-		// If there is no excess, we can destroy the item
 		this->Destroy();
 	}
 }

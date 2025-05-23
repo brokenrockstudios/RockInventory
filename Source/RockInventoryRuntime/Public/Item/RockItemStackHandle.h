@@ -6,7 +6,7 @@
 #include "RockItemStackHandle.generated.h"
 
 /**
- * Globally unique handle to a stack of items in the inventory system.
+ * Unique handle to a stack of items in the inventory system.
  * Provides a stable reference that can be used to locate and manipulate item stacks.
  * The handle combines an index (lower 24 bits) (16 million slots) and a generation ID (upper 8 bits) (255 slots)
  * to allow for stable references even when slots are reused.
@@ -84,18 +84,17 @@ public:
 	uint32 GetHash() const { return GetTypeHash(Handle); }
 	friend uint32 GetTypeHash(const FRockItemStackHandle& ItemStackHandle) { return ItemStackHandle.GetHash(); }
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-	
 
 
 	/** Equality comparison operator */
 	bool operator==(const FRockItemStackHandle& OtherSlotHandle) const { return Handle == OtherSlotHandle.Handle; }
-	bool operator!=(const FRockItemStackHandle& OtherSlotHandle) const { return !(*this ==OtherSlotHandle); }
+	bool operator!=(const FRockItemStackHandle& OtherSlotHandle) const { return !(*this == OtherSlotHandle); }
 
 	/** Explicit cast to bool for conditional expressions */
 	explicit operator bool() const { return IsValid(); }
 };
 
-template<>
+template <>
 struct TStructOpsTypeTraits<FRockItemStackHandle> : public TStructOpsTypeTraitsBase2<FRockItemStackHandle>
 {
 	enum

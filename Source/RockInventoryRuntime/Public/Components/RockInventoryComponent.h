@@ -7,7 +7,6 @@
 #include "Inventory/RockInventory.h"
 #include "RockInventoryComponent.generated.h"
 
-
 class URockInventoryConfig;
 
 /**
@@ -61,7 +60,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Remove Item"))
 	FRockItemStack K2_RemoveItem(const FRockInventorySlotHandle& InHandle);
-
 
 	// Misc
 	bool K2_HasItem(FName ItemId, int32 MinQuantity);

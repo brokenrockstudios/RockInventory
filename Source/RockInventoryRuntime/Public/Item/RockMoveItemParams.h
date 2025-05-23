@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Enums/RockEnums.h"
+#include "Enums/RockItemOrientation.h"
 #include "RockMoveItemParams.generated.h"
 
 /**
