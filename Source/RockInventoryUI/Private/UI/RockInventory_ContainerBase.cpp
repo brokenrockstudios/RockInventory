@@ -88,6 +88,9 @@ void URockInventory_ContainerBase::GenerateItems()
 		return;
 	}
 
+	// TODO: Optimize this
+	// Instead of 'redrawing' everything for any 'single change'
+	// We should probably try to update the existing 'items' instead?
 	ClearItemsFromGrid();
 
 	ERockItemSizePolicy SizePolicy = ERockItemSizePolicy::RespectSize;
