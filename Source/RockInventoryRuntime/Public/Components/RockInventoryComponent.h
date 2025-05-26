@@ -33,8 +33,12 @@ public:
 	// TODO: Consider adding a tarray/variable of controllers currently interacting with this top level Inventory?
 	// But to what end? conditional replication?  
 	/** The underlying inventory data */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="RockInventory", Replicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="RockInventory", ReplicatedUsing=OnRep_Inventory)
 	TObjectPtr<URockInventory> Inventory;
+	UFUNCTION()
+	void OnRep_Inventory(URockInventory* OldInventory);
+	UFUNCTION(BlueprintImplementableEvent)
+	void K2_OnInventoryChanged();
 
 	/**
 	 * Adds an item to the inventory

@@ -1,6 +1,5 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
-
 #include "UI/RockInventory_ContainerBase.h"
 
 #include "RockInventoryUILogging.h"
@@ -91,11 +90,9 @@ void URockInventory_ContainerBase::GenerateItems()
 
 	ClearItemsFromGrid();
 
-	int32 SectionIndex = INDEX_NONE;
 	ERockItemSizePolicy SizePolicy = ERockItemSizePolicy::RespectSize;
 	if (Inventory)
 	{
-		SectionIndex = Inventory->GetSectionIndexById(TabInfo.SectionName);
 		SizePolicy = Inventory->GetSectionInfo(TabInfo.SectionName).SlotSizePolicy;
 	}
 
@@ -111,27 +108,24 @@ void URockInventory_ContainerBase::GenerateItems()
 	// 	CellHeight = 64.0f; // Default cell height, adjust as needed
 	// }
 	//////////////////////////////////////////////////////////////////////////
-	
+
 	for (int32 slotIndex = 0; slotIndex < TabInfo.GetNumSlots(); ++slotIndex)
 	{
 		const int32 AbsoluteIndex = TabInfo.FirstSlotIndex + slotIndex;
 		const FRockInventorySlotEntry& SlotEntry = Inventory->GetSlotByAbsoluteIndex(AbsoluteIndex);
-		
+
 		if (!SlotEntry.ItemHandle.IsValid())
 		{
 			continue;
 		}
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(SlotEntry.ItemHandle);
-
-		if (!ItemStack.IsValid() )
+		if (!ItemStack.IsValid())
 		{
 			continue;
 		}
 		const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
-
 		URockInventory_Slot_ItemBase* WidgetItem = CreateWidget<URockInventory_Slot_ItemBase>(this, ItemSlotWidgetClass,
 			FName(*FString::Printf(TEXT("Item_%d"), slotIndex)));
-		
 		if (WidgetItem)
 		{
 			const int32 Column = slotIndex % TabInfo.Width;
@@ -140,7 +134,7 @@ void URockInventory_ContainerBase::GenerateItems()
 			// Note: For reasons this needs to happen before SetupBindings >:( 
 			// Add to grid with proper sizing
 			UGridSlot* GridSlot = GridPanel->AddChildToGrid(WidgetItem, Row, Column);
-			
+
 			// Setup Widget properties
 			WidgetItem->Inventory = Inventory;
 			WidgetItem->SlotHandle = SlotEntry.SlotHandle;

@@ -13,18 +13,19 @@ URockInventory::URockInventory(const FObjectInitializer& ObjectInitializer): Sup
 {
 }
 
-AActor* URockInventory::GetOwningActor() const
+UObject* URockInventory::GetTopLevelOwner()
 {
-	const UObject* Current = this;
+	// Should ultimately return either an AActor or a UActorComponent
+	UObject* Current = this;
 	while (Current)
 	{
-		if (const AActor* Actor = Cast<AActor>(Current))
+		if (AActor* Actor = Cast<AActor>(Current))
 		{
-			return const_cast<AActor*>(Actor);
+			return Actor;
 		}
-		else if (const UActorComponent* Comp = Cast<UActorComponent>(Current))
+		else if (UActorComponent* Comp = Cast<UActorComponent>(Current))
 		{
-			return Comp->GetOwner();
+			return Comp;
 		}
 		else if (const URockInventory* Inv = Cast<URockInventory>(Current))
 		{
@@ -48,6 +49,22 @@ AActor* URockInventory::GetOwningActor() const
 	return nullptr;
 }
 
+AActor* URockInventory::GetOwningActor()
+{
+	const UObject* Current = GetTopLevelOwner();
+	if (const AActor* Actor = Cast<AActor>(Current))
+	{
+		return const_cast<AActor*>(Actor);
+	}
+	else if (const UActorComponent* Comp = Cast<UActorComponent>(Current))
+	{
+		return Comp->GetOwner();
+	}
+	
+	UE_LOG(LogRockInventory, Warning, TEXT("GetOwningActor - No valid owning actor found for inventory %s"), *GetName());
+	return nullptr;
+}
+
 void URockInventory::Init(const URockInventoryConfig* config)
 {
 	if (!config)
@@ -61,7 +78,7 @@ void URockInventory::Init(const URockInventoryConfig* config)
 		return;
 	}
 
-
+	RegisterReplicationWithOwner();
 	// Set owner references for containers
 	ItemData.SetOwningInventory(this);
 	SlotData.SetOwningInventory(this);
@@ -272,22 +289,23 @@ void URockInventory::RegisterReplicationFragments(
 }
 #endif // UE_WITH_IRIS
 
-
-void URockInventory::PostNetReceive()
-{
-	UObject::PostNetReceive();
-	SlotData.SetOwningInventory(this);
-	ItemData.SetOwningInventory(this);
-}
-
 void URockInventory::RegisterReplicationWithOwner()
 {
-	if (const auto actor = GetOwningActor())
+	UObject* topLevelOwner = GetTopLevelOwner();
+	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
+	{
+	 	Component->AddReplicatedSubObject(this);
+	}
+	else if (AActor* actor = Cast<AActor>(topLevelOwner))
 	{
 		actor->AddReplicatedSubObject(this);
 	}
+	else
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("RegisterReplicationWithOwner - No viable replication owner found"));
+	}
 
-	// Iterate over items and register them?
+	// Iterate over any existing items and register them.
 	for (const FRockItemStack& Item : ItemData)
 	{
 		if (Item.RuntimeInstance)
@@ -299,7 +317,12 @@ void URockInventory::RegisterReplicationWithOwner()
 
 void URockInventory::UnregisterReplicationWithOwner()
 {
-	if (const auto actor = GetOwningActor())
+	UObject* topLevelOwner = GetTopLevelOwner();
+	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
+	{
+		Component->RemoveReplicatedSubObject(this);
+	}
+	else if (AActor* actor = Cast<AActor>(topLevelOwner))
 	{
 		actor->RemoveReplicatedSubObject(this);
 	}
@@ -525,6 +548,32 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 	return INDEX_NONE;
 }
 
+int32 URockInventory::GetItemStackCount()
+{
+	int32 Count = 0;
+	for (const FRockItemStack& Item : ItemData)
+	{
+		if (Item.IsValid())
+		{
+			Count += Item.StackSize;
+		}
+	}
+	return Count;
+}
+
+int32 URockInventory::GetItemTotalCount()
+{
+	int32 Count = 0;
+	for (const FRockItemStack& Item : ItemData)
+	{
+		if (Item.IsValid())
+		{
+			Count += 1; // Count each valid item stack
+		}
+	}
+	return Count;
+}
+
 
 FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& InItemStack)
 {
@@ -557,12 +606,10 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
 		}
 		NewItemStack.RuntimeInstance->SetOwningInventory(this);
-		NewItemStack.RuntimeInstance->RegisterReplicationWithOwner();
 	}
 	// Set up the item
 	ItemData.MarkItemDirty(ItemData[Index]);
 	BroadcastItemChanged(ItemData[Index].ItemHandle);
-
 	// Return handle with current index and generation
 	return NewItemStack.ItemHandle;
 }
@@ -591,12 +638,10 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStack& InItemStack)
 		}
 		const FRockItemStackHandle OldHandle = ItemData[InIndex].ItemHandle;
 		FreeIndices.Add(InIndex);
-		// Invalidate the item stack
-		ItemData[InIndex].Generation++;
 		// Update the ItemHandle with new Generation
+		ItemData[InIndex].Generation++;
 		ItemData[InIndex].ItemHandle = FRockItemStackHandle::Create(InIndex, ItemData[InIndex].Generation);
-		// Invalidate the item instance, hopefully something else is holding the reference already.
-		ItemData[InIndex].RuntimeInstance = nullptr;
+		ItemData[InIndex].Reset();
 		ItemData.MarkItemDirty(ItemData[InIndex]);
 
 		// We need to broadcast the old handle so that the client can remove it from their inventory.

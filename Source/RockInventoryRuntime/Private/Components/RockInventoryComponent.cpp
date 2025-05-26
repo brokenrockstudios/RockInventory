@@ -14,8 +14,8 @@
 // Sets default values for this component's properties
 URockInventoryComponent::URockInventoryComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	bReplicateUsingRegisteredSubObjectList = true;
 	SetIsReplicatedByDefault(true);
+	bReplicateUsingRegisteredSubObjectList = true;
 	// Set this component to be initialized when the game starts, and to be ticked every frame.
 	PrimaryComponentTick.bCanEverTick = true;
 	// You can turn off ticking to improve performance if not needed
@@ -26,12 +26,11 @@ void URockInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Initialize inventory from config
-	if (InventoryConfig)
+	// Only server should instantiate the inventory. The client will receive it via replication
+	if (GetOwner()->HasAuthority())
 	{
-		Inventory = NewObject<URockInventory>(this, TEXT("Inventory"), RF_Transient);
-		// Should the owner be the component or the actor?
-		Inventory->Owner = GetOwner();
+		Inventory = NewObject<URockInventory>(this); // ?? RF_Transient
+		Inventory->Owner = this;
 		Inventory->Init(InventoryConfig);
 	}
 }
@@ -41,9 +40,30 @@ void URockInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 	if (Inventory)
 	{
+		Inventory->UnregisterReplicationWithOwner();
 		RemoveReplicatedSubObject(Inventory);
 		Inventory = nullptr;
 	}
+}
+
+void URockInventoryComponent::OnRep_Inventory(URockInventory* OldInventory)
+{
+	UE_LOG(LogRockInventory, Warning, TEXT("OnRep_Inventory called for %s %p %p"), *GetName(), Inventory.Get(), OldInventory);
+
+	// Is there a better place to do this?
+	// Ensure the inventory is valid and has been initialized
+	if (Inventory)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("OnRep_Inventory - Inventory is valid for %s"), *GetName());
+		Inventory->ItemData.SetOwningInventory(Inventory);
+		Inventory->SlotData.SetOwningInventory(Inventory);
+	}
+	else
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("OnRep_Inventory - Inventory is null for %s"), *GetName());
+	}
+	
+	K2_OnInventoryChanged();
 }
 
 bool URockInventoryComponent::K2_AddItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess)

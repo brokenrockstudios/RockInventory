@@ -42,6 +42,7 @@ public:
 private:
 	friend class URockInventoryLibrary;
 	friend class URockItemInstanceLibrary;
+	friend class URockInventoryComponent;
 	
 	/** The item data */
 	UPROPERTY(VisibleAnywhere, Replicated)
@@ -74,13 +75,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
 	FOnInventoryItemStackChanged OnItemChanged;
 	
-	// Owning Actor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	TObjectPtr<UObject> Owner;
-
 	
 	UObject* GetOwner() const { return Owner; }
-	AActor* GetOwningActor() const;
+	
+	// This needs to point to where the inventory is registered for replication
+	UObject* GetTopLevelOwner();
+	
+	AActor* GetOwningActor();
 
 	/**
 	 * Initialize the inventory with a configuration
@@ -140,7 +143,6 @@ public:
 #endif // UE_WITH_IRIS
 	
 	// IsNameStableForNetworking false?
-	virtual void PostNetReceive() override;
 	void RegisterReplicationWithOwner();
 	void UnregisterReplicationWithOwner();
 
@@ -168,6 +170,8 @@ public:
 	void RemoveItemFromInventory(const FRockItemStack& InItemStack);
 	
 	uint32 AcquireAvailableItemIndex();
+	int32 GetItemStackCount();
+	int32 GetItemTotalCount();
 
 
 };

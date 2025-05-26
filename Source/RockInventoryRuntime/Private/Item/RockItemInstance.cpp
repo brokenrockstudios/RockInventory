@@ -2,6 +2,7 @@
 
 #include "Item/RockItemInstance.h"
 
+#include "RockInventoryLogging.h"
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
 #include "Net/UnrealNetwork.h"
@@ -64,37 +65,71 @@ void URockItemInstance::BeginDestroy()
 
 void URockItemInstance::SetOwningInventory(URockInventory* InOwningInventory)
 {
+	if (OwningInventory == InOwningInventory)
+	{
+		return;
+	}
+
+	if (OwningInventory)
+	{
+		// Unregister from the old inventory
+		UnregisterReplicationWithOwner();
+	}
 	OwningInventory = InOwningInventory;
-	// TODO: IMPORTANTE: Do a RemoveSubobject on this and all nested if moved to another inventory or removed
+
+	RegisterReplicationWithOwner();
 }
 
 void URockItemInstance::RegisterReplicationWithOwner()
 {
-	if (const URockInventory* Inventory = GetOwningInventory())
+	URockInventory* Inventory = GetOwningInventory();
+	if (!Inventory)
 	{
-		if (AActor* Actor = Inventory->GetOwningActor())
-		{
-			Actor->AddReplicatedSubObject(this);
-			if (NestedInventory)
-			{
-				NestedInventory->RegisterReplicationWithOwner();
-			}
-		}
+		UE_LOG(LogRockInventory, Error, TEXT("URockItemInstance::RegisterReplicationWithOwner: OwningInventory is null"));
+		return;
+	}
+
+	UObject* topLevelOwner = Inventory->GetTopLevelOwner();
+	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
+	{
+		Component->AddReplicatedSubObject(this);
+	}
+	else if (AActor* actor = Cast<AActor>(topLevelOwner))
+	{
+		actor->AddReplicatedSubObject(this);
+	}
+	else
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("URockItemInstance::RegisterReplicationWithOwner: OwningActor is null"));
+		return;
+	}
+	if (NestedInventory)
+	{
+		NestedInventory->RegisterReplicationWithOwner();
 	}
 }
 
 void URockItemInstance::UnregisterReplicationWithOwner()
 {
-	if (const URockInventory* Inventory = GetOwningInventory())
+	URockInventory* Inventory = GetOwningInventory();
+	if (!Inventory)
 	{
-		if (AActor* Actor = Inventory->GetOwningActor())
-		{
-			Actor->RemoveReplicatedSubObject(this);
-			if (NestedInventory)
-			{
-				NestedInventory->UnregisterReplicationWithOwner();
-			}
-		}
+		UE_LOG(LogRockInventory, Error, TEXT("URockItemInstance::UnregisterReplicationWithOwner: OwningInventory is null"));
+		return;
+	}
+
+	UObject* topLevelOwner = Inventory->GetTopLevelOwner();
+	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
+	{
+		Component->RemoveReplicatedSubObject(this);
+	}
+	else if (AActor* actor = Cast<AActor>(topLevelOwner))
+	{
+		actor->RemoveReplicatedSubObject(this);
+	}
+	if (NestedInventory)
+	{
+		NestedInventory->UnregisterReplicationWithOwner();
 	}
 }
 
@@ -116,33 +151,6 @@ FRockItemStack URockItemInstance::GetItemStack() const
 {
 	return GetOwningInventory()->GetItemBySlotHandle(GetSlotHandle());
 }
-
-// FRockItemStack URockItemInstance::GetItemStack() const
-// {
-// 	const FRockInventorySlotEntry& Slot = GetItemSlot();
-// 	if (Slot.IsValid())
-// 	{
-// 		return Slot.Item;
-// 	}
-// 	return nullptr;
-// }
-
-// // In URockItemInstance
-// void URockItemInstance::DoSomethingThatNeedsStackData()
-// {
-// 	if (Owner.IsValid())
-// 	{
-// 		FRockItemStack MyStackData;
-// 		if (Owner->FindItemStackForInstance(this, MyStackData))
-// 		{
-// 			// Now use MyStackData (e.g., MyStackData.Quantity)
-// 		}
-//
-// 		// Or, if you need to modify (use carefully!)
-// 		// FRockItemStack* MyStackPtr = Owner->FindItemStackMutablePtrForInstance(this);
-// 		// if (MyStackPtr) { MyStackPtr->SomeValue = ...; Owner->MarkDirtyForReplication(); }
-// 	}
-// }
 
 
 #if UE_WITH_IRIS

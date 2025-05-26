@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "RockItemStackHandle.h"
-#include "Iris/ReplicationState/IrisFastArraySerializer.h"
 #include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"

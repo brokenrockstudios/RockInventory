@@ -62,7 +62,6 @@ FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute()
 {
 	FRockLootWorldItemUndoTransaction UndoData;
 	UndoData.bSuccess = false;
-
 	// Should have been checked by CanExecute
 	checkf(Instigator.IsValid(), TEXT("Instigator is not valid"));
 	checkf(TargetInventory, TEXT("TargetInventory is not valid"));
