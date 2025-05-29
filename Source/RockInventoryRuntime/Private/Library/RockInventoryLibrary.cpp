@@ -294,7 +294,6 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Inventory"));
 		return FRockItemStack::Invalid();
 	}
-
 	const int32 slotIndex = SlotHandle.GetIndex();
 	if (!Inventory->SlotData.ContainsIndex(slotIndex))
 	{
@@ -303,7 +302,6 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 	}
 
 	FRockInventorySlotEntry SourceSlot = Inventory->GetSlotByHandle(SlotHandle);
-
 	FRockItemStack Item = Inventory->GetItemByHandle(SourceSlot.ItemHandle);
 
 	if (!Item.IsValid())
@@ -370,7 +368,6 @@ bool URockInventoryLibrary::MoveItem(
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Source or Target Inventory"));
 		return false;
 	}
-
 	const FRockInventorySlotEntry& ValidatedSourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
 	if (!ValidatedSourceSlot.IsValid())
 	{
@@ -383,7 +380,6 @@ bool URockInventoryLibrary::MoveItem(
 		UE_LOG(LogRockInventory, Warning, TEXT("Source Slot is empty"));
 		return false;
 	}
-
 	// Check TargetInventory if slot is empty
 	const FRockInventorySlotEntry& ValidatedTargetSlot = TargetInventory->GetSlotByHandle(TargetSlotHandle);
 	if (!ValidatedTargetSlot.IsValid())
@@ -391,14 +387,12 @@ bool URockInventoryLibrary::MoveItem(
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Target Slot Handle"));
 		return false;
 	}
-
 	// Can CanItemBePlacedInSection of TargetInventory
 	if (!CanItemBePlacedInSection(ValidatedSourceItem, TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()]))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be placed in target section"));
 		return false;
 	}
-
 	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(ValidatedSourceItem, InMoveParams.MoveMode, InMoveParams.MoveCount);
 	if (MoveAmount <= 0)
 	{
