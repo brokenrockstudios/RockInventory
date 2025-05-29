@@ -1,4 +1,6 @@
-﻿using UnrealBuildTool;
+﻿// Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
+
+using UnrealBuildTool;
 
 public class RockInventoryEditor : ModuleRules
 {
