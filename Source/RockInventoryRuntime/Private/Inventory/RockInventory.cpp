@@ -7,51 +7,17 @@
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
+#include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 URockInventory::URockInventory(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
 {
 }
 
-UObject* URockInventory::GetTopLevelOwner()
-{
-	// Should ultimately return either an AActor or a UActorComponent
-	UObject* Current = this;
-	while (Current)
-	{
-		if (AActor* Actor = Cast<AActor>(Current))
-		{
-			return Actor;
-		}
-		else if (UActorComponent* Comp = Cast<UActorComponent>(Current))
-		{
-			return Comp;
-		}
-		else if (const URockInventory* Inv = Cast<URockInventory>(Current))
-		{
-			Current = Inv->GetOwner();
-			if (!Current)
-			{
-				// If we didn't have a proper owner, try and get the outer instead
-				Current = Inv->GetOuter();
-			}
-		}
-		else if (const URockItemInstance* ItemInstance = Cast<URockItemInstance>(Current))
-		{
-			Current = ItemInstance->OwningInventory;
-		}
-		else
-		{
-			UE_LOG(LogRockInventory, Warning, TEXT("GetOwningActor Failed"));
-			break;
-		}
-	}
-	return nullptr;
-}
 
 AActor* URockInventory::GetOwningActor()
 {
-	const UObject* Current = GetTopLevelOwner();
+	const UObject* Current = URockInventoryLibrary::GetTopLevelOwner(this);
 	if (const AActor* Actor = Cast<AActor>(Current))
 	{
 		return const_cast<AActor*>(Actor);
@@ -291,7 +257,7 @@ void URockInventory::RegisterReplicationFragments(
 
 void URockInventory::RegisterReplicationWithOwner()
 {
-	UObject* topLevelOwner = GetTopLevelOwner();
+	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
 	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
 	{
 	 	Component->AddReplicatedSubObject(this);
@@ -317,7 +283,7 @@ void URockInventory::RegisterReplicationWithOwner()
 
 void URockInventory::UnregisterReplicationWithOwner()
 {
-	UObject* topLevelOwner = GetTopLevelOwner();
+	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
 	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
 	{
 		Component->RemoveReplicatedSubObject(this);

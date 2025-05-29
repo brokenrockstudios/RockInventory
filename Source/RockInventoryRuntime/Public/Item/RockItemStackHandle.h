@@ -36,7 +36,7 @@ public:
 	static_assert(INDEX_BITS + GENERATION_BITS == 32, "Bit allocation exceeds 32 bits");
 
 	FRockItemStackHandle();
-	void Reset() { Handle = INDEX_NONE; }
+	void Reset();
 
 	/**
 	 * Creates a handle with specific index and generation values
@@ -49,30 +49,26 @@ public:
 	 * Creates an invalid handle
 	 * @return An invalid handle instance
 	 */
-	static FRockItemStackHandle Invalid() { return FRockItemStackHandle(); }
+	static FRockItemStackHandle Invalid();
 
 	/** Returns true if this handle refers to a valid item stack */
-	bool IsValid() const { return Handle != INDEX_NONE; }
+	bool IsValid() const;
 
 	/** Gets the index portion of the handle (lower 24 bits) */
-	int32 GetIndex() const { return Handle & INDEX_MASK; }
+	int32 GetIndex() const;
 
 	/** Gets the generation portion of the handle (upper 8 bits) */
-	int32 GetGeneration() const { return (Handle & GENERATION_HANDLE_MASK) >> GENERATION_SHIFT; }
+	int32 GetGeneration() const;
 
 	/** Converts the handle to a human-readable string representation */
-	FString ToString() const
-	{
-		if (!IsValid())
-		{
-			return TEXT("Invalid");
-		}
-		return FString::Printf(TEXT("ItemHandle[Index:%u,Gen:%u]"), GetIndex(), GetGeneration());
-	}
+	FString ToString() const;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Helper Utility functions
 
+	/** Virtual hash function for derived classes */
+	uint32 GetHash() const;
+	friend uint32 GetTypeHash(const FRockItemStackHandle& ItemStackHandle) { return ItemStackHandle.GetHash(); }
 	/** Serialization operator */
 	friend FArchive& operator<<(FArchive& Ar, FRockItemStackHandle& ItemStackHandle)
 	{
@@ -80,18 +76,12 @@ public:
 		return Ar;
 	}
 
-	/** Virtual hash function for derived classes */
-	uint32 GetHash() const { return GetTypeHash(Handle); }
-	friend uint32 GetTypeHash(const FRockItemStackHandle& ItemStackHandle) { return ItemStackHandle.GetHash(); }
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-
-
 	/** Equality comparison operator */
-	bool operator==(const FRockItemStackHandle& OtherSlotHandle) const { return Handle == OtherSlotHandle.Handle; }
-	bool operator!=(const FRockItemStackHandle& OtherSlotHandle) const { return !(*this == OtherSlotHandle); }
+	bool operator==(const FRockItemStackHandle& OtherSlotHandle) const;
+	bool operator!=(const FRockItemStackHandle& OtherSlotHandle) const;
 
 	/** Explicit cast to bool for conditional expressions */
-	explicit operator bool() const { return IsValid(); }
+	explicit operator bool() const;
 };
 
 template <>
@@ -99,7 +89,6 @@ struct TStructOpsTypeTraits<FRockItemStackHandle> : public TStructOpsTypeTraitsB
 {
 	enum
 	{
-		WithNetSerializer = true,
 		WithIdenticalViaEquality = true
 	};
 };

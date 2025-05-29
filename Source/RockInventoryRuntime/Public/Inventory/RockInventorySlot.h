@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "RockSlotHandle.h"
 #include "Enums/RockItemOrientation.h"
+#include "Iris/ReplicationState/IrisFastArraySerializer.h"
 #include "Item/RockItemStack.h"
 #include "Item/RockItemStackHandle.h"
 #include "Library/RockInventoryHelpers.h"
@@ -64,7 +65,6 @@ public:
 	/** Returns true if the slot can accept the given item */
 	// bool CanAcceptItem(const FRockItemStack& NewItem) const;
 
-	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess);
 	bool operator==(const FRockInventorySlotEntry& Other) const { return SlotHandle == Other.SlotHandle && ItemHandle == Other.ItemHandle
 		&& Orientation == Other.Orientation && bIsLocked == Other.bIsLocked; }
 	bool operator!=(const FRockInventorySlotEntry& Other) const { return !(*this == Other); }
@@ -75,7 +75,6 @@ struct TStructOpsTypeTraits<FRockInventorySlotEntry> : public TStructOpsTypeTrai
 {
 	enum
 	{
-		WithNetSerializer = true,
 		WithIdenticalViaEquality = true,
 	};
 };
@@ -87,7 +86,7 @@ struct TStructOpsTypeTraits<FRockInventorySlotEntry> : public TStructOpsTypeTrai
  * mapping to absolute indices based on tab configuration.
  */
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockInventorySlotContainer : public FFastArraySerializer
+struct ROCKINVENTORYRUNTIME_API FRockInventorySlotContainer : public FIrisFastArraySerializer
 {
 	GENERATED_BODY()
 

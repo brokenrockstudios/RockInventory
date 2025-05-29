@@ -80,9 +80,6 @@ public:
 	
 	UObject* GetOwner() const { return Owner; }
 	
-	// This needs to point to where the inventory is registered for replication
-	UObject* GetTopLevelOwner();
-	
 	AActor* GetOwningActor();
 
 	/**

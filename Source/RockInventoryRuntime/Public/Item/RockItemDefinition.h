@@ -77,27 +77,35 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	/// Information
 	// An item can be 'multiple types' (e.g. a 'battery' can be a 'tool' and a 'battery')
+	// Item.Type.Weapon, Item.Type.Tool, Item.Type.Consumable
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTagContainer ItemType;
+	// Though this could be a subtag of ItemType, it is separated to allow for more flexibility.
+	// Item.SubType.Sword? Feels redundant to above? Perhaps have better usage?  
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag ItemSubType;
+	// Item rarity, e.g. Item.Rarity.Common, Item.Rarity.Uncommon, Item.Rarity.Rare, Item.Rarity.Epic, Item.Rarity.Legendary
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag ItemRarity;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
-	float Weight = 0.0f;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
-	float ItemValue = 0.0f;
+	// General purpose tags that can be used for filtering, sorting, or categorization.
+	// Item.Tag.Quality.Magical, Item.Tag.Elemental.Fire, Item.Tag.Set.DragonSlayer, Item.Tag.Binding.SoulBound, Item.Tag.Material.Steel
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTagContainer ItemTags;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	float Weight = 0.0f;
+	// Not necessarily a 'price', but perhaps some internal value for sorting, crafting, or other purposes.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	float ItemValue = 0.0f;
 	//////////////////////////////////////////////////////////////////////////
 	/// World
+	// If you need 'multiple', consider using Fragments instead
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|World")
 	TSoftObjectPtr<UStaticMesh> ItemMesh;
 	// Always prefer SM over Skeletal, but allow for both.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|World")
 	TSoftObjectPtr<USkeletalMesh> ItemSkeletalMesh;
 
-
+	// When this item is spawned in the world, it will spawn an actor of this class.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|World")
 	TSoftClassPtr<AActor> ActorClass;
 	//////////////////////////////////////////////////////////////////////////
@@ -112,10 +120,15 @@ public:
 	FGameplayTag CustomValue2Tag;
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	bool bRequiresRuntimeInstance = false;
+	// If this item requires a runtime instance, this is the class that will be used to create it.
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
+	TSubclassOf<class URockItemInstance> RuntimeInstanceClass;
+	
 	// Runtime Instances nested inventory.
-	// e.g. If this Item was a Backpack, this should be set
+	// e.g. If this Item was a Backpack, this should be set to the Backpack's InventoryConfig.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSoftObjectPtr<URockInventoryConfig> InventoryConfig = nullptr;
+	
 	//////////////////////////////////////////////////////////////////////////
 	/// Sound
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc", meta = (AssetBundles= "UI"))
@@ -212,7 +225,6 @@ public:
 	// Actors to spawn on the pawn when this is equipped
 	UPROPERTY(EditDefaultsOnly, Category=Equipment)
 	TArray<FRockEquipmentActorToSpawn> ActorsToSpawn;
-
 
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override
 	{

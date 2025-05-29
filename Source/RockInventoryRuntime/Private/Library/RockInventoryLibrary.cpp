@@ -6,6 +6,7 @@
 #include "Inventory/RockInventory.h"
 #include "Inventory/RockInventorySectionInfo.h"
 #include "Item/RockItemDefinition.h"
+#include "Item/RockItemInstance.h"
 #include "Library/RockItemStackLibrary.h"
 
 
@@ -232,6 +233,47 @@ TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInve
 		InventoryContents.Add(LineItem);
 	}
 	return InventoryContents;
+}
+
+UObject* URockInventoryLibrary::GetTopLevelOwner(UObject* Instance)
+{
+	UObject* Current = Instance;
+	while (Current)
+	{
+		if (AActor* Actor = Cast<AActor>(Current))
+		{
+			return Actor;
+		}
+		else if (UActorComponent* Comp = Cast<UActorComponent>(Current))
+		{
+			return Comp;
+		}
+		else if (const URockInventory* Inv = Cast<URockInventory>(Current))
+		{
+			Current = Inv->GetOwner();
+			if (!Current)
+			{
+				// If we didn't have a proper owner, try and get the outer instead
+				Current = Inv->GetOuter();
+			}
+		}
+		else if (const URockItemInstance* ItemInstance = Cast<URockItemInstance>(Current))
+		{
+			Current = ItemInstance->OwningInventory;
+			
+			// This might happen if the item is on a WorldItem and not in an inventory
+			if (!Current)
+			{
+				Current = ItemInstance->GetOuter();
+			}
+		}
+		else
+		{
+			UE_LOG(LogRockInventory, Warning, TEXT("GetOwningActor Failed"));
+			break;
+		}
+	}
+	return nullptr;
 }
 
 

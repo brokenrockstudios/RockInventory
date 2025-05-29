@@ -33,6 +33,16 @@ FName FRockItemStack::GetItemId() const
 	return NAME_None;
 }
 
+URockItemDefinition* FRockItemStack::GetDefinition() const
+{
+	return Definition;
+}
+
+int32 FRockItemStack::GetStackSize() const
+{
+	return StackSize;
+}
+
 int32 FRockItemStack::GetMaxStackSize() const
 {
 	if (Definition)
@@ -43,43 +53,9 @@ int32 FRockItemStack::GetMaxStackSize() const
 	return 0;
 }
 
-bool FRockItemStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+URockItemInstance* FRockItemStack::GetRuntimeInstance() const
 {
-	bOutSuccess = true;
-
-	// Serialize basic properties
-	Ar << Definition;
-	Ar << StackSize;
-	Ar << CustomValue1;
-	Ar << CustomValue2;
-	Ar << Generation;
-
-	UObject* Instance = RuntimeInstance.Get();
-	Map->SerializeObject(Ar, URockItemInstance::StaticClass(), Instance);
-	if (Ar.IsLoading())
-	{
-		RuntimeInstance = Cast<URockItemInstance>(Instance);
-	}
-
-	// The handle to itself.
-	if (!ItemHandle.NetSerialize(Ar, Map, bOutSuccess))
-	{
-		bOutSuccess = false;
-		return false;
-	}
-
-	return true;
-}
-
-bool FRockItemStack::operator==(const FRockItemStack& Other) const
-{
-	return Definition == Other.Definition &&
-		StackSize == Other.StackSize &&
-		CustomValue1 == Other.CustomValue1 &&
-		CustomValue2 == Other.CustomValue2 &&
-		RuntimeInstance == Other.RuntimeInstance &&
-		Generation == Other.Generation &&
-		ItemHandle == Other.ItemHandle;
+	return RuntimeInstance;
 }
 
 FString FRockItemStack::GetDebugString() const
@@ -122,12 +98,6 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 	return true;
 }
 
-bool FRockItemStack::IsEmpty() const
-{
-	return StackSize <= 0;
-}
-
-
 void FRockItemStack::TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory)
 {
 	if (RuntimeInstance)
@@ -138,6 +108,27 @@ void FRockItemStack::TransferOwnership(UObject* NewOuter, URockInventory* InOwni
 		// Has no owning inventory in a world item
 		RuntimeInstance->SetOwningInventory(InOwningInventory);
 	}
+}
+
+bool FRockItemStack::operator==(const FRockItemStack& Other) const
+{
+	return Definition == Other.Definition &&
+		StackSize == Other.StackSize &&
+		RuntimeInstance == Other.RuntimeInstance &&
+		CustomValue1 == Other.CustomValue1 &&
+		CustomValue2 == Other.CustomValue2 &&
+		Generation == Other.Generation &&
+		ItemHandle == Other.ItemHandle;
+}
+
+bool FRockItemStack::operator!=(const FRockItemStack& Other) const
+{
+	return !(*this == Other);
+}
+
+bool FRockItemStack::IsEmpty() const
+{
+	return StackSize <= 0;
 }
 
 void FRockInventoryItemContainer::SetOwningInventory(URockInventory* InOwningInventory)
@@ -192,6 +183,3 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 		}
 	}
 }
-
-// UE_OBJPTR_DEPRECATED(5.0, "Conversion to a mutable pointer is deprecated.  Please pass a TObjectPtr<T>& instead so that assignment can be tracked accurately.")
-// explicit FORCEINLINE operator T*& () { return GetInternalRef(); }

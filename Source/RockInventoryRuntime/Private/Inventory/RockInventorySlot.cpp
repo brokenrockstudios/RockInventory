@@ -62,26 +62,6 @@ bool FRockInventorySlotEntry::IsValid() const
 	return true;
 }
 
-bool FRockInventorySlotEntry::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
-{
-	bOutSuccess = true;
-	Ar << Orientation;
-	Ar << bIsLocked;
-
-	// We aren't using the overriden FArchive operator<< because we are saving a few network bytes with custom serializer 
-	if (!SlotHandle.NetSerialize(Ar, Map, bOutSuccess))
-	{
-		bOutSuccess = false;
-		return false;
-	}
-	if (!ItemHandle.NetSerialize(Ar, Map, bOutSuccess))
-	{
-		bOutSuccess = false;
-		return false;
-	}
-	return true;
-}
-
 void FRockInventorySlotContainer::SetOwningInventory(URockInventory* InOwningInventory)
 {
 	OwnerInventory = InOwningInventory;

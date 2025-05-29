@@ -5,6 +5,7 @@
 #include "RockInventoryLogging.h"
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
+#include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -17,7 +18,6 @@ void URockItemInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(URockItemInstance, CachedDefinition);
 	DOREPLIFETIME(URockItemInstance, StatTags);
 	DOREPLIFETIME(URockItemInstance, NestedInventory);
-	// DOREPLIFETIME(URockItemInstance, StatStackContainer);
 }
 
 
@@ -82,14 +82,7 @@ void URockItemInstance::SetOwningInventory(URockInventory* InOwningInventory)
 
 void URockItemInstance::RegisterReplicationWithOwner()
 {
-	URockInventory* Inventory = GetOwningInventory();
-	if (!Inventory)
-	{
-		UE_LOG(LogRockInventory, Error, TEXT("URockItemInstance::RegisterReplicationWithOwner: OwningInventory is null"));
-		return;
-	}
-
-	UObject* topLevelOwner = Inventory->GetTopLevelOwner();
+	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
 	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
 	{
 		Component->AddReplicatedSubObject(this);
@@ -111,14 +104,7 @@ void URockItemInstance::RegisterReplicationWithOwner()
 
 void URockItemInstance::UnregisterReplicationWithOwner()
 {
-	URockInventory* Inventory = GetOwningInventory();
-	if (!Inventory)
-	{
-		UE_LOG(LogRockInventory, Error, TEXT("URockItemInstance::UnregisterReplicationWithOwner: OwningInventory is null"));
-		return;
-	}
-
-	UObject* topLevelOwner = Inventory->GetTopLevelOwner();
+	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
 	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
 	{
 		Component->RemoveReplicatedSubObject(this);
@@ -131,6 +117,11 @@ void URockItemInstance::UnregisterReplicationWithOwner()
 	{
 		NestedInventory->UnregisterReplicationWithOwner();
 	}
+}
+
+URockInventory* URockItemInstance::GetOwningInventory() const
+{
+	return OwningInventory.Get();
 }
 
 void URockItemInstance::SetSlotHandle(FRockInventorySlotHandle InSlotHandle)

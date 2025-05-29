@@ -97,4 +97,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Debug")
 	static TArray<FString> GetInventoryContentsDebug(const URockInventory* Inventory);
+
+	// This needs to point to where the inventory is registered for replication
+	static UObject* GetTopLevelOwner(UObject* Instance);
+	
 };

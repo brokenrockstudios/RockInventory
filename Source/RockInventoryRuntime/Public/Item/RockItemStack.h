@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "RockItemStackHandle.h"
+#include "Iris/ReplicationState/IrisFastArraySerializer.h"
 #include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
-#include "UObject/Object.h"
 
 #include "RockItemStack.generated.h"
 
@@ -62,7 +62,7 @@ private:
 	 * Since we don't 'shrink' the inventory array, we need to have a way to indicate that this item stack is stale. Thus the Generation */
 	UPROPERTY(VisibleAnywhere)
 	uint8 Generation = 0;
-	
+
 public:
 	FRockItemStack() = default;
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
@@ -71,23 +71,21 @@ public:
 
 	// Core functionality
 	FName GetItemId() const;
-	URockItemDefinition* GetDefinition() const { return Definition; }
-	int32 GetStackSize() const { return StackSize; }
+	URockItemDefinition* GetDefinition() const;
+	int32 GetStackSize() const;
 	int32 GetMaxStackSize() const;
-	URockItemInstance* GetRuntimeInstance() const { return RuntimeInstance; }
+	URockItemInstance* GetRuntimeInstance() const;
 
-	/** Gets the item definition for this item stack */
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-
-	bool operator==(const FRockItemStack& Other) const;
 	FString GetDebugString() const;
 	bool IsValid() const;
 	void Reset();
-
 	bool CanStackWith(const FRockItemStack& Other) const;
-	/** Returns true if the stack is empty (StackSize <= 0) */
-	inline bool IsEmpty() const;
 	void TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory);
+
+	bool operator==(const FRockItemStack& Other) const;
+	bool operator!=(const FRockItemStack& Other) const;
+	bool IsEmpty() const;
+
 };
 
 template <>
@@ -95,14 +93,12 @@ struct TStructOpsTypeTraits<FRockItemStack> : public TStructOpsTypeTraitsBase2<F
 {
 	enum
 	{
-		WithNetSerializer = true,
-		WithNetSharedSerialization = true,
 		WithIdenticalViaEquality = true,
 	};
 };
 
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockInventoryItemContainer : public FFastArraySerializer
+struct ROCKINVENTORYRUNTIME_API FRockInventoryItemContainer : public FIrisFastArraySerializer
 {
 	GENERATED_BODY()
 
@@ -119,15 +115,14 @@ public:
 	// Set the owner inventory
 	void SetOwningInventory(URockInventory* InOwningInventory);
 
-	// Override PostReplicatedChange to notify the owner about changes
-	//~ FFastArraySerializer contract
+	//~ Begin FFastArraySerializer
 	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
 	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
 	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
-	//~ End of FFastArraySerializer contract
-	
+	//~ End FFastArraySerializer
+
 	ROCKINVENTORY_FastArraySerializer_TArray_ACCESSORS(AllSlots);
-	
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return FFastArraySerializer::FastArrayDeltaSerialize<FRockItemStack, FRockInventoryItemContainer>(AllSlots, DeltaParms, *this);

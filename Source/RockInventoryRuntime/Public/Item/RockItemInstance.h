@@ -29,6 +29,7 @@ class ROCKINVENTORYRUNTIME_API URockItemInstance : public UObject
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetDefinition(const TObjectPtr<URockItemDefinition>& object);
+	
 	///////////////////////////////////////////////////////////////////////////
 	// Core Properties~
 
@@ -51,13 +52,16 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	FGameplayTagContainer StatTags;
 
-	// TODO: Add support for gameplay stack containers
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
-	// FGameplayStackContainer StatStackContainer;
-
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	TObjectPtr<URockInventory> NestedInventory = nullptr;
 
+
+#ifdef BRS_WITH_GAMEPLAYABILITIES
+	// TODO: Add support for gameplay stack containers
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
+	// FGameplayStackContainer StatStackContainer;
+#endif // BRS_WITH_GAMEPLAYABILITIES
+	
 	// TODO: Add mutable fragments. 
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	// TArray<FRockItemMutableFragments> Fragments;
@@ -70,7 +74,7 @@ public:
 	void UnregisterReplicationWithOwner();
 
 	/** Gets the owning inventory for this item instance */
-	URockInventory* GetOwningInventory() const { return OwningInventory.Get(); }
+	URockInventory* GetOwningInventory() const;
 
 	/** Sets the slot handle for this item instance */
 	void SetSlotHandle(FRockInventorySlotHandle InSlotHandle);

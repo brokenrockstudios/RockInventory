@@ -5,6 +5,11 @@ FRockItemStackHandle::FRockItemStackHandle() :
 {
 }
 
+void FRockItemStackHandle::Reset()
+{
+	Handle = INDEX_NONE;
+}
+
 FRockItemStackHandle FRockItemStackHandle::Create(uint32 InIndex, uint32 InGeneration)
 {
 	FRockItemStackHandle Result;
@@ -21,10 +26,51 @@ FRockItemStackHandle FRockItemStackHandle::Create(uint32 InIndex, uint32 InGener
 	return Result;
 }
 
-bool FRockItemStackHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+FRockItemStackHandle FRockItemStackHandle::Invalid()
 {
-	bOutSuccess = true;
-	Ar << Handle;
-	
-	return true;
+	return FRockItemStackHandle();
+}
+
+bool FRockItemStackHandle::IsValid() const
+{
+	return Handle != INDEX_NONE;
+}
+
+int32 FRockItemStackHandle::GetIndex() const
+{
+	return Handle & INDEX_MASK;
+}
+
+int32 FRockItemStackHandle::GetGeneration() const
+{
+	return (Handle & GENERATION_HANDLE_MASK) >> GENERATION_SHIFT;
+}
+
+FString FRockItemStackHandle::ToString() const
+{
+	if (!IsValid())
+	{
+		return TEXT("Invalid");
+	}
+	return FString::Printf(TEXT("ItemHandle[Index:%u,Gen:%u]"), GetIndex(), GetGeneration());
+}
+
+uint32 FRockItemStackHandle::GetHash() const
+{
+	return GetTypeHash(Handle);
+}
+
+bool FRockItemStackHandle::operator==(const FRockItemStackHandle& OtherSlotHandle) const
+{
+	return Handle == OtherSlotHandle.Handle;
+}
+
+bool FRockItemStackHandle::operator!=(const FRockItemStackHandle& OtherSlotHandle) const
+{
+	return !(*this == OtherSlotHandle);
+}
+
+FRockItemStackHandle::operator bool() const
+{
+	return IsValid();
 }
