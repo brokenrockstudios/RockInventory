@@ -9,7 +9,7 @@
 #include "RockDropItemTransaction.generated.h"
 
 class URockInventory;
-class ARockInventoryWorldItem;
+class ARockInventoryWorldItemBase;
 
 USTRUCT(BlueprintType)
 struct FRockDropItemUndoTransaction
@@ -21,7 +21,7 @@ struct FRockDropItemUndoTransaction
 
 	// Place this item
 	UPROPERTY()
-	TWeakObjectPtr<ARockInventoryWorldItem> SpawnedItemStack = nullptr;
+	TWeakObjectPtr<ARockInventoryWorldItemBase> SpawnedItemStack = nullptr;
 	// In this inventory
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> TargetInventory = nullptr;

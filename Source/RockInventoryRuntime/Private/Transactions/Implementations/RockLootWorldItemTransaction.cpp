@@ -47,9 +47,15 @@ bool FRockLootWorldItemTransaction::CanExecute() const
 	{
 		return false;
 	}
+	const IRockWorldItemInterface* WorldItemInterfaceActor = Cast<IRockWorldItemInterface>(SourceWorldItemActor);
+	if (!WorldItemInterfaceActor)
+	{
+		UE_LOG(LogRockInventory, Error, TEXT("SourceWorldItemActor %s does not implement URockWorldItemInterface!"), *SourceWorldItemActor->GetName());
+		return false;
+	}
 
 	// What Item are we looting?
-	const FRockItemStack ItemStack = IRockWorldItemInterface::Execute_GetItemStack(SourceWorldItemActor, Instigator.Get());
+	const FRockItemStack ItemStack = WorldItemInterfaceActor->GetItemStack(Instigator.Get());
 	if (!ItemStack.IsValid())
 	{
 		return false;
@@ -77,14 +83,20 @@ FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute()
 	{
 		return UndoData;
 	}
-
+	IRockWorldItemInterface* WorldItemInterfaceActor = Cast<IRockWorldItemInterface>(SourceWorldItemActor);
+	if (!WorldItemInterfaceActor)
+	{
+		UE_LOG(LogRockInventory, Error, TEXT("SourceWorldItemActor %s does not implement URockWorldItemInterface!"), *SourceWorldItemActor->GetName());
+		return UndoData;
+	}
+	
 	// What Item are we looting?
-	const FRockItemStack ItemStack = IRockWorldItemInterface::Execute_GetItemStack(SourceWorldItemActor, TargetInventory->GetOwningActor());
+	const FRockItemStack ItemStack = WorldItemInterfaceActor->GetItemStack(TargetInventory->GetOwningActor());
 	
 	UndoData.bSuccess = URockInventoryLibrary::LootItemToInventory(TargetInventory, ItemStack, UndoData.TargetSlotHandle, UndoData.Excess);
 
 	// Let the actor know how much we took, so it can reconcile if it should delete itself or whatever.
-	IRockWorldItemInterface::Execute_OnLooted(SourceWorldItemActor, TargetInventory->GetOwningActor(), ItemStack, UndoData.Excess);
+	WorldItemInterfaceActor->OnLooted(TargetInventory->GetOwningActor(), ItemStack, UndoData.Excess);
 
 	return UndoData;
 }

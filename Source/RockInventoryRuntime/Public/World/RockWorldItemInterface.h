@@ -7,7 +7,7 @@
 #include "UObject/Interface.h"
 #include "RockWorldItemInterface.generated.h"
 
-UINTERFACE()
+UINTERFACE(meta = (CannotImplementInterfaceInBlueprint))
 class URockWorldItemInterface : public UInterface
 {
 	GENERATED_BODY()
@@ -22,26 +22,25 @@ class ROCKINVENTORYRUNTIME_API IRockWorldItemInterface
 
 public:
 	/** Sets the internal item stack for this pickup item (e.g., after spawning or merging). */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "RockInventory")
-	void SetItemStack(const FRockItemStack& InItemStack);
-
+	UFUNCTION(BlueprintCallable, Category = "RockInventory")
+	virtual void SetItemStack(const FRockItemStack& InItemStack) = 0;
 	/**
 	 * Returns the item this actor *offers* to the instigator for looting.
 	 * May vary depending on team, pawn type, equipment, or internal logic.
 	 * If InstigatorPawn is null, it is not context-sensitive.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "RockInventory")
-	FRockItemStack GetItemStack(AActor* InstigatorPawn = nullptr) const;
+	UFUNCTION(BlueprintCallable, Category = "RockInventory")
+	virtual FRockItemStack GetItemStack(AActor* InstigatorPawn = nullptr) const = 0;
 
 	// If using the transaction system, this might not be called. 
 	/** Called whenever this item is picked up (client or server; possibly cosmetic). */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "RockInventory")
-	void OnPickedUp(AActor* Instigator);
+	UFUNCTION(BlueprintCallable, Category = "RockInventory")
+	virtual void OnPickedUp(AActor* Instigator) = 0;
 
 	/**
 	 * Called after a successful server-authoritative loot transaction.
 	 * Implementations should update internal state (e.g., reduce stack count or destroy self).
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "RockInventory")
-	void OnLooted(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 ExcessAmount);
+	UFUNCTION(BlueprintCallable, Category = "RockInventory")
+	virtual void OnLooted(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 ExcessAmount) = 0;
 };

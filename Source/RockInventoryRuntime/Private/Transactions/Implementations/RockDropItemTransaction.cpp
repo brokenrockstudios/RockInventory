@@ -2,6 +2,7 @@
 
 #include "Transactions/Implementations/RockDropItemTransaction.h"
 
+#include "RockInventoryLogging.h"
 #include "Inventory/RockInventory.h"
 #include "Kismet/GameplayStatics.h"
 #include "Library/RockInventoryLibrary.h"
@@ -49,15 +50,21 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 
 	transform.AddToTranslation(transform.GetRotation().GetForwardVector() * DropLocationOffset.Size());
 
-	ARockInventoryWorldItem* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItem>(
+	ARockInventoryWorldItemBase* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItemBase>(
 		GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass, transform);
 
 	if (!IsValid(NewWorldItem))
 	{
 		return UndoTransaction;
 	}
-
-	NewWorldItem->Execute_SetItemStack(NewWorldItem, Item);
+	IRockWorldItemInterface* WorldItemInterfaceActor = Cast<IRockWorldItemInterface>(NewWorldItem);
+	if (!WorldItemInterfaceActor)
+	{
+		UE_LOG(LogRockInventory, Error, TEXT("NewWorldItem does not implement URockWorldItemInterface!"));
+		return UndoTransaction;
+	}
+	
+	WorldItemInterfaceActor->SetItemStack(Item);
 	if (NewWorldItem->StaticMeshComponent->IsSimulatingPhysics())
 	{
 		NewWorldItem->StaticMeshComponent->AddImpulse(Impulse, NAME_None, true);

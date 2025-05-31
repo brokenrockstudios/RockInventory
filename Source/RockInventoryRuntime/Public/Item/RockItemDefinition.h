@@ -17,6 +17,7 @@ struct FRockItemUIData
 	GENERATED_BODY()
 
 public:
+	// Hover text for the icon.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI")
 	FText Description;
 
@@ -56,14 +57,18 @@ class ROCKINVENTORYRUNTIME_API URockItemDefinition : public UPrimaryDataAsset
 public:
 	//////////////////////////////////////////////////////////////////////////	
 	// Item ID
+	// "RedApple"
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FName ItemId;
 	//////////////////////////////////////////////////////////////////////////
 	// Display (Tooltips)
+	// e.g. "Apple"
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText Name;
+	// "A delicious red apple."
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText DisplayName;
+	// "A crisp apple, perfect for a quick snack. Restores a small amount of health.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText Description;
 	//////////////////////////////////////////////////////////////////////////
@@ -71,7 +76,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	int32 MaxStackSize = 1;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
-	FVector2D SlotDimensions;
+	FVector2D SlotDimensions = FVector2D(1.0f, 1.0f);
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	FRockItemUIData IconData;
 	//////////////////////////////////////////////////////////////////////////
@@ -140,7 +145,7 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////
 	/// Fragments
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100))
 	TArray<FRockItemFragmentInstance> ItemFragments;
 
 

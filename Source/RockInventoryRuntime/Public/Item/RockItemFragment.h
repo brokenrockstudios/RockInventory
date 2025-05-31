@@ -100,7 +100,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragmentInstance
 	TInstancedStruct<FRockItemFragment> Fragment;
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(EditDefaultsOnly, Category = "Item")
+	UPROPERTY(EditDefaultsOnly, Category = "Item", meta=(EditConditionHides,EditCondition=false))
 	FGuid FragmentGuid;
 #endif // WITH_EDITORONLY_DATA
 };

@@ -6,7 +6,7 @@
 #include "Engine/DeveloperSettings.h"
 #include "RockInventoryDeveloperSettings.generated.h"
 
-class ARockInventoryWorldItem;
+class ARockInventoryWorldItemBase;
 /**
  * 
  */
@@ -19,7 +19,7 @@ public:
 	URockInventoryDeveloperSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditDefaultsOnly, Config, Category = "RockInventory")
-	TSubclassOf<ARockInventoryWorldItem> DefaultWorldItemClass;
+	TSubclassOf<ARockInventoryWorldItemBase> DefaultWorldItemClass;
 	
 
 #if WITH_EDITOR

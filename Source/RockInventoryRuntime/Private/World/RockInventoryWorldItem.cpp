@@ -10,7 +10,7 @@
 #include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
 
-ARockInventoryWorldItem::ARockInventoryWorldItem(const FObjectInitializer& ObjectInitializer)
+ARockInventoryWorldItemBase::ARockInventoryWorldItemBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -25,31 +25,35 @@ ARockInventoryWorldItem::ARockInventoryWorldItem(const FObjectInitializer& Objec
 
 	bReplicates = true;
 	ItemStack = FRockItemStack();
+	
+	// Default stack size for world items
+	// NOTE: Generally we shouldn't be setting values like this, but this is a rare exception where we want to ensure that the item stack is initialized with a sensible default.
+	ItemStack.StackSize = 1;
 }
 
-void ARockInventoryWorldItem::BeginPlay()
+void ARockInventoryWorldItemBase::BeginPlay()
 {
 	Super::BeginPlay();
 	// Normally we shouldn't call the implementation directly, but 🤷‍♂️
-	Execute_SetItemStack(this, ItemStack);
+	SetItemStack(ItemStack);
 }
 
-void ARockInventoryWorldItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void ARockInventoryWorldItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ARockInventoryWorldItem, ItemStack);
+	DOREPLIFETIME(ARockInventoryWorldItemBase, ItemStack);
 }
 
-FRockItemStack ARockInventoryWorldItem::GetItemStack_Implementation(AActor* InstigatorPawn) const
+FRockItemStack ARockInventoryWorldItemBase::GetItemStack(AActor* InstigatorPawn) const
 {
 	return ItemStack;
 }
 
-void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& InItemStack)
+void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack)
 {
 	// Should we properly initialize this InItemStack (e.g. create the item instance now or 'later'?)
 	// currently assuming we will only create it upon 'looting' the item.
-
+	UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Setting item stack: %s"), *InItemStack.GetDebugString());
 
 	ItemStack = InItemStack;
 	ItemStack.TransferOwnership(this, nullptr);
@@ -69,7 +73,15 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	// Check if the mesh is already loaded
 	if (Mesh == nullptr)
 	{
+		
 		StaticMeshComponent->SetStaticMesh(nullptr);
+#if WITH_EDITOR
+		// Set it to the CDO of this class if it exists, otherwise set to nullptr
+		if (UStaticMesh* DefaultMesh = GetClass()->GetDefaultObject<ARockInventoryWorldItemBase>()->StaticMeshComponent->GetStaticMesh())
+		{
+			StaticMeshComponent->SetStaticMesh(DefaultMesh);
+		}
+#endif
 		return;
 	}
 	else if (Mesh.IsValid())
@@ -94,7 +106,7 @@ void ARockInventoryWorldItem::SetItemStack_Implementation(const FRockItemStack& 
 	}
 }
 
-void ARockInventoryWorldItem::OnPickedUp_Implementation(AActor* InInstigator)
+void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)
 {
 	URockInventoryComponent* InventoryComp = Cast<URockInventoryComponent>(InInstigator->GetComponentByClass(URockInventoryComponent::StaticClass()));
 	if (InventoryComp)
@@ -118,7 +130,7 @@ void ARockInventoryWorldItem::OnPickedUp_Implementation(AActor* InInstigator)
 	}
 }
 
-void ARockInventoryWorldItem::OnLooted_Implementation(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 Excess)
+void ARockInventoryWorldItemBase::OnLooted(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 Excess)
 {
 	ItemStack.StackSize = Excess;
 	if (ItemStack.StackSize <= 0)
@@ -127,14 +139,15 @@ void ARockInventoryWorldItem::OnLooted_Implementation(AActor* InstigatorPawn, co
 	}
 }
 
-void ARockInventoryWorldItem::OnRep_ItemStack()
+void ARockInventoryWorldItemBase::OnRep_ItemStack()
 {
-	Execute_SetItemStack(this, ItemStack);
+	SetItemStack(ItemStack);
 }
 
 #if WITH_EDITOR
-void ARockInventoryWorldItem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void ARockInventoryWorldItemBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItemBase::PostEditChangeProperty - Property: %s"), *PropertyChangedEvent.GetPropertyName().ToString());
 	// Check if the changed property is directly the ItemStack or a nested property within it
 	if (PropertyChangedEvent.Property)
 	{
@@ -142,10 +155,13 @@ void ARockInventoryWorldItem::PostEditChangeProperty(FPropertyChangedEvent& Prop
 		const FName MemberPropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
 
 		// If the property is directly ItemStack or a parent of ItemStack
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(ARockInventoryWorldItem, ItemStack) ||
-			(MemberPropertyName == GET_MEMBER_NAME_CHECKED(ARockInventoryWorldItem, ItemStack)))
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(ARockInventoryWorldItemBase, ItemStack))
 		{
-			Execute_SetItemStack(this, ItemStack);
+			SetItemStack(ItemStack);
+		}
+		else if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(ARockInventoryWorldItemBase, ItemStack))
+		{
+			SetItemStack(ItemStack);
 		}
 	}
 	Super::PostEditChangeProperty(PropertyChangedEvent);
