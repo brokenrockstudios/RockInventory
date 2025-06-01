@@ -9,7 +9,6 @@
 
 #include "RockItemFragment.generated.h"
 
-struct FRockItemStack;
 /**
  * Base struct for item fragment data types used by the Rock Inventory system.
  * Derived structs define specific fragment behavior that can be attached to items.

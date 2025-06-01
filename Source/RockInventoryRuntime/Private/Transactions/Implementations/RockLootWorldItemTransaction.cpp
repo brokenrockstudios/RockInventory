@@ -5,7 +5,7 @@
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventory.h"
 #include "Library/RockInventoryLibrary.h"
-#include "World/RockWorldItemInterface.h"
+#include "World/RockLootableInterface.h"
 
 
 bool FRockLootWorldItemUndoTransaction::CanUndo()
@@ -43,11 +43,11 @@ bool FRockLootWorldItemTransaction::CanExecute() const
 	{
 		return false;
 	}
-	if (!SourceWorldItemActor->GetClass()->ImplementsInterface(URockWorldItemInterface::StaticClass()))
+	if (!SourceWorldItemActor->GetClass()->ImplementsInterface(URockLootableInterface::StaticClass()))
 	{
 		return false;
 	}
-	const IRockWorldItemInterface* WorldItemInterfaceActor = Cast<IRockWorldItemInterface>(SourceWorldItemActor);
+	const IRockLootableInterface* WorldItemInterfaceActor = Cast<IRockLootableInterface>(SourceWorldItemActor);
 	if (!WorldItemInterfaceActor)
 	{
 		UE_LOG(LogRockInventory, Error, TEXT("SourceWorldItemActor %s does not implement URockWorldItemInterface!"), *SourceWorldItemActor->GetName());
@@ -73,7 +73,7 @@ FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute()
 	checkf(TargetInventory, TEXT("TargetInventory is not valid"));
 	checkf(TargetInventory->GetOwningActor(), TEXT("TargetInventory OwningActor is not valid"));
 	checkf(SourceWorldItemActor, TEXT("SourceWorldItemActor is not valid"));
-	checkf(SourceWorldItemActor->GetClass()->ImplementsInterface(URockWorldItemInterface::StaticClass()), TEXT("SourceWorldItemActor does not implement URockLootableWorldItem"));
+	checkf(SourceWorldItemActor->GetClass()->ImplementsInterface(URockLootableInterface::StaticClass()), TEXT("SourceWorldItemActor does not implement URockLootableWorldItem"));
 
 	// Anticheat: Check distance to inventory.
 	constexpr float MaxAddDistance = 1000.0f;
@@ -83,7 +83,7 @@ FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute()
 	{
 		return UndoData;
 	}
-	IRockWorldItemInterface* WorldItemInterfaceActor = Cast<IRockWorldItemInterface>(SourceWorldItemActor);
+	IRockLootableInterface* WorldItemInterfaceActor = Cast<IRockLootableInterface>(SourceWorldItemActor);
 	if (!WorldItemInterfaceActor)
 	{
 		UE_LOG(LogRockInventory, Error, TEXT("SourceWorldItemActor %s does not implement URockWorldItemInterface!"), *SourceWorldItemActor->GetName());

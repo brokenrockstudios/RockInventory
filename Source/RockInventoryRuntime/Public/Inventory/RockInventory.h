@@ -171,6 +171,8 @@ public:
 	int32 GetItemTotalCount();
 
 
+	// TODO: Should we handle ActivateItem, DeactivateItem, UseItem
+	// Or should other classes handle that?
 };
 
 

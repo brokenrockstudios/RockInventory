@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Inventory/RockPendingSlotOperation.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Transactions/Implementations/RockDropItemTransaction.h"
 #include "Transactions/Implementations/RockLootWorldItemTransaction.h"
@@ -36,7 +37,9 @@ struct FRockInventoryTransactionRecord
 
 class URockInventoryManager;
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+
+// Should put this on the PlayerController?
+UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ROCKINVENTORYRUNTIME_API URockInventoryManagerComponent : public UActorComponent
 {
 	GENERATED_BODY()

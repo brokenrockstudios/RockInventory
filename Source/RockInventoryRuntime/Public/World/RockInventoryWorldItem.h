@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RockWorldItemInterface.h"
+#include "RockLootableInterface.h"
 #include "GameFramework/Actor.h"
 #include "Item/RockItemStack.h"
 #include "RockInventoryWorldItem.generated.h"
 
 // Note: This is only an example of a WorldItem.
 // You can use any actor with the added interface or optionally also replace the Transactions with your own
-UCLASS(Abstract)
-class ROCKINVENTORYRUNTIME_API ARockInventoryWorldItemBase : public AActor, public IRockWorldItemInterface
+UCLASS(Abstract, PrioritizeCategories ="RockInventory")
+class ROCKINVENTORYRUNTIME_API ARockInventoryWorldItemBase : public AActor, public IRockLootableInterface
 {
 	GENERATED_BODY()
 public:
@@ -24,14 +24,14 @@ public:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
 
-	// IRockWorldItemInterface
+	// IRockLootableInterface
 	virtual FRockItemStack GetItemStack(AActor *InstigatorPawn) const override;
 	virtual void SetItemStack(const FRockItemStack &InItemStack) override;
 	virtual void OnPickedUp(AActor *InInstigator) override;
 	virtual void OnLooted(AActor *InstigatorPawn, const FRockItemStack &LootedItem, int32 Excess) override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_ItemStack)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_ItemStack, Category = "RockInventory")
 	FRockItemStack ItemStack;
 
 	UFUNCTION()

@@ -147,13 +147,13 @@ void ARockInventoryWorldItemBase::OnRep_ItemStack()
 #if WITH_EDITOR
 void ARockInventoryWorldItemBase::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItemBase::PostEditChangeProperty - Property: %s"), *PropertyChangedEvent.GetPropertyName().ToString());
 	// Check if the changed property is directly the ItemStack or a nested property within it
 	if (PropertyChangedEvent.Property)
 	{
 		const FName PropertyName = PropertyChangedEvent.GetPropertyName();
 		const FName MemberPropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
 
+		// TODO: Should change this to only really need to update on Definition changes, but for now we will update on any change to the ItemStack
 		// If the property is directly ItemStack or a parent of ItemStack
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(ARockInventoryWorldItemBase, ItemStack))
 		{

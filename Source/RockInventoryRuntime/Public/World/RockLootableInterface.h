@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "Item/RockItemStack.h"
 #include "UObject/Interface.h"
-#include "RockWorldItemInterface.generated.h"
+#include "RockLootableInterface.generated.h"
 
-UINTERFACE(meta = (CannotImplementInterfaceInBlueprint))
-class URockWorldItemInterface : public UInterface
+UINTERFACE(BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
+class URockLootableInterface : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -16,7 +16,7 @@ class URockWorldItemInterface : public UInterface
 /**
  * 
  */
-class ROCKINVENTORYRUNTIME_API IRockWorldItemInterface
+class ROCKINVENTORYRUNTIME_API IRockLootableInterface
 {
 	GENERATED_BODY()
 

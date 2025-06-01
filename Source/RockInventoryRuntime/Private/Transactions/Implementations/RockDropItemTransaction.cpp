@@ -57,7 +57,7 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 	{
 		return UndoTransaction;
 	}
-	IRockWorldItemInterface* WorldItemInterfaceActor = Cast<IRockWorldItemInterface>(NewWorldItem);
+	IRockLootableInterface* WorldItemInterfaceActor = Cast<IRockLootableInterface>(NewWorldItem);
 	if (!WorldItemInterfaceActor)
 	{
 		UE_LOG(LogRockInventory, Error, TEXT("NewWorldItem does not implement URockWorldItemInterface!"));

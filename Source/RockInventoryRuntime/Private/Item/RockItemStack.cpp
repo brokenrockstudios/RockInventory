@@ -6,6 +6,8 @@
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
 
+
+
 FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize)
 	: StackSize(InStackSize)
 {
@@ -21,7 +23,8 @@ FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackS
 
 FRockItemStack FRockItemStack::Invalid()
 {
-	return FRockItemStack();
+	static FRockItemStack InvalidRockItemStack(nullptr, 0);
+	return InvalidRockItemStack;
 }
 
 FName FRockItemStack::GetItemId() const
