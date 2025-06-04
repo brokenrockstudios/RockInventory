@@ -14,20 +14,24 @@ ARockInventoryWorldItemBase::ARockInventoryWorldItemBase(const FObjectInitialize
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	RootComponent->SetMobility(EComponentMobility::Movable);
-	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
-	StaticMeshComponent->SetupAttachment(RootComponent);
-	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
-	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	StaticMeshComponent->CanCharacterStepUpOn = ECanBeCharacterBase::ECB_No;
-
 	bReplicates = true;
+	bReplicateUsingRegisteredSubObjectList = true;
+
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
+	// By default, we will leave physics false, but we can set it to true if we want to simulate physics
+	// perhaps when an item is dropped or thrown.
+	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
+	StaticMeshComponent->SetSimulatePhysics(false);
+	StaticMeshComponent->CanCharacterStepUpOn = ECanBeCharacterBase::ECB_No;
+	//StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	
+	RootComponent = StaticMeshComponent; // Set the root component to the static mesh component
+	
 	ItemStack = FRockItemStack();
 	
 	// Default stack size for world items
 	// NOTE: Generally we shouldn't be setting values like this, but this is a rare exception where we want to ensure that the item stack is initialized with a sensible default.
+	// Generally, we probably want an 'item generator' and not to be placing items directly, where that'd set it appropriately.
 	ItemStack.StackSize = 1;
 }
 
@@ -53,8 +57,6 @@ void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack
 {
 	// Should we properly initialize this InItemStack (e.g. create the item instance now or 'later'?)
 	// currently assuming we will only create it upon 'looting' the item.
-	UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItem::SetItemStack - Setting item stack: %s"), *InItemStack.GetDebugString());
-
 	ItemStack = InItemStack;
 	ItemStack.TransferOwnership(this, nullptr);
 	if (GetLocalRole() == ROLE_Authority)
@@ -73,7 +75,6 @@ void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack
 	// Check if the mesh is already loaded
 	if (Mesh == nullptr)
 	{
-		
 		StaticMeshComponent->SetStaticMesh(nullptr);
 #if WITH_EDITOR
 		// Set it to the CDO of this class if it exists, otherwise set to nullptr
