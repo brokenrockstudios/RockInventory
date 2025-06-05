@@ -12,7 +12,8 @@ class URockInventory;
 /**
  * 
  */
-UCLASS(BlueprintType, Blueprintable)
+// This is the base class for drag and drop operations in the Rock Inventory UI.
+UCLASS(BlueprintType, Blueprintable, Abstract)
 class ROCKINVENTORYUI_API URockItemDragDropOperation : public UDragDropOperation
 {
 	GENERATED_BODY()
@@ -45,14 +46,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	int32 MoveCount = 1;
 
-
 	bool bRunOnce = false;
-
 
 	virtual void Dragged_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
 	virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;
-
 
 	// Set this in the blueprint parent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop")

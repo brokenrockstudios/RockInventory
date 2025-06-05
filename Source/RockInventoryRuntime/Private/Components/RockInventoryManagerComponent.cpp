@@ -169,7 +169,7 @@ void URockInventoryManagerComponent::Server_MoveItem_Implementation(FRockMoveIte
 {
 	if (GetOwnerRole() != ROLE_Authority)
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Server_DropItem - Not authority!"));
+		UE_LOG(LogRockInventory, Warning, TEXT("Server_MoveItem - Not authority!"));
 		return;
 	}
 	// If we can't execute, don't execute and don't add to history

@@ -23,7 +23,8 @@ class ROCKINVENTORYRUNTIME_API IRockInventoryInterface
 	GENERATED_BODY()
 
 public:
-	virtual URockInventory* GetInventoryComponent() const = 0;
+	virtual URockInventory* GetInventory() const = 0;
+	
 };
 
 

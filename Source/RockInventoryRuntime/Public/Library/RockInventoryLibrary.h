@@ -11,6 +11,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "RockInventoryLibrary.generated.h"
 
+class URockInventoryComponent;
 class URockInventory;
 
 /**
@@ -101,5 +102,8 @@ public:
 
 	// This needs to point to where the inventory is registered for replication
 	static UObject* GetTopLevelOwner(UObject* Instance);
-	
+
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Components")
+	static URockInventory* GetInventory(AActor* Actor, bool bFindComponentByClass = false);
 };

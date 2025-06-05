@@ -9,6 +9,10 @@
 
 class URockInventoryConfig;
 
+
+
+
+
 /**
  * RockInventoryComponent provides inventory management functionality for actors
  * Manages item storage, retrieval, and organization based on a configurable inventory layout
