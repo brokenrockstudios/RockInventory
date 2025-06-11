@@ -2,7 +2,6 @@
 
 #include "UI/RockItemDragDropOperation.h"
 
-#include "RockInventoryUILogging.h"
 #include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
@@ -55,6 +54,8 @@ void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEven
 {
 	if (SourceInventory && SourceSlotHandle.IsValid())
 	{
+		// NOTE: This is kind of 'game specific' choice, other people likely want to override this DragCancelled and do what is appropriate for their game.
+		
 		const FRockDropItemTransaction& DropTransaction = FRockDropItemTransaction(
 			Instigator, SourceInventory, SourceSlotHandle, DropLocationOffset, FVector::ZeroVector);
 

@@ -13,12 +13,12 @@ public class RockInventoryRuntime : ModuleRules
 			{
 				"Core",
 				// ... add other public dependencies that you statically link with here ...
-
 				"GameplayAbilities",
 				"GameplayTags",
 				"GameplayTasks",
 				"UMG",
 				"DeveloperSettings",
+				"StructUtils",
 			}
 		);
 

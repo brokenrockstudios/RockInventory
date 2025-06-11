@@ -66,8 +66,6 @@ private:
 public:
 	FRockItemStack() = default;
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
-	// create invalid stack
-	static FRockItemStack Invalid();
 
 	// Core functionality
 	FName GetItemId() const;
@@ -75,17 +73,20 @@ public:
 	int32 GetStackSize() const;
 	int32 GetMaxStackSize() const;
 	URockItemInstance* GetRuntimeInstance() const;
+	bool CanStackWith(const FRockItemStack& Other) const;
 
+	// Util
 	FString GetDebugString() const;
 	bool IsValid() const;
 	void Reset();
-	bool CanStackWith(const FRockItemStack& Other) const;
 	void TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory);
 
 	bool operator==(const FRockItemStack& Other) const;
 	bool operator!=(const FRockItemStack& Other) const;
 	bool IsEmpty() const;
 
+	// create invalid stack
+	static FRockItemStack Invalid();
 };
 
 template <>

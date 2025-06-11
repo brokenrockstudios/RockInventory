@@ -34,6 +34,7 @@ public:
 	// Core Properties~
 
 	/** The inventory that currently owns this item instance */
+	// Note: This might be null, in the case of a 'world item' that is not currently in an inventory.
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
 	TObjectPtr<URockInventory> OwningInventory = nullptr;
 

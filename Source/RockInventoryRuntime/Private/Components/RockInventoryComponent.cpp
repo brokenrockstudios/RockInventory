@@ -4,7 +4,6 @@
 #include "Components/RockInventoryComponent.h"
 
 #include "RockInventoryLogging.h"
-#include "Engine/ActorChannel.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Misc/DataValidation.h"
 #include "Net/UnrealNetwork.h"
