@@ -35,9 +35,6 @@ struct FRockInventoryTransactionRecord
 	bool ExecuteUndo();
 };
 
-class URockInventoryManager;
-
-
 // Should put this on the PlayerController?
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ROCKINVENTORYRUNTIME_API URockInventoryManagerComponent : public UActorComponent

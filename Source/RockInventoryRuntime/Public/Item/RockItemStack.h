@@ -86,7 +86,7 @@ public:
 	bool IsEmpty() const;
 
 	// create invalid stack
-	static FRockItemStack Invalid();
+	static const FRockItemStack& Invalid();
 };
 
 template <>

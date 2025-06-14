@@ -21,7 +21,7 @@ FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackS
 	}
 }
 
-FRockItemStack FRockItemStack::Invalid()
+const FRockItemStack& FRockItemStack::Invalid()
 {
 	static FRockItemStack InvalidRockItemStack(nullptr, 0);
 	return InvalidRockItemStack;
@@ -150,6 +150,7 @@ void FRockInventoryItemContainer::PostReplicatedAdd(const TArrayView<int32> Adde
 	{
 		if (AllSlots.IsValidIndex(Index))
 		{
+			// TODO: Replace with a OnItemRemoved event instead?
 			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle);
 		}
 	}
@@ -166,6 +167,7 @@ void FRockInventoryItemContainer::PreReplicatedRemove(const TArrayView<int32> Re
 	{
 		if (AllSlots.IsValidIndex(Index))
 		{
+			// TODO: Replace with a OnItemRemoved event instead
 			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle);
 		}
 	}

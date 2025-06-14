@@ -26,7 +26,7 @@ AActor* URockInventory::GetOwningActor()
 	{
 		return Comp->GetOwner();
 	}
-	
+
 	UE_LOG(LogRockInventory, Warning, TEXT("GetOwningActor - No valid owning actor found for inventory %s"), *GetName());
 	return nullptr;
 }
@@ -260,7 +260,7 @@ void URockInventory::RegisterReplicationWithOwner()
 	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
 	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
 	{
-	 	Component->AddReplicatedSubObject(this);
+		Component->AddReplicatedSubObject(this);
 	}
 	else if (AActor* actor = Cast<AActor>(topLevelOwner))
 	{
@@ -503,6 +503,7 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 		// Generation gets incremented during the 'release' of an item.
 		// Should we grab in 'chunks' like perhaps 5 slots at a time? Though that could cause extra premature replications?
 		// though we won't have to trigger array dirty as much?
+		// Note: We specifically don't use AddDefaulted_GetRef because we want the Index to be set in the ItemHandle
 		const uint32 Index = ItemData.AddDefaulted();
 		ItemData[Index].Generation = 0;
 		ItemData[Index].ItemHandle = FRockItemStackHandle::Create(Index, 0);
@@ -546,6 +547,12 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	// We shouldn't have items without a definition
 	checkf(InItemStack.IsValid(), TEXT("AddItemToInventory - Invalid item stack"));
 	checkf(InItemStack.Definition, TEXT("AddItemToInventory - Invalid item definition"));
+
+	// Let's make sure we are owned by an actor with authority
+	AActor* OwningActor = GetOwningActor();
+	checkf(OwningActor && OwningActor->HasAuthority(),
+		TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
+
 
 	const uint32 Index = AcquireAvailableItemIndex();
 	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
@@ -608,8 +615,11 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStack& InItemStack)
 		ItemData[InIndex].Generation++;
 		ItemData[InIndex].ItemHandle = FRockItemStackHandle::Create(InIndex, ItemData[InIndex].Generation);
 		ItemData[InIndex].Reset();
-		ItemData.MarkItemDirty(ItemData[InIndex]);
 
+		// It's common that Remove from FastArray typically would call MarkArrayDirty.
+		// But we are not removing the item from the array, just resetting it to be reused later. 
+		ItemData.MarkItemDirty(ItemData[InIndex]);
+		
 		// We need to broadcast the old handle so that the client can remove it from their inventory.
 		BroadcastItemChanged(OldHandle);
 		// Anything caring about the 'new handle' should be notified by AddItemToInventory

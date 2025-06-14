@@ -61,11 +61,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FName ItemId;
 	//////////////////////////////////////////////////////////////////////////
-	// Display (Tooltips)
+	// Display (Tooltips) 
+	// A short name, such as "Fuel" as opposed to the longer Display name of "Gasoline Fuel Canister"
 	// e.g. "Apple"
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText Name;
-	// "A delicious red apple."
+	// "A delicious red apple." as opposed to a short name(Name) such as "Apple"
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText DisplayName;
 	// "A crisp apple, perfect for a quick snack. Restores a small amount of health.

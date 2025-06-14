@@ -45,6 +45,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	ERockItemSizePolicy SlotSizePolicy = ERockItemSizePolicy::RespectSize;
 
+	// Can be used for a variety of purposes, such as categorizing the section. e.g. For 'AutoEquip' slots.
+	// An equipment manager might look for all sections with the "AutoEquip" tag to automatically equip items when items are added.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FGameplayTagContainer Tags;
+	
 	/** Optional tags to filter items in this tab.
 	 * e.g. a Head Slot only accepts hat items, or weapons only accept weapons, Keychain only accepts keys. 
 	 */

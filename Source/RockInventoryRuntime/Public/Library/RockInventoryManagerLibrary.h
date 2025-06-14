@@ -6,7 +6,6 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "RockInventoryManagerLibrary.generated.h"
 
-class URockInventoryManager;
 class URockInventoryManagerComponent;
 
 /**

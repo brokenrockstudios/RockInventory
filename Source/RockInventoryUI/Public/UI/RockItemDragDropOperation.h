@@ -32,6 +32,8 @@ public:
 	// Override in BP version
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	FVector DropLocationOffset = FVector(150, 0, 0);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
+	FVector DropImpulse = FVector(0, 0, 0);
 	
 	// UPROPERTY()
 	// FRockItemStack ItemStack;

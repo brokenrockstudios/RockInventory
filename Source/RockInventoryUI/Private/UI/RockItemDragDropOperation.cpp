@@ -57,7 +57,7 @@ void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEven
 		// NOTE: This is kind of 'game specific' choice, other people likely want to override this DragCancelled and do what is appropriate for their game.
 		
 		const FRockDropItemTransaction& DropTransaction = FRockDropItemTransaction(
-			Instigator, SourceInventory, SourceSlotHandle, DropLocationOffset, FVector::ZeroVector);
+			Instigator, SourceInventory, SourceSlotHandle, DropLocationOffset, DropImpulse);
 
 		URockInventoryManagerComponent* const Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
 		if (Manager)
