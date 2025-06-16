@@ -20,11 +20,21 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment
 	FRockItemFragment() = default;
 	virtual ~FRockItemFragment() = default;
 
+	// Fragment configures the item it's on.  This is what sets any modifiers on the item itself.
+	virtual void OnItemCreated(URockItemInstance* ItemInstance) const
+	{
+	}
+
 	// The fragment might have an opinion about combining stacks.
 	virtual bool CanCombineItemStack(const FRockItemStack& ItemStack, const FRockItemStack& OtherItemStack) const
 	{
 		return true;
 	}
+
+	// TODO: Add if/when actually have a good use case for this
+	// UPROPERTY(EditAnywhere, Category = "Inventory", meta = (Categories="FragmentTags"))
+	// FGameplayTag FragmentTag = FGameplayTag::EmptyTag;
+
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const;
 #endif // WITH_EDITOR
@@ -94,12 +104,11 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragmentInstance
 	/** Get the type name of the fragment for debugging */
 	FString GetFragmentTypeName() const { return Fragment.IsValid() ? Fragment.GetScriptStruct()->GetName() : TEXT("Invalid"); }
 
-
 	UPROPERTY(EditDefaultsOnly, Category = "Item", NoClear, meta=(ShowOnlyInnerProperties))
 	TInstancedStruct<FRockItemFragment> Fragment;
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(EditDefaultsOnly, Category = "Item", meta=(EditConditionHides,EditCondition=false))
+	UPROPERTY(EditDefaultsOnly, Category = "Item", meta=(EditConditionHides, EditCondition=false))
 	FGuid FragmentGuid;
 #endif // WITH_EDITORONLY_DATA
 };

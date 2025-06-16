@@ -106,6 +106,19 @@ FRockInventorySectionInfo URockInventory::GetSectionInfo(const FName& SectionNam
 	return FRockInventorySectionInfo::Invalid();
 }
 
+FRockInventorySectionInfo URockInventory::GetSectionInfoBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const
+{
+	if (InSlotHandle.IsValid())
+	{
+		const int32 SectionIndex = InSlotHandle.GetSectionIndex();
+		if (SlotSections.IsValidIndex(SectionIndex))
+		{
+			return SlotSections[SectionIndex];
+		}
+	}
+	return FRockInventorySectionInfo::Invalid();
+}
+
 int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
 {
 	if (SectionName != NAME_None)
@@ -577,6 +590,13 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		{
 			NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
 			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
+
+			for (auto fragment : NewItemStack.GetDefinition()->Fragments)
+			{
+				const FRockItemFragment* itemFragment = fragment.GetFragmentData<FRockItemFragment>();
+
+				itemFragment->OnItemCreated(NewItemStack.RuntimeInstance);
+			}
 		}
 		NewItemStack.RuntimeInstance->SetOwningInventory(this);
 	}
@@ -619,7 +639,7 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStack& InItemStack)
 		// It's common that Remove from FastArray typically would call MarkArrayDirty.
 		// But we are not removing the item from the array, just resetting it to be reused later. 
 		ItemData.MarkItemDirty(ItemData[InIndex]);
-		
+
 		// We need to broadcast the old handle so that the client can remove it from their inventory.
 		BroadcastItemChanged(OldHandle);
 		// Anything caring about the 'new handle' should be notified by AddItemToInventory
