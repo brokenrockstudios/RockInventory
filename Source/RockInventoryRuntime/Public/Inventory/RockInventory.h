@@ -94,6 +94,7 @@ public:
 	 * @return Pointer to the tab info, or nullptr if index is invalid
 	 */
 	FRockInventorySectionInfo GetSectionInfo(const FName& SectionName) const;
+	FRockInventorySectionInfo GetSectionInfoBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 
 	/**
 	 * Find section index by name

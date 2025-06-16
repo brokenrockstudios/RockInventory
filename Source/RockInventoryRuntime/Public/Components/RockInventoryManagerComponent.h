@@ -20,10 +20,10 @@ struct FRockInventoryTransactionRecord
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FInstancedStruct Command;
+	TInstancedStruct<FRockItemTransactionBase> Command;
 
 	UPROPERTY()
-	FInstancedStruct Undo;
+	TInstancedStruct<FRockItemTransactionBase> Undo;
 
 	template<typename CommandT, typename UndoT>
 	void Set(const CommandT& Cmd, const UndoT& UndoData)

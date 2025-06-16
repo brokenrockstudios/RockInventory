@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "GameplayTagStack.h"
 #include "RockItemFragment.h"
 #include "Engine/DataAsset.h"
 #include "RockItemDefinition.generated.h"
@@ -24,27 +25,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
 	TSoftObjectPtr<UTexture2D> Icon;
 };
-
-
-USTRUCT()
-struct FRockEquipmentActorToSpawn
-{
-	GENERATED_BODY()
-
-	FRockEquipmentActorToSpawn()
-	{
-	}
-
-	UPROPERTY(EditAnywhere, Category=Equipment)
-	TSubclassOf<AActor> ActorToSpawn;
-
-	UPROPERTY(EditAnywhere, Category=Equipment)
-	FName AttachSocket;
-
-	UPROPERTY(EditAnywhere, Category=Equipment)
-	FTransform AttachTransform;
-};
-
 
 /**
  * 
@@ -82,6 +62,19 @@ public:
 	FRockItemUIData IconData;
 	//////////////////////////////////////////////////////////////////////////
 	/// Information
+	// Examples
+	// "A wooden shield"    | ItemType { Item.Type.Armor, Item.Type.Offhand"}		Subtype { Item.Subtype.Armor.Shield }			Tags { Tag.Equippable, Tag.Blocking, Tag.Wooden, Tag.OneHanded }
+	// "Cooked Meat"        | ItemType { Item.Type.Consumable, Item.Type.Food }		Subtype { Item.Subtype.Consumable.Food.Meat }	Tags { Tag.HealsHP, Tag.Cooked, Tag.CanSpoil }
+	// "Scroll of Fireball" | ItemType { Item.Type.Consumable, Item.Type.Magic }	SubType { Item.SubType.Magic.Scroll }			Tags: { Tag.Property.SingleUse, Tag.Effect.Damage.Fire.AreaOfEffect, Tag.Character.Class.CanBeUsedBy.Mage }
+
+	// Note: In case of an 'animation' or needing an explicit type, use the ItemSubType as a 'singular choice' when needed.
+	// Otherwise the ItemType and Tags should be sufficient to describe the item most of the time.
+	// Probably best to avoid needing to use ItemSubType, but it is there for flexibility.
+
+	// It is encouraged to only use certain tags in certain containers (e.g. Item.Type.* in ItemType, Tags.* in Tag, and Item.SubType.* in ItemSubType).
+	// Because if you start using Tag in ItemType, it could lead to inconsistencies.
+	// Consider limiting to meta=(Categories="Item.Type")
+	
 	// An item can be 'multiple types' (e.g. a 'battery' can be a 'tool' and a 'battery')
 	// Item.Type.Weapon, Item.Type.Tool, Item.Type.Consumable
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
@@ -90,18 +83,25 @@ public:
 	// Item.SubType.Sword? Feels redundant to above? Perhaps have better usage?  
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTag ItemSubType;
-	// Item rarity, e.g. Item.Rarity.Common, Item.Rarity.Uncommon, Item.Rarity.Rare, Item.Rarity.Epic, Item.Rarity.Legendary
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
-	FGameplayTag ItemRarity;
 	// General purpose tags that can be used for filtering, sorting, or categorization.
 	// Item.Tag.Quality.Magical, Item.Tag.Elemental.Fire, Item.Tag.Set.DragonSlayer, Item.Tag.Binding.SoulBound, Item.Tag.Material.Steel
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	FGameplayTagContainer ItemTags;
+
+	// Item rarity, e.g. Item.Rarity.Common, Item.Rarity.Uncommon, Item.Rarity.Rare, Item.Rarity.Epic, Item.Rarity.Legendary
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	FGameplayTag ItemRarity;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	float Weight = 0.0f;
 	// Not necessarily a 'price', but perhaps some internal value for sorting, crafting, or other purposes.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	float ItemValue = 0.0f;
+
+	// Note: These are for unchanging values. If you need dynamic values use the StatTags in RuntimeItemInstance.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
+	FGameplayTagStackContainer StatTags;
+
 	//////////////////////////////////////////////////////////////////////////
 	/// World
 	// If you need 'multiple', consider using Fragments instead
@@ -129,12 +129,12 @@ public:
 	// If this item requires a runtime instance, this is the class that will be used to create it.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSubclassOf<class URockItemInstance> RuntimeInstanceClass;
-	
+
 	// Runtime Instances nested inventory.
 	// e.g. If this Item was a Backpack, this should be set to the Backpack's InventoryConfig.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSoftObjectPtr<URockInventoryConfig> InventoryConfig = nullptr;
-	
+
 	//////////////////////////////////////////////////////////////////////////
 	/// Sound
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc", meta = (AssetBundles= "UI"))
@@ -146,8 +146,12 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////
 	/// Fragments
+	UE_DEPRECATED(5.5, "ItemFragments is deprecated, use Fragments instead.")
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100))
 	TArray<FRockItemFragmentInstance> ItemFragments;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100))
+	TArray<FRockItemFragmentInstance> Fragments;
 
 
 	// the equivalent to the 'right click menu'
@@ -207,6 +211,10 @@ public:
 	// Not neccesarily only for 'guns', could also be like removing a battery
 
 
+	template <typename T> requires std::derived_from<T, FRockItemFragment>
+	const T* GetFragmentOfType() const;
+
+
 	// Destroy
 
 	// destroy, drop, equip, inspect, open, unequip, unload, use
@@ -227,11 +235,6 @@ public:
 	// UPROPERTY(EditDefaultsOnly, Category=Equipment)
 	// TArray<TObjectPtr<const URockItemAbilitySet>> AbilitySetsToGrant;
 
-	// TOOD: Should this be in a game specific fragment instead?
-	// Actors to spawn on the pawn when this is equipped
-	UPROPERTY(EditDefaultsOnly, Category=Equipment)
-	TArray<FRockEquipmentActorToSpawn> ActorsToSpawn;
-
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override
 	{
 		if (ItemId != NAME_None)
@@ -247,3 +250,18 @@ public:
 	// Experimental 
 	void RegisterItemDefinition(const URockItemDefinition* NewItem);
 };
+
+template <typename T> requires std::derived_from<T, FRockItemFragment>
+const T* URockItemDefinition::GetFragmentOfType() const
+{
+	for (const FRockItemFragmentInstance& Instance : Fragments)
+	{
+		// Check if the fragment is of the requested type
+		if (const T* FragmentPtr = Instance.Fragment.GetPtr<T>())
+		{
+			return FragmentPtr;
+		}
+	}
+
+	return nullptr;
+}

@@ -8,6 +8,8 @@
 #include "Inventory/RockInventorySlot.h"
 #include "Inventory/RockSlotHandle.h"
 #include "GameplayTagContainer.h"
+#include "GameplayTagStack.h"
+#include "GameplayTagStack.h"
 #include "UObject/Object.h"
 #include "RockItemInstance.generated.h"
 
@@ -51,17 +53,14 @@ public:
 
 	/** Gameplay tags associated with this item instance */
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
-	FGameplayTagContainer StatTags;
+	FGameplayTagContainer Tags;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
+	FGameplayTagStackContainer StatTags;
+	
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	TObjectPtr<URockInventory> NestedInventory = nullptr;
 
-
-#ifdef BRS_WITH_GAMEPLAYABILITIES
-	// TODO: Add support for gameplay stack containers
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
-	// FGameplayStackContainer StatStackContainer;
-#endif // BRS_WITH_GAMEPLAYABILITIES
 	
 	// TODO: Add mutable fragments. 
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")

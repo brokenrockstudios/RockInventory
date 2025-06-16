@@ -41,6 +41,9 @@ FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 	ensureMsgf(ItemStack.IsValid(), TEXT("ItemStack is invalid!"));
 	if (ItemStack.IsValid())
 	{
+		// TODO: Should we consider the size of the runtime instance?
+		// e.g. A weapon with/without a suppressor might have different sizes.
+		
 		const FVector2D Size = ItemStack.GetDefinition()->SlotDimensions;
 		checkf(Size.X > 0 && Size.Y > 0, TEXT("ItemStack %s has invalid size!"), *ItemStack.GetDebugString());
 		return Size;

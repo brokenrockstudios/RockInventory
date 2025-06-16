@@ -4,6 +4,7 @@
 
 #include "RockInventoryLogging.h"
 #include "Components/RockInventoryComponent.h"
+#include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
@@ -24,11 +25,11 @@ ARockInventoryWorldItemBase::ARockInventoryWorldItemBase(const FObjectInitialize
 	StaticMeshComponent->SetSimulatePhysics(false);
 	StaticMeshComponent->CanCharacterStepUpOn = ECanBeCharacterBase::ECB_No;
 	//StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	
+
 	RootComponent = StaticMeshComponent; // Set the root component to the static mesh component
-	
+
 	ItemStack = FRockItemStack();
-	
+
 	// Default stack size for world items
 	// NOTE: Generally we shouldn't be setting values like this, but this is a rare exception where we want to ensure that the item stack is initialized with a sensible default.
 	// Generally, we probably want an 'item generator' and not to be placing items directly, where that'd set it appropriately.
@@ -71,9 +72,8 @@ void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack
 	{
 		Mesh = Definition->ItemMesh;
 	}
-
 	// Check if the mesh is already loaded
-	if (Mesh == nullptr)
+	if (Mesh.IsNull())
 	{
 		StaticMeshComponent->SetStaticMesh(nullptr);
 #if WITH_EDITOR
@@ -91,7 +91,7 @@ void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack
 	}
 	else
 	{
-		FStreamableManager Manager;
+		FStreamableManager& Manager = UAssetManager::GetStreamableManager();
 		Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
 		{
 			UStaticMesh* LoadedStaticMesh = Mesh.Get();
