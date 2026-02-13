@@ -33,7 +33,7 @@ public:
 
 	/** Returns the size of the item stack in slots */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
-	static FVector2D GetItemSize(const FRockItemStack& ItemStack);
+	static FIntPoint GetItemSize(const FRockItemStack& ItemStack);
 
 	/** Returns true if this stack can be combined with another stack */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")

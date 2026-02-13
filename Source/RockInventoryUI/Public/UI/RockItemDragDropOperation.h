@@ -3,18 +3,73 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/DragDropOperation.h"
+#include "Core/RockDragCarryOperation.h"
+#include "Core/RockItemDragCarrySubsystem.h"
+#include "Core/Shared/RockCarryContextData.h"
+#include "Engine/AssetManager.h"
 #include "Inventory/RockSlotHandle.h"
+#include "Kismet/GameplayStatics.h"
 #include "Library/RockInventoryLibrary.h"
 #include "RockItemDragDropOperation.generated.h"
 
 class URockInventory;
+
+
+inline void LoadAndPlaySFX(const UObject* WorldContext, const TSoftObjectPtr<USoundBase>& SFX)
+{
+	if (!WorldContext || !SFX.ToSoftObjectPath().IsValid())
+	{
+		return;
+	}
+
+	if (SFX.IsValid())
+	{
+		UGameplayStatics::PlaySound2D(WorldContext->GetWorld(), SFX.Get());
+	}
+	else
+	{
+		UAssetManager::GetStreamableManager().RequestAsyncLoad(SFX.ToSoftObjectPath(),
+			[WeakContext = TWeakObjectPtr<const UObject>(WorldContext), SFX]()
+			{
+				if (WeakContext.IsValid() && SFX.IsValid())
+				{
+					UGameplayStatics::PlaySound2D(WeakContext->GetWorld(), SFX.Get());
+				}
+			});
+	}
+}
+
+
+// firearm
+// weapon mesh
+// weapon sides
+// attachment of weapon sides
+
+// weapon mesh is set in child blueprint
+
+
+
+
+
+
+UCLASS()
+class UInventoryCarryContextData : public URockCarryContextData
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
+	TObjectPtr<URockInventory> TargetInventory = nullptr;
+	UPROPERTY()
+	FRockInventorySlotHandle TargetSlotHandle;
+};
+
+
 /**
  * 
  */
 // This is the base class for drag and drop operations in the Rock Inventory UI.
 UCLASS(BlueprintType, Blueprintable, Abstract)
-class ROCKINVENTORYUI_API URockItemDragDropOperation : public UDragDropOperation
+class ROCKINVENTORYUI_API URockItemDragDropOperation : public URockDragCarryOperation
 {
 	GENERATED_BODY()
 
@@ -50,10 +105,12 @@ public:
 
 	bool bRunOnce = false;
 
-	virtual void Dragged_Implementation(const FPointerEvent& PointerEvent) override;
-	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
-	virtual void Drop_Implementation(const FPointerEvent& PointerEvent) override;
-
+	virtual void OnBeginCarry_Implementation() override;
+	virtual void OnCancelCarry_Implementation() override;
+	virtual void OnFinishedCarry_Implementation() override;
+	virtual FRockDropOutcome OnUnhandledDrop_Implementation() override;
+	virtual void PlayFeedbackForOutcome_Implementation(const FRockDropOutcome& Outcome);
+	
 	// Set this in the blueprint parent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop")
 	TObjectPtr<USoundBase> DefaultDropSound = nullptr;

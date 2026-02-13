@@ -20,12 +20,14 @@ struct FRockInventoryTransactionRecord
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TInstancedStruct<FRockItemTransactionBase> Command;
+	FInstancedStruct Command;
+	// TODO: Rewrite to try and use this?
+	// TInstancedStruct<FRockItemTransactionBase> Command;
 
 	UPROPERTY()
-	TInstancedStruct<FRockItemTransactionBase> Undo;
+	FInstancedStruct Undo;
 
-	template<typename CommandT, typename UndoT>
+	template <typename CommandT, typename UndoT>
 	void Set(const CommandT& Cmd, const UndoT& UndoData)
 	{
 		Command.InitializeAs<CommandT>(Cmd);
@@ -43,24 +45,24 @@ class ROCKINVENTORYRUNTIME_API URockInventoryManagerComponent : public UActorCom
 
 public:
 	URockInventoryManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-	
+
 private:
 	// TODO: Spin into a custom CircularBuffer later...
 	UPROPERTY()
 	TArray<FRockInventoryTransactionRecord> TransactionHistoryData;
-	
+
 	// Current position in the transaction history
 	int32 CurrentTransactionIndex = -1;
 	// Maximum history length
 	int32 MaxHistoryLength = 25;
-	
+
 	bool bAwaitingServerSync = false;
 	bool bHasPendingPredictiveMove = false;
 	bool bEnablePredictiveExecution = false;
 	// This was used to track pending transactions form the client that were sent to the server. Waiting on 'reconcilation'
 	// UPROPERTY()
 	// TMap<int32, FRockInventoryPendingTransaction> PendingServerTransactions;
-	
+
 public:
 	/**
 	 * Send transaction result to client
@@ -78,7 +80,7 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_LootWorldItem(FRockLootWorldItemTransaction ItemTransaction);
 	void Server_LootWorldItem_Implementation(FRockLootWorldItemTransaction ItemTransaction);
-	
+
 	UFUNCTION(BlueprintCallable)
 	bool MoveItem(const FRockMoveItemTransaction& ItemTransaction);
 	UFUNCTION(Server, Reliable)
@@ -93,18 +95,20 @@ public:
 
 
 	UFUNCTION(BlueprintCallable, Server, Reliable)
-	void Server_RegisterSlotStatus(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
-	void Server_RegisterSlotStatus_Implementation(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
+	void Server_RegisterSlotStatus(
+		URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
+	void Server_RegisterSlotStatus_Implementation(
+		URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
 	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void Server_ReleaseSlotStatus(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
 	void Server_ReleaseSlotStatus_Implementation(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
 
-	
+
 	// Clear transaction history
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	void ClearHistory();
 
-	
+
 	// Deprioritizing undo and redo for now.
 	//
 	// // Undo the last transaction
@@ -115,7 +119,6 @@ public:
 	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	// bool RedoTransaction();
 	//
-	//
 	// // Check if can undo
 	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	// bool CanUndo() const;
@@ -123,6 +126,7 @@ public:
 	// // Check if can redo
 	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	// bool CanRedo() const;
+
+
+	// URockInventoryManagerComponent
 };
-
-

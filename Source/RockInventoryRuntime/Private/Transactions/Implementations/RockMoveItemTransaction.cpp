@@ -153,11 +153,11 @@ FRockMoveItemUndoTransaction FRockMoveItemTransaction::Execute() const
 		// For a merged stack, this is the difference from original
 		if (UndoTransaction.OriginalTargetItem.IsValid())
 		{
-			UndoTransaction.MoveCount = UndoTransaction.PostMoveTargetItem.GetStackSize() - UndoTransaction.OriginalTargetItem.GetStackSize();
+			UndoTransaction.MoveCount = UndoTransaction.PostMoveTargetItem.GetStackCount() - UndoTransaction.OriginalTargetItem.GetStackCount();
 		}
 		else
 		{
-			UndoTransaction.MoveCount = UndoTransaction.PostMoveTargetItem.GetStackSize();
+			UndoTransaction.MoveCount = UndoTransaction.PostMoveTargetItem.GetStackCount();
 		}
 	}
 

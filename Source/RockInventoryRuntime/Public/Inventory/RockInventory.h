@@ -7,6 +7,7 @@
 #include "RockInventorySlot.h"
 #include "RockPendingSlotOperation.h"
 #include "RockSlotHandle.h"
+#include "Events/RockSlotChangeType.h"
 #include "Item/RockItemStack.h"
 #include "UObject/Object.h"
 #include "RockInventory.generated.h"
@@ -16,7 +17,7 @@
  * @param Inventory - The inventory that changed
  * @param SlotHandle - The handle of the slot that was modified
  */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventorySlotChanged, URockInventory*, Inventory, const FRockInventorySlotHandle&, SlotHandle);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySlotChanged, const FRockSlotDelta&, SlotDelta);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemStackChanged, URockInventory*, Inventory, const FRockItemStackHandle&, ItemHandle);
 
@@ -43,7 +44,7 @@ private:
 	friend class URockInventoryLibrary;
 	friend class URockItemInstanceLibrary;
 	friend class URockInventoryComponent;
-	
+
 	/** The item data */
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FRockInventoryItemContainer ItemData;
@@ -66,7 +67,7 @@ private:
 	void OnRep_PendingSlotOperations();
 	UPROPERTY()
 	TArray<FRockPendingSlotOperation> PreviousPendingSlotOperations;
-	
+
 public:
 	/** Called when the inventory changes */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
@@ -74,12 +75,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
 	FOnInventoryItemStackChanged OnItemChanged;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	TObjectPtr<UObject> Owner;
-	
+
 	UObject* GetOwner() const { return Owner; }
-	
+
 	AActor* GetOwningActor();
 
 	/**
@@ -111,6 +112,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	FRockInventorySlotEntry GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 	const FRockInventorySlotEntry& GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const;
+	FRockInventorySlotEntry GetSlotByItemHandle(const FRockItemStackHandle& InItemHandle) const;
 
 	FRockItemStack GetItemBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 	FRockItemStack GetItemByHandle(const FRockItemStackHandle& InSlotHandle) const;
@@ -123,15 +125,6 @@ public:
 	 */
 	void SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry);
 
-	/**
-	 * Add a new tab and initialize its slots
-	 * @param SectionName - The unique identifier for the tab
-	 * @param Width - The width of the tab in slots
-	 * @param Height - The height of the tab in slots
-	 * @return The index of the newly created tab
-	 */
-	int32 AddSection(const FName& SectionName, int32 Width, int32 Height);
-
 	/** Override to specify which properties should be replicated */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool IsSupportedForNetworking() const override;
@@ -139,14 +132,14 @@ public:
 	/** Register all replication fragments */
 	virtual void RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags) override;
 #endif // UE_WITH_IRIS
-	
+
 	// IsNameStableForNetworking false?
 	void RegisterReplicationWithOwner();
 	void UnregisterReplicationWithOwner();
 
-	
+
 	/** Broadcast the inventory changed event */
-	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle = FRockInventorySlotHandle());
+	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle, ERockSlotChangeType ChangeType);
 	void BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle = FRockItemStackHandle());
 
 
@@ -166,7 +159,7 @@ public:
 
 	FRockItemStackHandle AddItemToInventory(const FRockItemStack& InItemStack);
 	void RemoveItemFromInventory(const FRockItemStack& InItemStack);
-	
+
 	uint32 AcquireAvailableItemIndex();
 	int32 GetItemStackCount();
 	int32 GetItemTotalCount();

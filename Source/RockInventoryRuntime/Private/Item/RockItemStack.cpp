@@ -6,10 +6,8 @@
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
 
-
-
-FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize)
-	: StackSize(InStackSize)
+FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackCount)
+	: StackCount(InStackCount)
 {
 	if (InDefinition)
 	{
@@ -41,9 +39,9 @@ URockItemDefinition* FRockItemStack::GetDefinition() const
 	return Definition;
 }
 
-int32 FRockItemStack::GetStackSize() const
+int32 FRockItemStack::GetStackCount() const
 {
-	return StackSize;
+	return StackCount;
 }
 
 int32 FRockItemStack::GetMaxStackSize() const
@@ -63,18 +61,18 @@ URockItemInstance* FRockItemStack::GetRuntimeInstance() const
 
 FString FRockItemStack::GetDebugString() const
 {
-	return FString::Printf(TEXT("ItemId=[%s], StackSize=[%d]"), *GetItemId().ToString(), StackSize);
+	return FString::Printf(TEXT("ItemId=[%s], StackSize=[%d]"), *GetItemId().ToString(), StackCount);
 }
 
 bool FRockItemStack::IsValid() const
 {
-	return (StackSize > 0) && Definition;
+	return (StackCount > 0) && Definition;
 }
 
 void FRockItemStack::Reset()
 {
 	Definition = nullptr;
-	StackSize = 0;
+	StackCount = 0;
 	CustomValue1 = 0;
 	CustomValue2 = 0;
 	RuntimeInstance = nullptr;
@@ -98,6 +96,14 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 	{
 		return false;
 	}
+
+	// Check definition's stackability rules?
+	//if (Definition)
+	{
+	}
+
+	// Check runtime instance's fragments?
+
 	return true;
 }
 
@@ -116,7 +122,7 @@ void FRockItemStack::TransferOwnership(UObject* NewOuter, URockInventory* InOwni
 bool FRockItemStack::operator==(const FRockItemStack& Other) const
 {
 	return Definition == Other.Definition &&
-		StackSize == Other.StackSize &&
+		StackCount == Other.StackCount &&
 		RuntimeInstance == Other.RuntimeInstance &&
 		CustomValue1 == Other.CustomValue1 &&
 		CustomValue2 == Other.CustomValue2 &&
@@ -131,7 +137,7 @@ bool FRockItemStack::operator!=(const FRockItemStack& Other) const
 
 bool FRockItemStack::IsEmpty() const
 {
-	return StackSize <= 0;
+	return StackCount <= 0;
 }
 
 void FRockInventoryItemContainer::SetOwningInventory(URockInventory* InOwningInventory)

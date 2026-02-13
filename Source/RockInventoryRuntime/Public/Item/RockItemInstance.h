@@ -9,7 +9,6 @@
 #include "Inventory/RockSlotHandle.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagStack.h"
-#include "GameplayTagStack.h"
 #include "UObject/Object.h"
 #include "RockItemInstance.generated.h"
 
@@ -39,6 +38,7 @@ public:
 	// Note: This might be null, in the case of a 'world item' that is not currently in an inventory.
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
 	TObjectPtr<URockInventory> OwningInventory = nullptr;
+	// TODO: Replicated Owner since UObject's Owner doesn't replicate 
 
 	/** Handle to the slot in the inventory where this item instance is located */
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
@@ -55,6 +55,7 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	FGameplayTagContainer Tags;
 
+	/** Stat tags associated with this item instance */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	FGameplayTagStackContainer StatTags;
 	

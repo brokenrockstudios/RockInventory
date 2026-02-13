@@ -77,7 +77,7 @@ void FRockInventorySlotContainer::PreReplicatedRemove(const TArrayView<int32> Re
 	{
 		if (AllSlots.IsValidIndex(Index))
 		{
-			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle);
+			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle, ERockSlotChangeType::Removed);
 		}
 	}
 }
@@ -92,7 +92,7 @@ void FRockInventorySlotContainer::PostReplicatedAdd(const TArrayView<int32> Adde
 	{
 		if (AllSlots.IsValidIndex(Index))
 		{
-			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle);
+			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle, ERockSlotChangeType::Added);
 		}
 	}
 }
@@ -107,7 +107,7 @@ void FRockInventorySlotContainer::PostReplicatedChange(const TArrayView<int32> C
 	{
 		if (AllSlots.IsValidIndex(Index))
 		{
-			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle);
+			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle, ERockSlotChangeType::Changed);
 		}
 	}
 }

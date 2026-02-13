@@ -24,11 +24,12 @@ public:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
 
-	// IRockLootableInterface
+	// ~Begin IRockLootableInterface
 	virtual FRockItemStack GetItemStack(AActor *InstigatorPawn) const override;
 	virtual void SetItemStack(const FRockItemStack &InItemStack) override;
 	virtual void OnPickedUp(AActor *InInstigator) override;
 	virtual void OnLooted(AActor *InstigatorPawn, const FRockItemStack &LootedItem, int32 Excess) override;
+	// ~End IRockLootableInterface
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_ItemStack, Category = "RockInventory")

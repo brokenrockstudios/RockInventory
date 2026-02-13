@@ -4,6 +4,8 @@
 
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventorySectionInfo.h"
+#include "Inventory/Events/RockSlotChangeType.h"
+#include "Inventory/Events/RockSlotDelta.h"
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
@@ -13,7 +15,6 @@
 URockInventory::URockInventory(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
 {
 }
-
 
 AActor* URockInventory::GetOwningActor()
 {
@@ -55,11 +56,14 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	ItemData.Empty();
 
 	SlotSections.Empty();
-	SlotSections.Reserve(config->InventoryTabs.Num()); // Reserve space for the inventory data
-	for (const FRockInventorySectionInfo& TabInfo : config->InventoryTabs)
+	// Reserve space for the inventory data
+	SlotSections.Reserve(config->InventoryTabs.Num());
+
+	for (int32 sectionIndex = 0; sectionIndex < config->InventoryTabs.Num(); ++sectionIndex)
 	{
-		FRockInventorySectionInfo NewTab = TabInfo;
-		NewTab.FirstSlotIndex = totalInventorySlots;
+		FRockInventorySectionInfo NewTab = config->InventoryTabs[sectionIndex];
+		NewTab.Initialize(totalInventorySlots, sectionIndex);
+
 		SlotSections.Add(NewTab);
 		totalInventorySlots += NewTab.GetNumSlots();
 	}
@@ -74,7 +78,7 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	for (int32 SectionIndex = 0; SectionIndex < SlotSections.Num(); ++SectionIndex)
 	{
 		const FRockInventorySectionInfo& TabInfo = SlotSections[SectionIndex];
-		const int32 TabOffset = TabInfo.FirstSlotIndex;
+		const int32 TabOffset = TabInfo.GetFirstSlotIndex();
 
 		for (int32 SlotIndex = 0; SlotIndex < TabInfo.GetNumSlots(); ++SlotIndex)
 		{
@@ -97,7 +101,7 @@ FRockInventorySectionInfo URockInventory::GetSectionInfo(const FName& SectionNam
 	{
 		for (const FRockInventorySectionInfo& SectionInfo : SlotSections)
 		{
-			if (SectionInfo.SectionName == SectionName)
+			if (SectionInfo.GetSectionName() == SectionName)
 			{
 				return SectionInfo;
 			}
@@ -125,7 +129,7 @@ int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
 	{
 		for (int32 SlotIndex = 0; SlotIndex < SlotSections.Num(); SlotIndex++)
 		{
-			if (SlotSections[SlotIndex].SectionName == SectionName)
+			if (SlotSections[SlotIndex].GetSectionName() == SectionName)
 			{
 				return SlotIndex;
 			}
@@ -137,7 +141,7 @@ int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
 
 FRockInventorySlotEntry URockInventory::GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
-	const int32 slotIndex = InSlotHandle.GetIndex();
+	const int32 slotIndex = InSlotHandle.GetAbsoluteIndex();
 	if (!SlotData.ContainsIndex(slotIndex))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotByHandle - Invalid slot index"));
@@ -169,8 +173,37 @@ FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlo
 	{
 		return Item;
 	}
-	UE_LOG(LogRockInventory, Warning, TEXT("Bad Generation %d %d"), Item.Generation, InSlotHandle.GetGeneration());
+	// This could be invalidated if the item was removed. 
 	return FRockItemStack::Invalid();
+}
+
+FRockInventorySlotEntry URockInventory::GetSlotByItemHandle(const FRockItemStackHandle& InItemHandle) const
+{
+	if (!InItemHandle.IsValid())
+	{
+		return FRockInventorySlotEntry();
+	}
+	const int32 index = InItemHandle.GetIndex();
+	if (!ItemData.ContainsIndex(index))
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotHandleByItemHandle - Bad Item Index"));
+		return FRockInventorySlotEntry();
+	}
+	const FRockItemStack& Item = ItemData[index];
+	if (Item.Generation != InItemHandle.GetGeneration())
+	{
+		return FRockInventorySlotEntry();
+	}
+
+	// Find the slot that contains this item
+	for (const FRockInventorySlotEntry& SlotEntry : SlotData)
+	{
+		if (SlotEntry.ItemHandle == InItemHandle)
+		{
+			return SlotEntry;
+		}
+	}
+	return FRockInventorySlotEntry();
 }
 
 void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, const FRockItemStack& InItemStack)
@@ -187,7 +220,7 @@ void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, c
 
 	ChangedItem.ItemHandle = InItemStack.ItemHandle;
 	ChangedItem.Definition = InItemStack.Definition;
-	ChangedItem.StackSize = InItemStack.StackSize;
+	ChangedItem.StackCount = InItemStack.StackCount;
 	ChangedItem.CustomValue1 = InItemStack.CustomValue1;
 	ChangedItem.CustomValue2 = InItemStack.CustomValue2;
 	ChangedItem.RuntimeInstance = InItemStack.RuntimeInstance;
@@ -199,7 +232,7 @@ void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, c
 
 void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry)
 {
-	const int32 slotIndex = InSlotHandle.GetIndex();
+	const int32 slotIndex = InSlotHandle.GetAbsoluteIndex();
 	if (!SlotData.ContainsIndex(slotIndex))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("SetSlotByHandle - Invalid slot index"));
@@ -207,42 +240,80 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 	}
 
 	FRockInventorySlotEntry& ChangedSlot = SlotData[slotIndex];
-	ChangedSlot.ItemHandle = InSlotEntry.ItemHandle;
-	ChangedSlot.SlotHandle = InSlotEntry.SlotHandle;
-	ChangedSlot.Orientation = InSlotEntry.Orientation;
-	ChangedSlot.bIsLocked = InSlotEntry.bIsLocked;
-	SlotData.MarkItemDirty(ChangedSlot);
+	ERockSlotChangeType ChangeType = ERockSlotChangeType::None;
 
-	BroadcastSlotChanged(InSlotHandle);
-}
-
-int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 Height)
-{
-	FRockInventorySectionInfo NewTab;
-	NewTab.SectionName = SectionName;
-	NewTab.Width = Width;
-	NewTab.Height = Height;
-	NewTab.FirstSlotIndex = SlotData.Num(); // Current size is the first index
-
-	const int32 TabIndex = SlotSections.Add(NewTab);
-
-	// Reserve space for the new tab's slots
-	SlotData.AddUninitialized(NewTab.GetNumSlots());
-
-	// Initialize each slot's SlotHandle
-	for (int32 SlotIndex = 0; SlotIndex < NewTab.GetNumSlots(); ++SlotIndex)
+	const bool bOldItemValid = ChangedSlot.ItemHandle.IsValid();
+	const bool bNewItemValid = InSlotEntry.ItemHandle.IsValid();
+	if (!bOldItemValid && bNewItemValid)
 	{
-		const int32 AbsoluteSlotIndex = NewTab.FirstSlotIndex + SlotIndex;
-		checkf(0 <= AbsoluteSlotIndex && AbsoluteSlotIndex < SlotData.Num(),
-			TEXT("Absolute slot index out of range:"));
-
-		const FRockInventorySlotHandle SlotHandle(TabIndex, AbsoluteSlotIndex);
-		SlotData[AbsoluteSlotIndex].SlotHandle = SlotHandle;
+		ChangeType = ERockSlotChangeType::Added;
 	}
-	SlotData.MarkArrayDirty();
+	else if (bOldItemValid && !bNewItemValid)
+	{
+		ChangeType = ERockSlotChangeType::Removed;
+	}
+	else
+	{
+		const bool bItemChanged = ChangedSlot.ItemHandle != InSlotEntry.ItemHandle;
+		const bool bPropertiesChanged = ChangedSlot.Orientation != InSlotEntry.Orientation || ChangedSlot.bIsLocked != InSlotEntry.bIsLocked;
+		// Does the SlotHandle ever actually change? As far as I can tell it doesn't after initialization.
 
-	return TabIndex;
+		if (bItemChanged || bPropertiesChanged)
+		{
+			ChangeType = ERockSlotChangeType::Changed;
+		}
+	}
+
+	if (ChangeType != ERockSlotChangeType::None)
+	{
+		// SlotHandle shouldn't ever change. It only is a way to reference itself.
+		//ChangedSlot.SlotHandle = InSlotEntry.SlotHandle;
+
+		ChangedSlot.ItemHandle = InSlotEntry.ItemHandle;
+		ChangedSlot.Orientation = InSlotEntry.Orientation;
+		ChangedSlot.bIsLocked = InSlotEntry.bIsLocked;
+		SlotData.MarkItemDirty(ChangedSlot);
+		// TODO: Refactor to include ChangeType
+		BroadcastSlotChanged(InSlotHandle, ChangeType);
+	}
 }
+
+/**
+	 * Add a new tab and initialize its slots
+	 * @param SectionName - The unique identifier for the tab
+	 * @param Width - The width of the tab in slots
+	 * @param Height - The height of the tab in slots
+	 * @return The index of the newly created tab
+	 */
+// int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 Height)
+// {
+// 	FRockInventorySectionInfo NewTab(
+// 		SectionName, SlotData.Num(), Width, Height);
+// 	
+// 	// NewTab.SectionName = SectionName;
+// 	// NewTab.Width = Width;
+// 	// NewTab.Height = Height;
+// 	// NewTab.FirstSlotIndex = SlotData.Num(); // Current size is the first index
+//
+// 	const int32 TabIndex = SlotSections.Add(NewTab);
+//
+// 	// Reserve space for the new tab's slots
+// 	SlotData.AddUninitialized(NewTab.GetNumSlots());
+//
+// 	// Initialize each slot's SlotHandle
+// 	for (int32 SlotIndex = 0; SlotIndex < NewTab.GetNumSlots(); ++SlotIndex)
+// 	{
+// 		const int32 AbsoluteSlotIndex = NewTab.GetFirstSlotIndex() + SlotIndex;
+// 		checkf(0 <= AbsoluteSlotIndex && AbsoluteSlotIndex < SlotData.Num(),
+// 			TEXT("Absolute slot index out of range:"));
+//
+// 		const FRockInventorySlotHandle SlotHandle(TabIndex, AbsoluteSlotIndex);
+// 		SlotData[AbsoluteSlotIndex].SlotHandle = SlotHandle;
+// 	}
+// 	SlotData.MarkArrayDirty();
+//
+// 	return TabIndex;
+// }
 
 
 void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -316,9 +387,13 @@ void URockInventory::UnregisterReplicationWithOwner()
 	}
 }
 
-void URockInventory::BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle)
+void URockInventory::BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle, ERockSlotChangeType ChangeType)
 {
-	OnSlotChanged.Broadcast(this, SlotHandle);
+	FRockSlotDelta SlotDelta;
+	SlotDelta.Inventory = this;
+	SlotDelta.SlotHandle = SlotHandle;
+	SlotDelta.ChangeType = ChangeType;
+	OnSlotChanged.Broadcast(SlotDelta);
 }
 
 void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle)
@@ -442,8 +517,9 @@ void URockInventory::OnRep_PendingSlotOperations()
 		// If Remove returns false, the handle wasn't in the old set, meaning it's newly added.
 		if (!OldHandles.Remove(NewSlot.SlotHandle))
 		{
-			// This is a new slot, broadcast its addition.
-			BroadcastSlotChanged(NewSlot.SlotHandle);
+			// This is a new pending slot, broadcast its addition.
+			// TODO: Perhaps we should leverage a secondary channel for 'pending' changes instead of overloading the existing change type?
+			//BroadcastSlotChanged(NewSlot.SlotHandle, ERockSlotChangeType::PendingChange);
 		}
 		// If Remove returns true, the handle was in the old set and is still present.
 		// It has now been removed from OldHandles, so it won't be flagged as removed later.
@@ -453,7 +529,7 @@ void URockInventory::OnRep_PendingSlotOperations()
 	// These are the removed slots.
 	for (const FRockInventorySlotHandle& RemovedHandle : OldHandles)
 	{
-		BroadcastSlotChanged(RemovedHandle);
+		//BroadcastSlotChanged(RemovedHandle, ERockSlotChangeType::PendingChange);
 	}
 
 	// 4. Update the previous state for the next comparison.
@@ -535,7 +611,7 @@ int32 URockInventory::GetItemStackCount()
 	{
 		if (Item.IsValid())
 		{
-			Count += Item.StackSize;
+			Count += Item.GetStackCount();
 		}
 	}
 	return Count;
@@ -566,7 +642,6 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	checkf(OwningActor && OwningActor->HasAuthority(),
 		TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
 
-
 	const uint32 Index = AcquireAvailableItemIndex();
 	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
 
@@ -575,7 +650,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	// Generation is reconciled in the AcquireAvailableItemData
 	NewItemStack.Definition = InItemStack.Definition;
 	NewItemStack.RuntimeInstance = InItemStack.RuntimeInstance;
-	NewItemStack.StackSize = InItemStack.StackSize;
+	NewItemStack.StackCount = InItemStack.StackCount;
 	NewItemStack.CustomValue1 = InItemStack.CustomValue1;
 	NewItemStack.CustomValue2 = InItemStack.CustomValue2;
 
@@ -585,6 +660,9 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		if (NewItemStack.RuntimeInstance != nullptr)
 		{
 			NewItemStack.RuntimeInstance->Rename(nullptr, this);
+			// TODO:
+			// Set a Replicated Owner, so clients can call Rename
+			// Since the NewOuter isn't replicated by default?
 		}
 		else
 		{

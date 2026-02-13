@@ -38,6 +38,22 @@
 		{
 			"Name": "Iris",
 			"Enabled": true
+		},
+		{
+			"Name": "RockGameplayTags",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonUI",
+			"Enabled": true
+		},
+		{
+			"Name": "RockClassification",
+			"Enabled": true
+		},
+		{
+			"Name": "RockDragDrop",
+			"Enabled": true
 		}
 	]
 }

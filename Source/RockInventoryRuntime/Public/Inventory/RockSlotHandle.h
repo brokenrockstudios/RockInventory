@@ -24,7 +24,8 @@ private:
 public:
 	/** Get the tab index from the handle */
 	int32 GetSectionIndex() const { return Section; }
-	int32 GetIndex() const { return Index; }
+	// Get the absolute slot index from the handle
+	int32 GetAbsoluteIndex() const { return Index; }
 	bool IsValid() const { return Index != INDEX_NONE && Section != INDEX_NONE; }
 
 	// Helper Utility functions

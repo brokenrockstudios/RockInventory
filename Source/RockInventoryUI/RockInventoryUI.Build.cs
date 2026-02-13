@@ -13,8 +13,10 @@ public class RockInventoryUI : ModuleRules
 			new string[]
 			{
 				"Core", 
-				"RockInventoryRuntime",
-				"UMG"
+				"UMG",
+				"RockInventoryRuntime", 
+				"RockDragDrop", 
+				"CommonUI",
 			}
 		);
 
@@ -24,8 +26,22 @@ public class RockInventoryUI : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
+				"UMG",
 				"Slate",
-				"SlateCore"
+				"SlateCore",
+				"InputCore",
+				"GameplayTags",
+				"DeveloperSettings",
+				"CommonUI", 
+				"RockClassification",
+				"RockDragDrop",
+				
+				
+				// test
+				// "UMGEditor",  Can't be in shipping because UnrealEd
+				// Probably don't need anymore?
+				//"ToolMenus", 
+				//"EditorWidgets" 
 			}
 		);
 	}

@@ -6,10 +6,10 @@
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
-#include "Transactions/Implementations/RockDropItemTransaction.h"
 #include "Library/RockInventoryManagerLibrary.h"
+#include "Transactions/Implementations/RockDropItemTransaction.h"
 
-void URockItemDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerEvent)
+void URockItemDragDropOperation::OnBeginCarry_Implementation()
 {
 	// Super::Dragged_Implementation(PointerEvent);
 	// Fires on every frame while dragging
@@ -32,17 +32,17 @@ void URockItemDragDropOperation::Dragged_Implementation(const FPointerEvent& Poi
 				if (soundOverride.IsValid())
 				{
 					// TODO: Async Load the sound
-					UGameplayStatics::PlaySound2D(this, soundOverride.LoadSynchronous());
+					UGameplayStatics::PlaySound2D(Instigator, soundOverride.LoadSynchronous());
 				}
 				else if (DefaultDragSound)
 				{
-					UGameplayStatics::PlaySound2D(this, DefaultDragSound);
+					UGameplayStatics::PlaySound2D(Instigator, DefaultDragSound);
 				}
 			}
 
 			const FRockInventorySlotEntry SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
 			URockInventoryManagerComponent* manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
-			if (SourceSlot.IsValid() && manager)
+			if (SourceSlot.IsValid() && IsValid(manager))
 			{
 				manager->Server_RegisterSlotStatus(SourceInventory, Instigator, SourceSlotHandle, ERockSlotStatus::Pending);
 			}
@@ -50,61 +50,115 @@ void URockItemDragDropOperation::Dragged_Implementation(const FPointerEvent& Poi
 	}
 }
 
-void URockItemDragDropOperation::DragCancelled_Implementation(const FPointerEvent& PointerEvent)
+void URockItemDragDropOperation::OnCancelCarry_Implementation()
 {
+	// Release the lock on the slot
 	if (SourceInventory && SourceSlotHandle.IsValid())
 	{
-		// NOTE: This is kind of 'game specific' choice, other people likely want to override this DragCancelled and do what is appropriate for their game.
-		
+		const FRockInventorySlotEntry SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+		URockInventoryManagerComponent* Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
+		if (SourceSlot.IsValid() && Manager)
+		{
+			Manager->Server_ReleaseSlotStatus(SourceInventory, Instigator, SourceSlotHandle);
+		}
+	}
+}
+
+// OnFinishedCarry is called after a successful drop
+void URockItemDragDropOperation::OnFinishedCarry_Implementation()
+{
+	// Release the lock on the slot
+	if (SourceInventory && SourceSlotHandle.IsValid())
+	{
+		const FRockInventorySlotEntry SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+		URockInventoryManagerComponent* Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
+		if (SourceSlot.IsValid() && Manager)
+		{
+			Manager->Server_ReleaseSlotStatus(SourceInventory, Instigator, SourceSlotHandle);
+		}
+	}
+}
+
+FRockDropOutcome URockItemDragDropOperation::OnUnhandledDrop_Implementation()
+{
+	FRockDropOutcome Outcome;
+	if (SourceInventory && SourceSlotHandle.IsValid())
+	{
+		// NOTE: This is kind of 'game specific' choice, other people likely want to override this  and do what is appropriate for their game.
+
 		const FRockDropItemTransaction& DropTransaction = FRockDropItemTransaction(
-			Instigator, SourceInventory, SourceSlotHandle, DropLocationOffset, DropImpulse);
+			Instigator,
+			SourceInventory,
+			SourceSlotHandle,
+			DropLocationOffset,
+			DropImpulse);
 
 		URockInventoryManagerComponent* const Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
 		if (Manager)
 		{
 			Manager->DropItem(DropTransaction);
-
-			// Release the lock on the slot
-			const FRockInventorySlotEntry SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
-			if (SourceSlot.IsValid())
-			{
-				Manager->Server_ReleaseSlotStatus(SourceInventory, Instigator, SourceSlotHandle);
-			}
 		}
-
-		// Should we have a 'cancel' sound?
-		// Broadcasts the event that the drag operation was cancelled
-		Super::DragCancelled_Implementation(PointerEvent);
+		Outcome.Reason = "item_dropped_world";
 	}
+	return Outcome;
 }
 
-void URockItemDragDropOperation::Drop_Implementation(const FPointerEvent& PointerEvent)
+void URockItemDragDropOperation::PlayFeedbackForOutcome_Implementation(const FRockDropOutcome& Outcome)
 {
-	Super::Drop_Implementation(PointerEvent);
+	Super::PlayFeedbackForOutcome_Implementation(Outcome);
 
-	if (SourceInventory && SourceSlotHandle.IsValid())
+	switch (Outcome.Result)
 	{
-		const FRockItemStack& item = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
-		if (item.GetDefinition())
+	case ERockDropResult::Success:
 		{
-			const TSoftObjectPtr<USoundBase> soundOverride = item.GetDefinition()->DropSoundOverride;
+			if (Outcome.Reason == "item_moved_widget")
+			{
+				// Successful drop sound?
+				const FRockItemStack& item = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
+				if (item.GetDefinition())
+				{
+					const TSoftObjectPtr<USoundBase> soundOverride = item.GetDefinition()->DropSoundOverride;
 
-			if (soundOverride.IsValid())
-			{
-				// TODO: Async Load the sound
-				UGameplayStatics::PlaySound2D(this, soundOverride.LoadSynchronous());
+					// Consider a some SoundRegistry based upon some 'traits' (e.g. wood, metal) that we could use
+					// based upon some gameplay tags or something on the item definition.
+
+					// else use the following
+					if (soundOverride.IsValid())
+					{
+						// TODO: Async Load the sound
+						UGameplayStatics::PlaySound2D(Instigator, soundOverride.LoadSynchronous());
+					}
+					else if (DefaultDropSound)
+					{
+						UGameplayStatics::PlaySound2D(Instigator, DefaultDropSound);
+					}
+				}
 			}
-			else if (DefaultDropSound)
+			else if (Outcome.Reason == "item_moved_world")
 			{
-				UGameplayStatics::PlaySound2D(this, DefaultDropSound);
+				// Dropped into world sound?
+				const FRockItemStack& item = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
+				if (item.GetDefinition())
+				{
+					// Play a different sound if dropped on ground instead of into another inventory?
+				}
 			}
+			break;
 		}
-
-		const FRockInventorySlotEntry SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
-		URockInventoryManagerComponent* const Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
-		if (SourceSlot.IsValid() && Manager)
+	case ERockDropResult::Rejected:
 		{
-			Manager->Server_ReleaseSlotStatus(SourceInventory, Instigator, SourceSlotHandle);
+			// Rejected sound?
+		}
+	case ERockDropResult::Pending:
+		{
+			// Pending sound?
+			// Perhaps this was a 'partial' drop, such as a stack split.
+			// Consider a different sound for this? or just reuse above Success?
+			break;
+		}
+	default:
+		{
+			// No Sound
 		}
 	}
 }
