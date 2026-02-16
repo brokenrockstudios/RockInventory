@@ -9,6 +9,7 @@
 #include "Inventory/RockSlotHandle.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagStack.h"
+#include "GameplayTagStackListenerInterface.h"
 #include "UObject/Object.h"
 #include "RockItemInstance.generated.h"
 
@@ -23,14 +24,14 @@ class URockInventory;
  * and modify their associated item stack data.
  */
 UCLASS(BlueprintType)
-class ROCKINVENTORYRUNTIME_API URockItemInstance : public UObject
+class ROCKINVENTORYRUNTIME_API URockItemInstance : public UObject, public IGameplayTagStackListenerInterface
 {
 	GENERATED_BODY()
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetDefinition(const TObjectPtr<URockItemDefinition>& object);
-	
+
 	///////////////////////////////////////////////////////////////////////////
 	// Core Properties~
 
@@ -58,17 +59,18 @@ public:
 	/** Stat tags associated with this item instance */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	FGameplayTagStackContainer StatTags;
-	
+
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	TObjectPtr<URockInventory> NestedInventory = nullptr;
 
-	
+
 	// TODO: Add mutable fragments. 
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	// TArray<FRockItemMutableFragments> Fragments;
 
 	///////////////////////////////////////////////////////////////////////////
-
+	// Core Functions
+	
 	/** Sets the owning inventory for this item instance */
 	void SetOwningInventory(URockInventory* InOwningInventory);
 	void RegisterReplicationWithOwner();
@@ -92,6 +94,21 @@ public:
 	/** Gets the item definition for this item instance */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|Core")
 	const URockItemDefinition* GetItemDefinition() const;
+	
+	UFUNCTION(BlueprintCallable)
+	int32 GetStatTagCount(FGameplayTag Tag) const;
+
+	UFUNCTION(BlueprintCallable)
+	void AddStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks = false);
+
+	UFUNCTION(BlueprintCallable)
+	void RemoveStatTagStack(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks = false);
+	
+	UFUNCTION(BlueprintCallable)
+	void SetStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks = false);
+
+
+	virtual void OnTagStackChanged_Internal(const FGameplayTag& Tag, int32 NewCount, int32 OldCount) override;
 
 protected:
 	///////////////////////////////////////////////////////////////////////////
@@ -99,7 +116,7 @@ protected:
 	virtual bool IsSupportedForNetworking() const override;
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
-	
+
 #if UE_WITH_IRIS
 	virtual void RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags) override;
 #endif // UE_WITH_IRIS

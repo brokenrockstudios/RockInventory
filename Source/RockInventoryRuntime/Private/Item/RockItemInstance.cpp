@@ -48,6 +48,7 @@ bool URockItemInstance::IsSupportedForNetworking() const
 void URockItemInstance::PostInitProperties()
 {
 	Super::PostInitProperties();
+	StatTags.SetListenerObject(this);
 }
 
 void URockItemInstance::BeginDestroy()
@@ -61,6 +62,49 @@ void URockItemInstance::BeginDestroy()
 	CachedDefinition = nullptr;
 
 	Super::BeginDestroy();
+}
+
+int32 URockItemInstance::GetStatTagCount(FGameplayTag Tag) const
+{
+	return StatTags.GetStackCount(Tag);
+}
+
+void URockItemInstance::AddStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks)
+{
+	int32 oldCount = StatTags.GetStackCount(Tag);
+	StatTags.AddStack(Tag, StackCount, bKeepZeroStacks);
+	int32 newCount = StatTags.GetStackCount(Tag);
+	OnTagStackChanged_Internal(Tag, oldCount + StackCount, oldCount);
+}
+
+void URockItemInstance::RemoveStatTagStack(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks)
+{
+	int32 oldCount = StatTags.GetStackCount(Tag);
+	StatTags.RemoveStack(Tag, StackCount, bKeepZeroStacks);
+	int32 newCount = StatTags.GetStackCount(Tag);
+	OnTagStackChanged_Internal(Tag, newCount, oldCount);
+}
+
+
+void URockItemInstance::SetStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks)
+{
+	int32 oldCount = StatTags.GetStackCount(Tag);
+	StatTags.SetStack(Tag, StackCount, bKeepZeroStacks);
+	
+	OnTagStackChanged_Internal(Tag, StackCount, oldCount);
+}
+
+void URockItemInstance::OnTagStackChanged_Internal(const FGameplayTag& Tag, int32 NewCount, int32 OldCount)
+{
+	if (IsValid(OwningInventory))
+	{
+		// Broadcast the item changed event if the count actually changed. This prevents unnecessary broadcasts when tags are added/removed but the stack count doesn't change (e.g., when bKeepZeroStacks is true).
+		if (NewCount != OldCount)
+		{
+			// Notify the owning inventory that this item instance has changed, so it can update any relevant UI or gameplay logic.
+			OwningInventory->BroadcastItemChanged(ItemHandle);
+		}
+	}
 }
 
 void URockItemInstance::SetOwningInventory(URockInventory* InOwningInventory)
