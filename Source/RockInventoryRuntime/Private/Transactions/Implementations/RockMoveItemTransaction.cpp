@@ -130,7 +130,17 @@ FRockMoveItemUndoTransaction FRockMoveItemTransaction::Execute() const
 
 	// CanExecute should have been called first. Don't need to check again.
 	checkf(SourceInventory && TargetInventory, TEXT("MoveItemTransaction::Execute - Source or Target inventory is null"));
-
+	
+	if (!Instigator.IsValid() || !IsValid(SourceInventory) || !IsValid(TargetInventory))
+	{
+		UE_LOG(LogRockInventory, Error, TEXT("Invalid data in FRockLootWorldItemTransaction. Instigator valid: %s, SourceInventory valid: %s, TargetInventory valid: %s"), 
+			Instigator.IsValid() ? TEXT("true") : TEXT("false"), 
+			IsValid(SourceInventory) ? TEXT("true") : TEXT("false"), 
+			IsValid(TargetInventory) ? TEXT("true") : TEXT("false"));
+		return UndoTransaction;
+	}
+		
+	
 
 	const FRockInventorySlotEntry& OriginalSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
 	UndoTransaction.OriginalOrientation = OriginalSlot.Orientation;

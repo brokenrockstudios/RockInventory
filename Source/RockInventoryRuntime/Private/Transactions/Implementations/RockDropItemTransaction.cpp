@@ -18,6 +18,14 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 {
 	FRockDropItemUndoTransaction UndoTransaction;
 	UndoTransaction.bSuccess = false;
+	
+	if (!Instigator.IsValid() || !IsValid(SourceInventory))
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("DropItemTransaction::Execute - Invalid Instigator"));
+		return UndoTransaction;
+	}
+	
+	
 	const FRockItemStack Item = URockInventoryLibrary::SplitItemStackAtLocation(SourceInventory, SourceSlotHandle);
 	if (!Item.IsValid())
 	{

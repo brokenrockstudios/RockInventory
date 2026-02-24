@@ -74,11 +74,21 @@ FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute()
 	checkf(TargetInventory->GetOwningActor(), TEXT("TargetInventory OwningActor is not valid"));
 	checkf(SourceWorldItemActor, TEXT("SourceWorldItemActor is not valid"));
 	checkf(SourceWorldItemActor->GetClass()->ImplementsInterface(URockLootableInterface::StaticClass()), TEXT("SourceWorldItemActor does not implement URockLootableWorldItem"));
+	
+	if (!Instigator.IsValid() || !IsValid(TargetInventory) || !IsValid(SourceWorldItemActor))
+	{ 
+		UE_LOG(LogRockInventory, Error, TEXT("Invalid data in FRockLootWorldItemTransaction. Instigator valid: %s, TargetInventory valid: %s, SourceWorldItemActor valid: %s"), 
+			Instigator.IsValid() ? TEXT("true") : TEXT("false"), 
+			IsValid(TargetInventory) ? TEXT("true") : TEXT("false"), 
+			IsValid(SourceWorldItemActor) ? TEXT("true") : TEXT("false"));
+		return UndoData;
+	}
 
+	
 	// Anticheat: Check distance to inventory.
 	constexpr float MaxAddDistance = 1000.0f;
 	AActor * InventoryActor = TargetInventory->GetOwningActor();
-
+	
 	if (SourceWorldItemActor->GetDistanceTo(InventoryActor) > MaxAddDistance)
 	{
 		return UndoData;

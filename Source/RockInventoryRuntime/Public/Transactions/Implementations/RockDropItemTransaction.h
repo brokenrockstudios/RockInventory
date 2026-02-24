@@ -61,9 +61,13 @@ struct ROCKINVENTORYRUNTIME_API FRockDropItemTransaction : public FRockItemTrans
 	// NetQuantize10 is used to reduce the size of the vector for replication. 72 bits as opposed to original 96 bits
 	// Behaves like a FVector otherwise. 
 
+	// The client may choose where to set an item on the ground, but the server should have final authority on the actual drop location. 
+	// We should probably validate that it's not an unreasonable location (e.g. more than 100 units away from the player), but for now we will just trust the client.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector_NetQuantize10 DropLocationOffset = FVector::ZeroVector;
 	// For a forward 'toss' velocity.
+	// We currently are letting the client decide this, when it should be the server determining this.
+	// We should probably validate that it's not an unreasonable impulse (e.g. more than 2000 units), but for now we will just trust the client.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector_NetQuantize Impulse = FVector::ZeroVector;
 

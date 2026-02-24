@@ -81,4 +81,6 @@ enum class ERockItemMoveMode : uint8
 	HalfStack, // Move Half Stack (Rounded up)
 	SingleItem,
 	CustomAmount, // Use MoveCount for a specific amount
+	// SwapItems. Don't merge or split, just swap the 2 items. 
+	
 };
