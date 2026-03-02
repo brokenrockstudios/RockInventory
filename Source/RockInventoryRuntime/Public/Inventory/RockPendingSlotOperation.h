@@ -19,9 +19,8 @@ enum class ERockSlotStatus : uint8
 	// PendingIncoming,   // A slot targeted for dropping an incoming item, if you want reservations. (e.g. A NPC is dropping an item at this location)
 };
 
-/**
- *
- */
+/** Represents an in-flight slot operation (e.g. a drag) used to prevent concurrent modifications.
+ *  Locked slots remain visually occupied until the operation completes or times out. */
 USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockPendingSlotOperation
 {
@@ -30,24 +29,27 @@ struct ROCKINVENTORYRUNTIME_API FRockPendingSlotOperation
 	UPROPERTY()
 	ERockSlotStatus SlotStatus = ERockSlotStatus::Empty;
 
-	// Which controller is doing the operation
+	/** Controller that owns this operation. */
 	UPROPERTY()
 	TObjectPtr<AController> Controller = nullptr;
 
-	// The slot handle that is being moved
+	/** The slot being locked. */
 	UPROPERTY()
 	FRockInventorySlotHandle SlotHandle;
 
-	// The item handle that is being moved
+	/** The item involved in the operation. */
 	UPROPERTY()
 	FRockItemStackHandle ItemHandle;
 
-	// For timeout purposes. 
+	/** World time when the operation started; used for timeout detection. */
 	UPROPERTY()
 	double TimeStarted = 0.0;
 
 	// TODO Move to UFunction Library, so we can have a UFUNCTION on this.
+	/** Returns true if the slot is unclaimed and can be locked. */
 	static bool CanClaimSlot(const FRockPendingSlotOperation& SlotOperation);
+	
+	/** Returns true if this slot is locked by a different controller. */
 	bool IsClaimedByOther(AController* OtherController) const;
 };
 

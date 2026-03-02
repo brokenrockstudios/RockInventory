@@ -2,10 +2,8 @@
 
 #include "Item/RockItemFragment.h"
 
-void FRockItemFragment::OnItemCreated(URockItemInstance* ItemInstance) const
+void FRockItemFragment::OnItemCreated(FRockItemStack& ItemStack) const
 {
-	// Should we be able to modify the parent ItemStack? (e.g. CustomValue or StackCount?)
-	// Perhaps we will refactor only if we need to. Otherwise assuming it's instance data only.
 	
 }
 

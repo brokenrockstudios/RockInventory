@@ -779,7 +779,7 @@ void URockInventory_ContainerBase::OnItemUnhovered(const FRockGridItemEventData&
 }
 
 
-void URockInventory_ContainerBase::OnItemChanged(URockInventory* InInventory, const FRockItemStackHandle& InItemHandle)
+void URockInventory_ContainerBase::OnItemChanged(const FRockItemDelta& ItemDelta)
 {
 	// Update the relevant ItemSlot widgets
 }

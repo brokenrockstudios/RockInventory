@@ -108,4 +108,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory|Components")
 	static int32 GetSlotIndex(const FRockInventorySlotHandle& SlotHandle);
+	
+	UFUNCTION(BlueprintCallable)
+	static void SetCustomValue1(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue);
+	UFUNCTION(BlueprintCallable)
+	static void SetCustomValue2(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue);
 };

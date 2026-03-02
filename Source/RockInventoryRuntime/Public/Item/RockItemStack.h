@@ -36,7 +36,8 @@ private:
 	friend class URockItemStackLibrary;
 	friend class URockInventoryLibrary;
 	friend class ARockInventoryWorldItemBase; // I don't like this being here, redesign to not need?
-
+	friend struct FRockItemFragment_SetStats;
+	
 	/** Unique identifier for the item */
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<URockItemDefinition> Definition = nullptr;
@@ -63,6 +64,11 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	uint8 Generation = 0;
 
+	// If we are going to call create RuntimeInstance or other options that
+	// may modify the item only on first creation.
+	UPROPERTY(VisibleAnywhere)
+	uint8 bInitialized:1 = 0;
+	
 public:
 	FRockItemStack() = default;
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackCount = 1);
@@ -75,6 +81,10 @@ public:
 	URockItemInstance* GetRuntimeInstance() const;
 	bool CanStackWith(const FRockItemStack& Other) const;
 
+	// Custom
+	int32 GetCustomValue1() const;
+	int32 GetCustomValue2() const;
+	
 	// Util
 	FString GetDebugString() const;
 	bool IsValid() const;
@@ -84,6 +94,7 @@ public:
 	bool operator==(const FRockItemStack& Other) const;
 	bool operator!=(const FRockItemStack& Other) const;
 	bool IsEmpty() const;
+	void CopyDataFrom(const FRockItemStack& InItemStack);
 
 	// create invalid stack
 	static const FRockItemStack& Invalid();
@@ -112,6 +123,9 @@ public:
 	// Replicated list of item stacks
 	UPROPERTY()
 	TArray<FRockItemStack> AllSlots;
+	
+	//UPROPERTY(NotReplicated)
+	//TArray<FRockItemStack> PreviousItemStacks;
 
 	// Set the owner inventory
 	void SetOwningInventory(URockInventory* InOwningInventory);

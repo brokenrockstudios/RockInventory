@@ -27,14 +27,14 @@ struct FRockItemReference
 	FRockItemStack GetCopyOfItem() const;
 };
 
-USTRUCT()
-struct FRockSlotReference
+USTRUCT(BlueprintType, Blueprintable)
+struct ROCKINVENTORYRUNTIME_API FRockSlotReference
 {
 	GENERATED_BODY()
 	
 	// inventory and SlotHandle
 	UPROPERTY()
-	TWeakObjectPtr<class URockInventory> Inventory;
+	TWeakObjectPtr<class URockInventory> Inventory = nullptr;
 	UPROPERTY()
 	FRockInventorySlotHandle SlotHandle;
 	

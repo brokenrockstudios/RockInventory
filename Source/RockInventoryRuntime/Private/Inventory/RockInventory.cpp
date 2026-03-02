@@ -12,8 +12,30 @@
 #include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
 
-URockInventory::URockInventory(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
+URockInventory::URockInventory(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+}
+
+void URockInventory::ForEachSlot(const TFunctionRef<bool(const FRockInventorySlotEntry&)>& Func) const
+{
+	for (const FRockInventorySlotEntry& Slot : SlotData)
+	{
+		if (!Func(Slot))
+		{
+			break;
+		}
+	}
+}
+
+void URockInventory::ForEachItemStack(const TFunctionRef<bool(const FRockItemStack&)>& Func) const
+{
+	for (const FRockItemStack& ItemStack : ItemData)
+	{
+		if (!Func(ItemStack))
+		{
+			break;
+		}
+	}
 }
 
 AActor* URockInventory::GetOwningActor()
@@ -67,7 +89,7 @@ void URockInventory::Init(const URockInventoryConfig* config)
 		SlotSections.Add(NewTab);
 		totalInventorySlots += NewTab.GetNumSlots();
 	}
-	// ItemData will grow dynamically, and not be preallocated
+	// ItemData will grow, and not be preallocated
 	SlotData.SetNum(totalInventorySlots);
 	if (SlotData.Num() == 0)
 	{
@@ -94,21 +116,31 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	ItemData.MarkArrayDirty();
 }
 
-
 FRockInventorySectionInfo URockInventory::GetSectionInfo(const FName& SectionName) const
 {
-	if (SectionName != NAME_None)
+	const int32 SectionIndex = GetSectionIndexById(SectionName);
+	if (SectionIndex != INDEX_NONE)
 	{
-		for (const FRockInventorySectionInfo& SectionInfo : SlotSections)
-		{
-			if (SectionInfo.GetSectionName() == SectionName)
-			{
-				return SectionInfo;
-			}
-		}
+		return SlotSections[SectionIndex];
 	}
 	return FRockInventorySectionInfo::Invalid();
 }
+
+
+int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
+{
+	if (SectionName == NAME_None) { return INDEX_NONE; }
+
+	for (int32 i = 0; i < SlotSections.Num(); ++i)
+	{
+		if (SlotSections[i].GetSectionName() == SectionName)
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
+}
+
 
 FRockInventorySectionInfo URockInventory::GetSectionInfoBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
@@ -122,22 +154,6 @@ FRockInventorySectionInfo URockInventory::GetSectionInfoBySlotHandle(const FRock
 	}
 	return FRockInventorySectionInfo::Invalid();
 }
-
-int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
-{
-	if (SectionName != NAME_None)
-	{
-		for (int32 SlotIndex = 0; SlotIndex < SlotSections.Num(); SlotIndex++)
-		{
-			if (SlotSections[SlotIndex].GetSectionName() == SectionName)
-			{
-				return SlotIndex;
-			}
-		}
-	}
-	return INDEX_NONE;
-}
-
 
 FRockInventorySlotEntry URockInventory::GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
@@ -156,20 +172,20 @@ FRockItemStack URockInventory::GetItemBySlotHandle(const FRockInventorySlotHandl
 	return GetItemByHandle(Slot.ItemHandle);
 }
 
-FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InSlotHandle) const
+FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InItemHandle) const
 {
-	if (!InSlotHandle.IsValid())
+	if (!InItemHandle.IsValid())
 	{
 		return FRockItemStack::Invalid();
 	}
-	const int32 index = InSlotHandle.GetIndex();
+	const int32 index = InItemHandle.GetIndex();
 	if (!ItemData.ContainsIndex(index))
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Bad Slot Index"));
+		UE_LOG(LogRockInventory, Warning, TEXT("GetItemByHandle - Bad Item Index"));
 		return FRockItemStack::Invalid();
 	}
 	FRockItemStack Item = ItemData[index];
-	if (Item.Generation == InSlotHandle.GetGeneration())
+	if (Item.Generation == InItemHandle.GetGeneration())
 	{
 		return Item;
 	}
@@ -186,7 +202,7 @@ FRockInventorySlotEntry URockInventory::GetSlotByItemHandle(const FRockItemStack
 	const int32 index = InItemHandle.GetIndex();
 	if (!ItemData.ContainsIndex(index))
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotHandleByItemHandle - Bad Item Index"));
+		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotByItemHandle - Invalid item index"));
 		return FRockInventorySlotEntry();
 	}
 	const FRockItemStack& Item = ItemData[index];
@@ -215,19 +231,9 @@ void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, c
 		return;
 	}
 	FRockItemStack& ChangedItem = ItemData[slotIndex];
-	// Just doing an assignment operator seemingly was triggering an add/remove. for some reason?
-	// Possibly because its non-polymorphic and the base class has some values that we don't want to change?
-
-	ChangedItem.ItemHandle = InItemStack.ItemHandle;
-	ChangedItem.Definition = InItemStack.Definition;
-	ChangedItem.StackCount = InItemStack.StackCount;
-	ChangedItem.CustomValue1 = InItemStack.CustomValue1;
-	ChangedItem.CustomValue2 = InItemStack.CustomValue2;
-	ChangedItem.RuntimeInstance = InItemStack.RuntimeInstance;
-	ChangedItem.Generation = InItemStack.Generation;
-
+	ChangedItem.CopyDataFrom(InItemStack);
 	ItemData.MarkItemDirty(ChangedItem);
-	BroadcastItemChanged(InSlotHandle);
+	BroadcastItemChanged(InSlotHandle, ERockItemChangeType::Removed);
 }
 
 void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry)
@@ -278,13 +284,14 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 	}
 }
 
-/**
-	 * Add a new tab and initialize its slots
-	 * @param SectionName - The unique identifier for the tab
-	 * @param Width - The width of the tab in slots
-	 * @param Height - The height of the tab in slots
-	 * @return The index of the newly created tab
-	 */
+//
+// /**
+// 	 * Add a new tab and initialize its slots
+// 	 * @param SectionName - The unique identifier for the tab
+// 	 * @param Width - The width of the tab in slots
+// 	 * @param Height - The height of the tab in slots
+// 	 * @return The index of the newly created tab
+// 	 */
 // int32 URockInventory::AddSection(const FName& SectionName, int32 Width, int32 Height)
 // {
 // 	FRockInventorySectionInfo NewTab(
@@ -396,9 +403,9 @@ void URockInventory::BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHa
 	OnSlotChanged.Broadcast(SlotDelta);
 }
 
-void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle)
+void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle, ERockItemChangeType ChangeType)
 {
-	OnItemChanged.Broadcast(this, ItemStackHandle);
+	OnItemChanged.Broadcast(FRockItemDelta(this, ItemStackHandle));
 }
 
 void URockInventory::RegisterSlotStatus(AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus)
@@ -443,14 +450,14 @@ void URockInventory::RegisterSlotStatus(AController* Instigator, const FRockInve
 		FRockPendingSlotOperation NewSlotOperation;
 		NewSlotOperation.Controller = Instigator;
 		NewSlotOperation.SlotHandle = InSlotHandle;
-		// if the there is an item at this slot, claim it
+		// if there is an item at this slot, claim it
 		NewSlotOperation.ItemHandle = GetSlotByHandle(InSlotHandle).ItemHandle;
 		NewSlotOperation.SlotStatus = InStatus;
 		NewSlotOperation.TimeStarted = currentTime;
 		PendingSlotOperations.Add(NewSlotOperation);
 		bPendingSlotChanged = true;
 		// The client-server won't get this call, so we need to call it manually for the listen-server
-		// The client receives an onrep from the modification of the above PendingSlotOperation.
+		// The client receives an onRep from the modification of the above PendingSlotOperation.
 	}
 
 	// Remove expired claims from the array
@@ -640,7 +647,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	// Let's make sure we are owned by an actor with authority
 	AActor* OwningActor = GetOwningActor();
 	checkf(OwningActor && OwningActor->HasAuthority(),
-		TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
+	       TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
 
 	const uint32 Index = AcquireAvailableItemIndex();
 	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
@@ -654,35 +661,80 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	NewItemStack.CustomValue1 = InItemStack.CustomValue1;
 	NewItemStack.CustomValue2 = InItemStack.CustomValue2;
 
+
 	// Initialize the item stack
-	if (NewItemStack.GetDefinition()->bRequiresRuntimeInstance)
+	if (NewItemStack.RuntimeInstance != nullptr)
 	{
-		if (NewItemStack.RuntimeInstance != nullptr)
-		{
-			NewItemStack.RuntimeInstance->Rename(nullptr, this);
-			// TODO:
-			// Set a Replicated Owner, so clients can call Rename
-			// Since the NewOuter isn't replicated by default?
-		}
-		else
+		NewItemStack.RuntimeInstance->Rename(nullptr, this);
+		// TODO:
+		// Set a Replicated Owner, so clients can call Rename
+		// Since the NewOuter isn't replicated by default?
+	}
+	if (NewItemStack.RuntimeInstance)
+	{
+		NewItemStack.RuntimeInstance->SetOwningInventory(this);
+	}
+	if (!NewItemStack.bInitialized)
+	{
+		NewItemStack.bInitialized = true;
+
+		// TODO: Would we want to do this for 'splits' and not necessarily only once?
+		// Right now I think we might disable splits for anything with bRequiresRuntimeInstance
+		if (NewItemStack.GetDefinition()->bRequiresRuntimeInstance)
 		{
 			NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
 			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
-
-			for (auto fragment : NewItemStack.GetDefinition()->Fragments)
-			{
-				const FRockItemFragment* itemFragment = fragment.GetFragmentData<FRockItemFragment>();
-
-				itemFragment->OnItemCreated(NewItemStack.RuntimeInstance);
-			}
 		}
-		NewItemStack.RuntimeInstance->SetOwningInventory(this);
+		for (auto fragment : NewItemStack.GetDefinition()->Fragments)
+		{
+			const FRockItemFragment* itemFragment = fragment.GetFragmentData<FRockItemFragment>();
+
+			itemFragment->OnItemCreated(NewItemStack);
+		}
 	}
+
 	// Set up the item
 	ItemData.MarkItemDirty(ItemData[Index]);
-	BroadcastItemChanged(ItemData[Index].ItemHandle);
+	BroadcastItemChanged(ItemData[Index].ItemHandle, ERockItemChangeType::Added);
 	// Return handle with current index and generation
 	return NewItemStack.ItemHandle;
+}
+
+void URockInventory::RemoveItemFromInventory(const FRockItemStackHandle& InItemStackHandle)
+{
+	const int32 InIndex = InItemStackHandle.GetIndex();
+
+	if (!(InIndex != INDEX_NONE && ItemData.ContainsIndex(InIndex)))
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("ReleaseItemIndex - Invalid index"));
+		return;
+	}
+
+	if (InItemStackHandle != ItemData[InIndex].ItemHandle)
+	{
+		// This is an outdated item handle, so we can't remove it
+		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItemFromInventory - Invalid item handle"));
+		return;
+	}
+
+	if (ItemData[InIndex].RuntimeInstance)
+	{
+		ItemData[InIndex].RuntimeInstance->UnregisterReplicationWithOwner();
+	}
+	const FRockItemStackHandle OldHandle = ItemData[InIndex].ItemHandle;
+	FreeIndices.Add(InIndex);
+	// Update the ItemHandle with new Generation
+	ItemData[InIndex].Generation++;
+	ItemData[InIndex].ItemHandle = FRockItemStackHandle::Create(InIndex, ItemData[InIndex].Generation);
+	ItemData[InIndex].Reset();
+
+	// It's common that Remove from FastArray typically would call MarkArrayDirty.
+	// But we are not removing the item from the array, just resetting it to be reused later. 
+	ItemData.MarkItemDirty(ItemData[InIndex]);
+
+	// We need to broadcast the old handle so that the client can remove it from their inventory.
+	BroadcastItemChanged(OldHandle, ERockItemChangeType::Removed);
+	// Anything caring about the 'new handle' should be notified by AddItemToInventory
 }
 
 
@@ -693,37 +745,34 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStack& InItemStack)
 		UE_LOG(LogRockInventory, Warning, TEXT("RemoveItemFromInventory - Invalid item stack"));
 		return;
 	}
-	const int32 InIndex = InItemStack.ItemHandle.GetIndex();
-	if (InIndex != INDEX_NONE && ItemData.ContainsIndex(InIndex))
+	RemoveItemFromInventory(InItemStack.ItemHandle);
+}
+
+void URockInventory::SetItemStackCount(const FRockItemStackHandle& Handle, int32 NewCount, bool bAutoRemoveIfZero)
+{
+	FRockItemStack Stack = GetItemByHandle(Handle);
+	if (NewCount <= 0 && bAutoRemoveIfZero)
 	{
-		if (InItemStack.ItemHandle != ItemData[InIndex].ItemHandle)
-		{
-			// This is an outdated item handle, so we can't remove it
-			UE_LOG(LogRockInventory, Warning, TEXT("RemoveItemFromInventory - Invalid item handle"));
-			return;
-		}
-
-		if (ItemData[InIndex].RuntimeInstance)
-		{
-			ItemData[InIndex].RuntimeInstance->UnregisterReplicationWithOwner();
-		}
-		const FRockItemStackHandle OldHandle = ItemData[InIndex].ItemHandle;
-		FreeIndices.Add(InIndex);
-		// Update the ItemHandle with new Generation
-		ItemData[InIndex].Generation++;
-		ItemData[InIndex].ItemHandle = FRockItemStackHandle::Create(InIndex, ItemData[InIndex].Generation);
-		ItemData[InIndex].Reset();
-
-		// It's common that Remove from FastArray typically would call MarkArrayDirty.
-		// But we are not removing the item from the array, just resetting it to be reused later. 
-		ItemData.MarkItemDirty(ItemData[InIndex]);
-
-		// We need to broadcast the old handle so that the client can remove it from their inventory.
-		BroadcastItemChanged(OldHandle);
-		// Anything caring about the 'new handle' should be notified by AddItemToInventory
+		RemoveItemFromInventory(Handle);
+		return;
 	}
 	else
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("ReleaseItemIndex - Invalid index"));
+		Stack.StackCount = NewCount;
+		SetItemByHandle(Handle, Stack);
 	}
+}
+
+void URockInventory::SetItemCustomValue1(const FRockItemStackHandle& Handle, int32 newCount)
+{
+	FRockItemStack Stack = GetItemByHandle(Handle);
+	Stack.CustomValue1 = newCount;
+	SetItemByHandle(Handle, Stack);
+}
+
+void URockInventory::SetItemCustomValue2(const FRockItemStackHandle& Handle, int32 newCount)
+{
+	FRockItemStack Stack = GetItemByHandle(Handle);
+	Stack.CustomValue2 = newCount;
+	SetItemByHandle(Handle, Stack);
 }

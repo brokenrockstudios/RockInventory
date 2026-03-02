@@ -29,7 +29,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment
 	FRockItemFragment& operator=(FRockItemFragment&&) = default;
 
 	// Fragment configures the item it's on.  This is what sets any modifiers on the item itself.
-	virtual void OnItemCreated(URockItemInstance* ItemInstance) const;
+	virtual void OnItemCreated(FRockItemStack& ItemStack) const;
 
 	// The fragment might have an opinion about combining stacks.
 	virtual bool CanCombineItemStack(const FRockItemStack& ItemStack, const FRockItemStack& OtherItemStack) const;

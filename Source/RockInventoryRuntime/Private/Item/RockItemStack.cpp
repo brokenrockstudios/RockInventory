@@ -107,6 +107,16 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 	return true;
 }
 
+int32 FRockItemStack::GetCustomValue1() const
+{ 
+	return CustomValue1;
+}
+
+int32 FRockItemStack::GetCustomValue2() const
+{
+	return CustomValue2;
+}
+
 void FRockItemStack::TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory)
 {
 	if (RuntimeInstance)
@@ -140,6 +150,17 @@ bool FRockItemStack::IsEmpty() const
 	return StackCount <= 0;
 }
 
+void FRockItemStack::CopyDataFrom(const FRockItemStack& InItemStack)
+{
+	ItemHandle = InItemStack.ItemHandle;
+	Definition = InItemStack.Definition;
+	StackCount = InItemStack.StackCount;
+	CustomValue1 = InItemStack.CustomValue1;
+	CustomValue2 = InItemStack.CustomValue2;
+	RuntimeInstance = InItemStack.RuntimeInstance;
+	Generation = InItemStack.Generation;
+}
+
 void FRockInventoryItemContainer::SetOwningInventory(URockInventory* InOwningInventory)
 {
 	OwnerInventory = InOwningInventory;
@@ -157,7 +178,7 @@ void FRockInventoryItemContainer::PostReplicatedAdd(const TArrayView<int32> Adde
 		if (AllSlots.IsValidIndex(Index))
 		{
 			// TODO: Replace with a OnItemRemoved event instead?
-			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle);
+			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle, ERockItemChangeType::Added);
 		}
 	}
 }
@@ -174,7 +195,7 @@ void FRockInventoryItemContainer::PreReplicatedRemove(const TArrayView<int32> Re
 		if (AllSlots.IsValidIndex(Index))
 		{
 			// TODO: Replace with a OnItemRemoved event instead
-			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle);
+			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle, ERockItemChangeType::Removed);
 		}
 	}
 }
@@ -190,7 +211,9 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 	{
 		if (AllSlots.IsValidIndex(Index))
 		{
-			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle);
+			// TODO: Compare items with previousItemStacks. To determine if its a proper Add, Removed, Changed
+			// Since we aren't removing Items from the array. Just invalidating them
+			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle, ERockItemChangeType::Changed);
 		}
 	}
 }

@@ -2,15 +2,17 @@
 
 #include "Item/RockItemInstance.h"
 
-void FRockItemFragment_SetStats::OnItemCreated(URockItemInstance* ItemInstance) const
+void FRockItemFragment_SetStats::OnItemCreated(FRockItemStack& ItemStack) const
 {
-	if (!IsValid(ItemInstance))
+	URockItemInstance* ItemInstance = ItemStack.GetRuntimeInstance();
+	if (IsValid(ItemInstance))
 	{
-		return;
+		for (const auto& KVP : InitialItemStats)
+		{
+			ItemInstance->StatTags.AddStack(KVP.Key, KVP.Value);
+		}
 	}
-
-	for (const auto& KVP : InitialItemStats)
-	{
-		ItemInstance->StatTags.AddStack(KVP.Key, KVP.Value);
-	}
+	
+	ItemStack.CustomValue1 = CustomValue1;
+	ItemStack.CustomValue2 = CustomValue2;
 }

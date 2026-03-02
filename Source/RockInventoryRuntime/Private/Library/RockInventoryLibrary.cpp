@@ -95,245 +95,6 @@ bool URockInventoryLibrary::LootItemToInventory(
 	return false;
 }
 
-void URockInventoryLibrary::PrecomputeOccupancyGrids(
-	const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle)
-{
-	const int32 totalGridSize = Inventory->SlotData.Num();
-	OutOccupancyGrid.SetNum(totalGridSize);
-	// Initialize all cells to false (unoccupied)
-	OutOccupancyGrid.Init(false, totalGridSize);
-
-	for (int32 TabIndex = 0; TabIndex < Inventory->SlotSections.Num(); ++TabIndex)
-	{
-		const FRockInventorySectionInfo& SectionInfo = Inventory->SlotSections[TabIndex];
-		const int32 TabOffset = SectionInfo.GetFirstSlotIndex();
-
-		// Mark occupied cells
-		for (int32 SlotIndex = 0; SlotIndex < SectionInfo.GetNumSlots(); ++SlotIndex)
-		{
-			checkf(0 <= SlotIndex && SlotIndex < Inventory->SlotData.Num(),
-				TEXT("SlotIndex is out of range: %d (max: %d)"),
-				SlotIndex,
-				Inventory->SlotData.Num() - 1);
-
-			const int32 Column = (SlotIndex) % SectionInfo.GetColumns();
-			const int32 Row = (SlotIndex) / SectionInfo.GetColumns();
-
-			const FRockInventorySlotEntry& ExistingItemSlot = Inventory->SlotData[TabOffset + SlotIndex];
-			if (ExistingItemSlot.ItemHandle == IgnoreItemHandle)
-			{
-				continue; // Skip the item we are ignoring
-			}
-
-			const FRockItemStack& ExistingItemStack = Inventory->GetItemByHandle(ExistingItemSlot.ItemHandle);
-
-			if (ExistingItemStack.IsValid())
-			{
-				const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ExistingItemStack);
-				auto SizePolicy = SectionInfo.GetSlotSizePolicy();
-
-				// If size policy is IgnoreSize, only mark the single slot as occupied
-				if (SizePolicy == ERockItemSizePolicy::IgnoreSize)
-				{
-					const int32 GridIndex = TabOffset + SlotIndex;
-					checkf(0 <= GridIndex && GridIndex < totalGridSize,
-						TEXT("Grid index out of range: %d (max: %d)"),
-						GridIndex,
-						totalGridSize - 1);
-					OutOccupancyGrid[GridIndex] = true;
-				}
-				else
-				{
-					// Mark all cells this item occupies as true
-					for (int32 Y = 0; Y < ItemSize.Y; ++Y)
-					{
-						for (int32 X = 0; X < ItemSize.X; ++X)
-						{
-							const int32 GridX = Column + X;
-							const int32 GridY = Row + Y;
-							const int32 GridIndex = TabOffset + (GridY * SectionInfo.GetColumns() + GridX);
-							checkf(0 <= GridIndex && GridIndex < totalGridSize,
-								TEXT("Grid index out of range: %d (max: %d)"),
-								GridIndex,
-								totalGridSize - 1);
-							OutOccupancyGrid[GridIndex] = true;
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-bool URockInventoryLibrary::CanItemFitInGridPosition(
-	const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize)
-{
-	// If this is an unrestricted section, we only need to check if the slot is occupied
-	// Item size is irrelevant.
-	if (TabInfo.GetSlotSizePolicy() == ERockItemSizePolicy::IgnoreSize)
-	{
-		const int32 GridIndex = TabInfo.GetFirstSlotIndex() + (Y * TabInfo.GetColumns() + X);
-		if (GridIndex < 0 || GridIndex >= OccupancyGrid.Num())
-		{
-			return false;
-		}
-		return !OccupancyGrid[GridIndex];
-	}
-
-	const int32 ItemSizeX = ItemSize.X;
-	const int32 ItemSizeY = ItemSize.Y;
-
-	// pre-check to avoid wasting time on partial fits
-	if (X < 0 || Y < 0 || X + ItemSizeX > TabInfo.GetColumns() || Y + ItemSizeY > TabInfo.GetRows())
-	{
-		// Out of bounds
-		return false;
-	}
-
-	for (int32 ItemY = 0; ItemY < ItemSizeY; ++ItemY)
-	{
-		for (int32 ItemX = 0; ItemX < ItemSizeX; ++ItemX)
-		{
-			const int32 GridIndex = TabInfo.GetFirstSlotIndex() + ((Y + ItemY) * TabInfo.GetColumns() + (X + ItemX));
-			if (GridIndex < 0 || GridIndex >= OccupancyGrid.Num())
-			{
-				// Out of bounds
-				return false;
-			}
-			if (OccupancyGrid[GridIndex])
-			{
-				// Cell is occupied
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInventory* Inventory)
-{
-	if (!Inventory)
-	{
-		return {TEXT("Invalid Inventory")};
-	}
-
-	TArray<FString> InventoryContents;
-	for (const FRockInventorySlotEntry& Slot : Inventory->SlotData)
-	{
-		FRockInventorySectionInfo section = Inventory->GetSectionInfoBySlotHandle(Slot.SlotHandle);
-		const int32 localSlotIndex = section.GetLocalIndex(Slot.SlotHandle.GetAbsoluteIndex());
-
-		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(Slot.ItemHandle);
-		FString LineItem = FString::Printf(
-			TEXT("Section:[%d] SlotIdx:[%d]; localIndex:[%d] ItemIdx:[%s], Item:[%s] Count:[%d]"),
-			Slot.SlotHandle.GetSectionIndex(),
-			Slot.SlotHandle.GetAbsoluteIndex(),
-			localSlotIndex,
-			*Slot.ItemHandle.ToString(),
-			ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
-			ItemStack.GetStackCount());
-
-		InventoryContents.Add(LineItem);
-	}
-
-	for (const FRockItemStack& ItemStack : Inventory->ItemData)
-	{
-		FString LineItem = FString::Printf(
-			TEXT("ItemIdx:[%s], Item:[%s] Count:[%d]"),
-			*ItemStack.ItemHandle.ToString(),
-			ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
-			ItemStack.GetStackCount());
-
-		InventoryContents.Add(LineItem);
-	}
-	return InventoryContents;
-}
-
-UObject* URockInventoryLibrary::GetTopLevelOwner(UObject* Instance)
-{
-	UObject* Current = Instance;
-	while (Current)
-	{
-		if (AActor* Actor = Cast<AActor>(Current))
-		{
-			return Actor;
-		}
-		else if (UActorComponent* Comp = Cast<UActorComponent>(Current))
-		{
-			return Comp;
-		}
-		else if (const URockInventory* Inv = Cast<URockInventory>(Current))
-		{
-			Current = Inv->GetOwner();
-			if (!Current)
-			{
-				// If we didn't have a proper owner, try and get the outer instead
-				Current = Inv->GetOuter();
-			}
-		}
-		else if (const URockItemInstance* ItemInstance = Cast<URockItemInstance>(Current))
-		{
-			Current = ItemInstance->OwningInventory;
-
-			// This might happen if the item is on a WorldItem and not in an inventory
-			if (!Current)
-			{
-				Current = ItemInstance->GetOuter();
-			}
-		}
-		else
-		{
-			UE_LOG(LogRockInventory, Warning, TEXT("GetOwningActor Failed"));
-			break;
-		}
-	}
-	return nullptr;
-}
-
-URockInventory* URockInventoryLibrary::GetInventory(AActor* Actor, bool bFindComponentByClass)
-{
-	if (!IsValid(Actor))
-	{
-		return nullptr;
-	}
-	// Fast path
-	if (const IRockInventoryOwnerInterface* InventoryOwner = Cast<IRockInventoryOwnerInterface>(Actor))
-	{
-		if (URockInventory* inventory = InventoryOwner->GetInventory())
-		{
-			return inventory;
-		}
-		// If the interface returns null, we could still try to find the component thru the actor's components
-	}
-	// Slow path
-	if (bFindComponentByClass)
-	{
-		// If we didn't find it directly, search through all components
-		if (URockInventoryComponent* Component = Actor->FindComponentByClass<URockInventoryComponent>())
-		{
-			return Component->Inventory;
-		}
-	}
-
-	return nullptr;
-}
-
-int32 URockInventoryLibrary::GetSlotIndex(const FRockInventorySlotHandle& SlotHandle)
-{
-	return SlotHandle.GetAbsoluteIndex();
-}
-
-
-FRockItemStack URockInventoryLibrary::GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle)
-{
-	if (!Inventory)
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("GetItemAtLocation: Invalid Inventory"));
-		return FRockItemStack::Invalid();
-	}
-	return Inventory->GetItemBySlotHandle(SlotHandle);
-}
-
 FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, int32 Quantity)
 {
 	if (!Inventory)
@@ -506,6 +267,15 @@ bool URockInventoryLibrary::MoveItem(
 			// Partial move
 
 			// Split the source item stack based on the move amount
+			auto ItemDef = ValidatedSourceItem.GetDefinition();
+			
+			// We currently aren't supporting partial moves of items that require runtime instances.
+			if (ItemDef->bRequiresRuntimeInstance)
+			{
+				UE_LOG(LogRockInventory, Warning, TEXT("Partial moves of items that require runtime instances are not supported"));
+				return false;
+			}
+			
 			const FRockItemStack ItemToMove = SplitItemStackAtLocation(SourceInventory, SourceSlotHandle, MoveAmount);
 			if (!ItemToMove.IsValid())
 			{
@@ -554,17 +324,17 @@ bool URockInventoryLibrary::MoveItem(
 		FRockItemStack UpdatedTargetItem = TargetItem;
 		UpdatedTargetItem.StackCount = targetCurrentStack + amountToMove;
 		checkf(UpdatedTargetItem.StackCount <= targetMaxStack,
-			TEXT("Updated target item stack size exceeds max: %d > %d"),
-			UpdatedTargetItem.StackCount,
-			targetMaxStack);
+		       TEXT("Updated target item stack size exceeds max: %d > %d"),
+		       UpdatedTargetItem.StackCount,
+		       targetMaxStack);
 		TargetInventory->SetItemByHandle(ValidatedTargetSlot.ItemHandle, UpdatedTargetItem);
 
 		// Update source item with remaining stack size
 		FRockItemStack UpdatedSourceItem = ValidatedSourceItem;
 		UpdatedSourceItem.StackCount = sourceCurrentStack - amountToMove;
 		checkf(UpdatedSourceItem.StackCount >= 0,
-			TEXT("Updated source item stack size is negative: %d"),
-			UpdatedSourceItem.StackCount);
+		       TEXT("Updated source item stack size is negative: %d"),
+		       UpdatedSourceItem.StackCount);
 
 		const bool isSourceEmptied = (UpdatedSourceItem.GetStackCount() <= 0);
 
@@ -691,6 +461,16 @@ int32 URockInventoryLibrary::MergeItemAtGridPosition(
 	return stackSize;
 }
 
+FRockItemStack URockInventoryLibrary::GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle)
+{
+	if (!Inventory)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("GetItemAtLocation: Invalid Inventory"));
+		return FRockItemStack::Invalid();
+	}
+	return Inventory->GetItemBySlotHandle(SlotHandle);
+}
+
 int32 URockInventoryLibrary::GetItemCount(const URockInventory* Inventory, const FName& ItemId)
 {
 	if (!Inventory)
@@ -726,4 +506,267 @@ bool URockInventoryLibrary::CanItemBePlacedInSection(
 		return true;
 	}
 	return SectionInfo.GetSectionFilter().Matches(ItemStack.GetDefinition()->ItemType);
+}
+
+
+void URockInventoryLibrary::PrecomputeOccupancyGrids(
+	const URockInventory* Inventory, TArray<bool>& OutOccupancyGrid, FRockItemStackHandle IgnoreItemHandle)
+{
+	const int32 totalGridSize = Inventory->SlotData.Num();
+	OutOccupancyGrid.SetNum(totalGridSize);
+	// Initialize all cells to false (unoccupied)
+	OutOccupancyGrid.Init(false, totalGridSize);
+
+	for (int32 TabIndex = 0; TabIndex < Inventory->SlotSections.Num(); ++TabIndex)
+	{
+		const FRockInventorySectionInfo& SectionInfo = Inventory->SlotSections[TabIndex];
+		const int32 TabOffset = SectionInfo.GetFirstSlotIndex();
+
+		// Mark occupied cells
+		for (int32 SlotIndex = 0; SlotIndex < SectionInfo.GetNumSlots(); ++SlotIndex)
+		{
+			checkf(0 <= SlotIndex && SlotIndex < Inventory->SlotData.Num(),
+			       TEXT("SlotIndex is out of range: %d (max: %d)"),
+			       SlotIndex,
+			       Inventory->SlotData.Num() - 1);
+
+			const int32 Column = (SlotIndex) % SectionInfo.GetColumns();
+			const int32 Row = (SlotIndex) / SectionInfo.GetColumns();
+
+			const FRockInventorySlotEntry& ExistingItemSlot = Inventory->SlotData[TabOffset + SlotIndex];
+			if (ExistingItemSlot.ItemHandle == IgnoreItemHandle)
+			{
+				continue; // Skip the item we are ignoring
+			}
+
+			const FRockItemStack& ExistingItemStack = Inventory->GetItemByHandle(ExistingItemSlot.ItemHandle);
+
+			if (ExistingItemStack.IsValid())
+			{
+				const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ExistingItemStack);
+				auto SizePolicy = SectionInfo.GetSlotSizePolicy();
+
+				// If size policy is IgnoreSize, only mark the single slot as occupied
+				if (SizePolicy == ERockItemSizePolicy::IgnoreSize)
+				{
+					const int32 GridIndex = TabOffset + SlotIndex;
+					checkf(0 <= GridIndex && GridIndex < totalGridSize,
+					       TEXT("Grid index out of range: %d (max: %d)"),
+					       GridIndex,
+					       totalGridSize - 1);
+					OutOccupancyGrid[GridIndex] = true;
+				}
+				else
+				{
+					// Mark all cells this item occupies as true
+					for (int32 Y = 0; Y < ItemSize.Y; ++Y)
+					{
+						for (int32 X = 0; X < ItemSize.X; ++X)
+						{
+							const int32 GridX = Column + X;
+							const int32 GridY = Row + Y;
+							const int32 GridIndex = TabOffset + (GridY * SectionInfo.GetColumns() + GridX);
+							checkf(0 <= GridIndex && GridIndex < totalGridSize,
+							       TEXT("Grid index out of range: %d (max: %d)"),
+							       GridIndex,
+							       totalGridSize - 1);
+							OutOccupancyGrid[GridIndex] = true;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+bool URockInventoryLibrary::CanItemFitInGridPosition(
+	const TArray<bool>& OccupancyGrid, const FRockInventorySectionInfo& TabInfo, int32 X, int32 Y, const FVector2D& ItemSize)
+{
+	// If this is an unrestricted section, we only need to check if the slot is occupied
+	// Item size is irrelevant.
+	if (TabInfo.GetSlotSizePolicy() == ERockItemSizePolicy::IgnoreSize)
+	{
+		const int32 GridIndex = TabInfo.GetFirstSlotIndex() + (Y * TabInfo.GetColumns() + X);
+		if (GridIndex < 0 || GridIndex >= OccupancyGrid.Num())
+		{
+			return false;
+		}
+		return !OccupancyGrid[GridIndex];
+	}
+
+	const int32 ItemSizeX = ItemSize.X;
+	const int32 ItemSizeY = ItemSize.Y;
+
+	// pre-check to avoid wasting time on partial fits
+	if (X < 0 || Y < 0 || X + ItemSizeX > TabInfo.GetColumns() || Y + ItemSizeY > TabInfo.GetRows())
+	{
+		// Out of bounds
+		return false;
+	}
+
+	for (int32 ItemY = 0; ItemY < ItemSizeY; ++ItemY)
+	{
+		for (int32 ItemX = 0; ItemX < ItemSizeX; ++ItemX)
+		{
+			const int32 GridIndex = TabInfo.GetFirstSlotIndex() + ((Y + ItemY) * TabInfo.GetColumns() + (X + ItemX));
+			if (GridIndex < 0 || GridIndex >= OccupancyGrid.Num())
+			{
+				// Out of bounds
+				return false;
+			}
+			if (OccupancyGrid[GridIndex])
+			{
+				// Cell is occupied
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInventory* Inventory)
+{
+	if (!Inventory)
+	{
+		return {TEXT("Invalid Inventory")};
+	}
+
+	TArray<FString> InventoryContents;
+	for (const FRockInventorySlotEntry& Slot : Inventory->SlotData)
+	{
+		FRockInventorySectionInfo section = Inventory->GetSectionInfoBySlotHandle(Slot.SlotHandle);
+		const int32 localSlotIndex = section.GetLocalIndex(Slot.SlotHandle.GetAbsoluteIndex());
+
+		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(Slot.ItemHandle);
+		FString LineItem = FString::Printf(
+			TEXT("Section:[%d] SlotIdx:[%d]; localIndex:[%d] ItemIdx:[%s], Item:[%s] Count:[%d]"),
+			Slot.SlotHandle.GetSectionIndex(),
+			Slot.SlotHandle.GetAbsoluteIndex(),
+			localSlotIndex,
+			*Slot.ItemHandle.ToString(),
+			ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
+			ItemStack.GetStackCount());
+
+		InventoryContents.Add(LineItem);
+	}
+
+	for (const FRockItemStack& ItemStack : Inventory->ItemData)
+	{
+		FString LineItem = FString::Printf(
+			TEXT("ItemIdx:[%s], Item:[%s] Count:[%d]"),
+			*ItemStack.ItemHandle.ToString(),
+			ItemStack.GetDefinition() ? *ItemStack.GetDefinition()->Name.ToString() : TEXT("None"),
+			ItemStack.GetStackCount());
+
+		InventoryContents.Add(LineItem);
+	}
+	return InventoryContents;
+}
+
+UObject* URockInventoryLibrary::GetTopLevelOwner(UObject* Instance)
+{
+	UObject* Current = Instance;
+	while (Current)
+	{
+		if (AActor* Actor = Cast<AActor>(Current))
+		{
+			return Actor;
+		}
+		else if (UActorComponent* Comp = Cast<UActorComponent>(Current))
+		{
+			return Comp;
+		}
+		else if (const URockInventory* Inv = Cast<URockInventory>(Current))
+		{
+			Current = Inv->GetOwner();
+			if (!Current)
+			{
+				// If we didn't have a proper owner, try and get the outer instead
+				Current = Inv->GetOuter();
+			}
+		}
+		else if (const URockItemInstance* ItemInstance = Cast<URockItemInstance>(Current))
+		{
+			Current = ItemInstance->OwningInventory;
+
+			// This might happen if the item is on a WorldItem and not in an inventory
+			if (!Current)
+			{
+				Current = ItemInstance->GetOuter();
+			}
+		}
+		else
+		{
+			UE_LOG(LogRockInventory, Warning, TEXT("GetOwningActor Failed"));
+			break;
+		}
+	}
+	return nullptr;
+}
+
+URockInventory* URockInventoryLibrary::GetInventory(AActor* Actor, bool bFindComponentByClass)
+{
+	if (!IsValid(Actor))
+	{
+		return nullptr;
+	}
+	// Fast path
+	if (const IRockInventoryOwnerInterface* InventoryOwner = Cast<IRockInventoryOwnerInterface>(Actor))
+	{
+		if (URockInventory* inventory = InventoryOwner->GetInventory())
+		{
+			return inventory;
+		}
+		// If the interface returns null, we could still try to find the component thru the actor's components
+	}
+	// Slow path
+	if (bFindComponentByClass)
+	{
+		// If we didn't find it directly, search through all components
+		if (URockInventoryComponent* Component = Actor->FindComponentByClass<URockInventoryComponent>())
+		{
+			return Component->Inventory;
+		}
+	}
+
+	return nullptr;
+}
+
+int32 URockInventoryLibrary::GetSlotIndex(const FRockInventorySlotHandle& SlotHandle)
+{
+	return SlotHandle.GetAbsoluteIndex();
+}
+
+void URockInventoryLibrary::SetCustomValue1(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue)
+{
+	if (!Inventory)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("SetCustomValue1: Invalid Inventory"));
+		return;
+	}
+	FRockItemStack ItemStack = Inventory->GetItemByHandle(ItemHandle);
+	if (!ItemStack.IsValid())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("SetCustomValue1: Invalid ItemHandle"));
+		return;
+	}
+	ItemStack.CustomValue1 = NewValue;
+	Inventory->SetItemByHandle(ItemHandle, ItemStack);
+}
+
+void URockInventoryLibrary::SetCustomValue2(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue)
+{
+	if (!Inventory)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("SetCustomValue2: Invalid Inventory"));
+		return;
+	}
+	FRockItemStack ItemStack = Inventory->GetItemByHandle(ItemHandle);
+	if (!ItemStack.IsValid())
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("SetCustomValue2: Invalid ItemHandle"));
+		return;
+	}
+	ItemStack.CustomValue2 = NewValue;
+	Inventory->SetItemByHandle(ItemHandle, ItemStack);
 }

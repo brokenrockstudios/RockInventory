@@ -7,6 +7,7 @@
 #include "Core/RockDropCarryReceiver.h"
 #include "Inventory/RockInventorySectionInfo.h"
 #include "Inventory/RockInventorySlot.h"
+#include "Inventory/Events/RockItemDelta.h"
 #include "Inventory/Events/RockSlotDelta.h"
 #include "Shared/RockContainerItemView.h"
 #include "Shared/RockGridItemEventData.h"
@@ -158,7 +159,7 @@ public:
 	FRockInventorySectionInfo TabInfo;
 
 	UFUNCTION()
-	void OnItemChanged(URockInventory* InInventory, const FRockItemStackHandle& InItemHandle);
+	void OnItemChanged(const FRockItemDelta& ItemDelta);
 
 	UFUNCTION()
 	void OnSlotChanged(const FRockSlotDelta& SlotDelta);
