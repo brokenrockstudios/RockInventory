@@ -396,11 +396,7 @@ void URockInventory::UnregisterReplicationWithOwner()
 
 void URockInventory::BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle, ERockSlotChangeType ChangeType)
 {
-	FRockSlotDelta SlotDelta;
-	SlotDelta.Inventory = this;
-	SlotDelta.SlotHandle = SlotHandle;
-	SlotDelta.ChangeType = ChangeType;
-	OnSlotChanged.Broadcast(SlotDelta);
+	OnSlotChanged.Broadcast(FRockSlotDelta(this, SlotHandle, ChangeType));
 }
 
 void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle, ERockItemChangeType ChangeType)
@@ -605,6 +601,8 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 		ItemData[Index].ItemHandle = FRockItemStackHandle::Create(Index, 0);
 		// Since we modified the array, we need to mark it dirty? Or can we just mark the item only?
 		ItemData.MarkItemDirty(ItemData[Index]);
+		// We are calling this because of the above ItemData.AddDefaulted size change
+		ItemData.MarkArrayDirty(); 
 		return Index;
 	}
 	checkf(false, TEXT("AcquireAvailableItemData - No space left. Inventory is full or not initialized properly."));

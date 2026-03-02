@@ -53,11 +53,12 @@ private:
 	/** 
 	 * Generic value that can be used for various purposes (durability, charges, etc.)
 	 * The meaning of this value is determined by the item's definition
+	 * Note: These items could be overwritten if the ItemDefinition's Fragment has an OnItemCreated that modifies these.
 	 */
 	UPROPERTY(EditAnywhere)
 	int32 CustomValue1 = 0;
 	/** Additional generic value for extended functionality */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	int32 CustomValue2 = 0;
 	/** This is used to detect stale item handles that may have pointed to previous items.
 	 * Since we don't 'shrink' the inventory array, we need to have a way to indicate that this item stack is stale. Thus the Generation */
@@ -124,8 +125,9 @@ public:
 	UPROPERTY()
 	TArray<FRockItemStack> AllSlots;
 	
-	//UPROPERTY(NotReplicated)
-	//TArray<FRockItemStack> PreviousItemStacks;
+	// Keep it sync/size with AllSlots
+	UPROPERTY(NotReplicated)
+	TArray<FRockItemStackHandle> PreviousItemHandles;
 
 	// Set the owner inventory
 	void SetOwningInventory(URockInventory* InOwningInventory);

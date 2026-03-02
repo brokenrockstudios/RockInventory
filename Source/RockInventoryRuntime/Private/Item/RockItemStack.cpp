@@ -108,7 +108,7 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 }
 
 int32 FRockItemStack::GetCustomValue1() const
-{ 
+{
 	return CustomValue1;
 }
 
@@ -168,52 +168,80 @@ void FRockInventoryItemContainer::SetOwningInventory(URockInventory* InOwningInv
 
 void FRockInventoryItemContainer::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
-	if (!OwnerInventory)
-	{
-		return;
-	}
-
-	for (const int32 Index : AddedIndices)
-	{
-		if (AllSlots.IsValidIndex(Index))
-		{
-			// TODO: Replace with a OnItemRemoved event instead?
-			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle, ERockItemChangeType::Added);
-		}
-	}
+	// Just forward to Change. Our Change logic handles "Invalid -> Valid" perfectly as an 'Added' event.
+	PostReplicatedChange(AddedIndices, FinalSize);
 }
 
 void FRockInventoryItemContainer::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
-	if (!OwnerInventory)
-	{
-		return;
-	}
+	if (!OwnerInventory) { return; }
 
+	// If the array actually shrinks, we MUST broadcast removal here because 
+	// AllSlots[Index] will be invalid/gone in PostReplicated.
 	for (const int32 Index : RemovedIndices)
 	{
-		if (AllSlots.IsValidIndex(Index))
+		if (PreviousItemHandles.IsValidIndex(Index) && PreviousItemHandles[Index].IsValid())
 		{
-			// TODO: Replace with a OnItemRemoved event instead
-			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle, ERockItemChangeType::Removed);
+			OwnerInventory->BroadcastItemChanged(PreviousItemHandles[Index], ERockItemChangeType::Removed);
+			PreviousItemHandles[Index] = FRockItemStackHandle::Invalid();
 		}
 	}
 }
 
 void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
 {
-	if (!OwnerInventory)
+	if (!OwnerInventory) { return; }
+
+	if (PreviousItemHandles.Num() != AllSlots.Num())
 	{
-		return;
+		PreviousItemHandles.SetNumZeroed(AllSlots.Num(), EAllowShrinking::No);
 	}
 
 	for (const int32 Index : ChangedIndices)
 	{
-		if (AllSlots.IsValidIndex(Index))
+		// I don't think this should ever be the case but just in case, we should be defensive about array bounds here
+		if (!AllSlots.IsValidIndex(Index)) continue;
+		
+		const FRockItemStack& CurrentItem = AllSlots[Index];
+		const FRockItemStackHandle PrevHandle = PreviousItemHandles.IsValidIndex(Index) ? PreviousItemHandles[Index] : FRockItemStackHandle::Invalid();
+
+		const bool bIsCurrentlyValid = CurrentItem.IsValid();
+		const bool bWasPreviouslyValid = PrevHandle.IsValid();
+
+		// Item is invalid, There are 2 scenarios this is likely to be true 
+		// 1. An item previously existed here and was removed. So we should broadcast a remove for the previous item handle
+		// 2. This slot was previously empty and still is empty, so we shouldn't. This might happen on initial connect
+		// Where maybe 5 valid items and 5 invalid items replicate. But in that case those 5 invalid items sholdn't have valid handles in our PreviousHandles
+		// This is an initial sync edge case. Since it might only have fired a Change, and not necessarily an add
+		if (!bIsCurrentlyValid)
 		{
-			// TODO: Compare items with previousItemStacks. To determine if its a proper Add, Removed, Changed
-			// Since we aren't removing Items from the array. Just invalidating them
-			OwnerInventory->BroadcastItemChanged(AllSlots[Index].ItemHandle, ERockItemChangeType::Changed);
+			if (bWasPreviouslyValid)
+			{
+				OwnerInventory->BroadcastItemChanged(PrevHandle, ERockItemChangeType::Removed);
+			}
 		}
+		else // Item is valid
+		{
+			if (!bWasPreviouslyValid)
+			{
+				// Scenario: Slot was empty, now has an item.
+				// This falls under an Initial Sync edge case
+				OwnerInventory->BroadcastItemChanged(CurrentItem.ItemHandle, ERockItemChangeType::Added);
+			}
+			else if (CurrentItem.ItemHandle.GetGeneration() == PrevHandle.GetGeneration())
+			{
+				// Scenario: Definitely the same item, just data/stack count changed.
+				OwnerInventory->BroadcastItemChanged(CurrentItem.ItemHandle, ERockItemChangeType::Changed);
+			}
+			else
+			{
+				// Scenario: Explicit swap: generation mismatch. Valid Item
+				OwnerInventory->BroadcastItemChanged(PrevHandle, ERockItemChangeType::Removed);
+				OwnerInventory->BroadcastItemChanged(CurrentItem.ItemHandle, ERockItemChangeType::Added);
+			}
+		}
+
+		// Sync the tracker for the next update
+		PreviousItemHandles[Index] = CurrentItem.ItemHandle;
 	}
 }

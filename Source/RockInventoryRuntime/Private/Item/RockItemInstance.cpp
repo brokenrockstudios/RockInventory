@@ -102,7 +102,7 @@ void URockItemInstance::OnTagStackChanged_Internal(const FGameplayTag& Tag, int3
 		if (NewCount != OldCount)
 		{
 			// Notify the owning inventory that this item instance has changed, so it can update any relevant UI or gameplay logic.
-			OwningInventory->BroadcastItemChanged(ItemHandle);
+			OwningInventory->BroadcastItemChanged(ItemHandle, ERockItemChangeType::Changed);
 		}
 	}
 }
