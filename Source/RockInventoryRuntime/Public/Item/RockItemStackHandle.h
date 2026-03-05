@@ -45,10 +45,7 @@ public:
 	 */
 	static FRockItemStackHandle Create(uint32 InIndex, uint32 InGeneration);
 
-	/**
-	 * Creates an invalid handle
-	 * @return An invalid handle instance
-	 */
+	/**	Creates an invalid handle */
 	static FRockItemStackHandle Invalid();
 
 	/** Returns true if this handle refers to a valid item stack */
@@ -73,6 +70,20 @@ public:
 	friend FArchive& operator<<(FArchive& Ar, FRockItemStackHandle& ItemStackHandle)
 	{
 		Ar << ItemStackHandle.Handle;
+		
+		// Does Iris NetSerialize even use this operator<< or is only the save/laod system using it?
+		// uint32 Packed = 0;
+		// if (Ar.IsSaving())
+		// {
+		// 	Packed = ItemStackHandle.IsValid() ? static_cast<uint32>(ItemStackHandle.Handle + 1) : 0u;
+		// }
+		// Ar.SerializeIntPacked(Packed);
+		// if (Ar.IsLoading())
+		// {
+		// 	// 0 is reserved for invalid handles, so we can use it to avoid serializing invalid handles
+		// 	ItemStackHandle.Handle = Packed == 0u ? INDEX_NONE : static_cast<int32>(Packed - 1); 
+		// }
+		//
 		return Ar;
 	}
 

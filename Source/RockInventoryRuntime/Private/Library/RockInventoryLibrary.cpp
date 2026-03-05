@@ -770,3 +770,17 @@ void URockInventoryLibrary::SetCustomValue2(URockInventory* Inventory, const FRo
 	ItemStack.CustomValue2 = NewValue;
 	Inventory->SetItemByHandle(ItemHandle, ItemStack);
 }
+
+FRockInventorySlotHandle URockInventoryLibrary::FindFirstSlotWithSectionTag(URockInventory* Inventory, FGameplayTag ItemId)
+{
+	if (!Inventory) { return FRockInventorySlotHandle::Invalid(); }
+
+	// We use the Core Query system to build the specific search
+	FRockInventoryQuery Q = FRockInventoryQuery::ForSectionWithTag(ItemId);
+	if (const FRockInventorySlotEntry* Slot = Inventory->FindFirstSlot(Q))
+	{
+		return Slot->SlotHandle; // Return the handle (safe for BP/external use)
+	}
+
+	return FRockInventorySlotHandle::Invalid();
+}

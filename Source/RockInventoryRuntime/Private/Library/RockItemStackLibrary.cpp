@@ -111,3 +111,8 @@ int32 URockItemStackLibrary::CalculateMoveAmount(const FRockItemStack& ItemStack
 		return 0;
 	}
 }
+
+bool URockItemStackLibrary::IsValid(const FRockItemStack& ItemStack)
+{
+	return ItemStack.IsValid();
+}

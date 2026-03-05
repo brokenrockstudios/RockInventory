@@ -49,4 +49,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
 	static int32 CalculateMoveAmount(const FRockItemStack& ItemStack, const ERockItemMoveMode& MoveMode, int32 MoveCount);
+	
+	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
+	static bool IsValid(const FRockItemStack& ItemStack);
 };

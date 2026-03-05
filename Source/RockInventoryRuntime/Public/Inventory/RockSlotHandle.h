@@ -26,6 +26,8 @@ public:
 	int32 GetSectionIndex() const { return Section; }
 	// Get the absolute slot index from the handle
 	int32 GetAbsoluteIndex() const { return Index; }
+	/**	Creates an invalid handle */
+	static FRockInventorySlotHandle Invalid();
 	bool IsValid() const { return Index != INDEX_NONE && Section != INDEX_NONE; }
 
 	// Helper Utility functions

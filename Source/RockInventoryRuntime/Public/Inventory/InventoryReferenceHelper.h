@@ -12,32 +12,50 @@
 /**
  * 
  */
-USTRUCT()
+USTRUCT(BlueprintType, Blueprintable)
 struct FRockItemReference
 {
 	GENERATED_BODY()
+public:
+	FRockItemReference() = default;
+	URockInventory * GetInventory() const { return Inventory.Get(); }
+	FRockItemStackHandle GetItemHandle() const { return ItemHandle; }
 	
+private:
 	// inventory and ItemHandle
 	UPROPERTY()
-	TWeakObjectPtr<class URockInventory> Inventory;
+	TWeakObjectPtr<class URockInventory> Inventory = nullptr;
 	UPROPERTY()
 	FRockItemStackHandle ItemHandle;
 	
+	bool IsValid() const;
 	// getter function
 	FRockItemStack GetCopyOfItem() const;
+private:
+	// Only allow an inventory to be able to create these references
+	FRockItemReference(URockInventory* InInventory, FRockItemStackHandle InSlotHandle);
+	friend class URockInventory;
 };
 
 USTRUCT(BlueprintType, Blueprintable)
 struct ROCKINVENTORYRUNTIME_API FRockSlotReference
 {
 	GENERATED_BODY()
+public:
+	FRockSlotReference() = default;
+	URockInventory* GetInventory() const { return Inventory.Get(); }
+	FRockInventorySlotHandle GetSlotHandle() const { return SlotHandle; }
+	// getter function
+	FRockInventorySlotEntry GetSlotEntry() const;
+private:
 	
-	// inventory and SlotHandle
+	// We don't want anyone to modify these. They should be initialized only by RockInventory
 	UPROPERTY()
 	TWeakObjectPtr<class URockInventory> Inventory = nullptr;
 	UPROPERTY()
 	FRockInventorySlotHandle SlotHandle;
 	
-	// getter function
-	FRockInventorySlotEntry GetSlotEntry() const;
+	// Only allow an inventory to be able to create these references
+	FRockSlotReference(URockInventory* InInventory, FRockInventorySlotHandle InSlotHandle);
+	friend class URockInventory;
 };

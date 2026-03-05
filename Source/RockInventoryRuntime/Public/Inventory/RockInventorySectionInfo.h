@@ -83,7 +83,7 @@ public:
 	bool IsValid() const;
 
 	/** Total number of slots in this tab */
-	int32 GetNumSlots() const;
+	FORCEINLINE int32 GetNumSlots() const;
 
 	/** Returns the width (Columns) of the tab */
 	int32 GetColumns() const;

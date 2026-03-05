@@ -117,6 +117,15 @@ int32 FRockItemStack::GetCustomValue2() const
 	return CustomValue2;
 }
 
+TOptional<int32> FRockItemStack::GetCustomValueByTag(FGameplayTag CustomValueTag) const
+{
+	const URockItemDefinition* Def = GetDefinition();
+	if (!Def) { return TOptional<int32>(); }
+	if (CustomValueTag.MatchesTagExact(Def->CustomValue1Tag)) { return CustomValue1; }
+	if (CustomValueTag.MatchesTagExact(Def->CustomValue2Tag)) { return CustomValue2; }
+	return TOptional<int32>();
+}
+
 void FRockItemStack::TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory)
 {
 	if (RuntimeInstance)
@@ -194,14 +203,14 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 
 	if (PreviousItemHandles.Num() != AllSlots.Num())
 	{
-		PreviousItemHandles.SetNumZeroed(AllSlots.Num(), EAllowShrinking::No);
+		PreviousItemHandles.SetNum(AllSlots.Num(), EAllowShrinking::No);
 	}
 
 	for (const int32 Index : ChangedIndices)
 	{
 		// I don't think this should ever be the case but just in case, we should be defensive about array bounds here
 		if (!AllSlots.IsValidIndex(Index)) continue;
-		
+
 		const FRockItemStack& CurrentItem = AllSlots[Index];
 		const FRockItemStackHandle PrevHandle = PreviousItemHandles.IsValidIndex(Index) ? PreviousItemHandles[Index] : FRockItemStackHandle::Invalid();
 

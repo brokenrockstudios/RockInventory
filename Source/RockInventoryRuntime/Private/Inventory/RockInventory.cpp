@@ -16,13 +16,17 @@ URockInventory::URockInventory(const FObjectInitializer& ObjectInitializer) : Su
 {
 }
 
-void URockInventory::ForEachSlot(const TFunctionRef<bool(const FRockInventorySlotEntry&)>& Func) const
+// Fast - slots with section context for free
+void URockInventory::ForEachSlotInSection(const TFunctionRef<bool(const FRockInventorySectionInfo&, const FRockInventorySlotEntry&)>& Func) const
 {
-	for (const FRockInventorySlotEntry& Slot : SlotData)
+	for (const FRockInventorySectionInfo& Section : SlotSections)
 	{
-		if (!Func(Slot))
+		const int32 FirstIndex = Section.GetFirstSlotIndex();
+		const int32 NumSlots = Section.GetNumSlots();
+		for (int32 slotIndex = 0; slotIndex < NumSlots; ++slotIndex)
 		{
-			break;
+			if (!Func(Section, SlotData[FirstIndex + slotIndex]))
+				return;
 		}
 	}
 }
@@ -101,8 +105,9 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	{
 		const FRockInventorySectionInfo& TabInfo = SlotSections[SectionIndex];
 		const int32 TabOffset = TabInfo.GetFirstSlotIndex();
+		const int32 NumSlots = TabInfo.GetNumSlots();
 
-		for (int32 SlotIndex = 0; SlotIndex < TabInfo.GetNumSlots(); ++SlotIndex)
+		for (int32 SlotIndex = 0; SlotIndex < NumSlots; ++SlotIndex)
 		{
 			const int32 AbsoluteSlotIndex = TabOffset + SlotIndex;
 			SlotData[AbsoluteSlotIndex].SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteSlotIndex);
@@ -174,52 +179,54 @@ FRockItemStack URockInventory::GetItemBySlotHandle(const FRockInventorySlotHandl
 
 FRockItemStack URockInventory::GetItemByHandle(const FRockItemStackHandle& InItemHandle) const
 {
-	if (!InItemHandle.IsValid())
+	const FRockItemStack* ItemPtr = GetItemByHandlePtr(InItemHandle);
+	return ItemPtr ? *ItemPtr : FRockItemStack::Invalid();
+}
+
+const FRockItemStack* URockInventory::GetItemByHandlePtr(const FRockItemStackHandle& InItemHandle) const
+{
+	if (!InItemHandle.IsValid()) { return nullptr; }
+
+	const int32 Index = InItemHandle.GetIndex();
+	if (!ItemData.ContainsIndex(Index))
 	{
-		return FRockItemStack::Invalid();
+		UE_LOG(LogRockInventory, Warning, TEXT("GetItemByHandlePtr - Bad Item Index"));
+		return nullptr;
 	}
-	const int32 index = InItemHandle.GetIndex();
-	if (!ItemData.ContainsIndex(index))
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("GetItemByHandle - Bad Item Index"));
-		return FRockItemStack::Invalid();
-	}
-	FRockItemStack Item = ItemData[index];
-	if (Item.Generation == InItemHandle.GetGeneration())
-	{
-		return Item;
-	}
-	// This could be invalidated if the item was removed. 
-	return FRockItemStack::Invalid();
+
+	const FRockItemStack& Item = ItemData[Index];
+	if (Item.Generation != InItemHandle.GetGeneration()) { return nullptr; }
+
+	return &Item;
 }
 
 FRockInventorySlotEntry URockInventory::GetSlotByItemHandle(const FRockItemStackHandle& InItemHandle) const
 {
-	if (!InItemHandle.IsValid())
-	{
-		return FRockInventorySlotEntry();
-	}
+	const FRockInventorySlotEntry* SlotPtr = GetSlotByItemHandlePtr(InItemHandle);
+	return SlotPtr ? *SlotPtr : FRockInventorySlotEntry::Invalid();
+}
+
+const FRockInventorySlotEntry* URockInventory::GetSlotByItemHandlePtr(const FRockItemStackHandle& InItemHandle) const
+{
+	if (!InItemHandle.IsValid()) { return nullptr; }
+
 	const int32 index = InItemHandle.GetIndex();
 	if (!ItemData.ContainsIndex(index))
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotByItemHandle - Invalid item index"));
-		return FRockInventorySlotEntry();
+		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotByItemHandlePtr - Invalid item index"));
+		return nullptr;
 	}
 	const FRockItemStack& Item = ItemData[index];
-	if (Item.Generation != InItemHandle.GetGeneration())
-	{
-		return FRockInventorySlotEntry();
-	}
+	if (Item.Generation != InItemHandle.GetGeneration()) { return nullptr; }
 
-	// Find the slot that contains this item
 	for (const FRockInventorySlotEntry& SlotEntry : SlotData)
 	{
 		if (SlotEntry.ItemHandle == InItemHandle)
 		{
-			return SlotEntry;
+			return &SlotEntry;
 		}
 	}
-	return FRockInventorySlotEntry();
+	return nullptr;
 }
 
 void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, const FRockItemStack& InItemStack)
@@ -602,7 +609,7 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 		// Since we modified the array, we need to mark it dirty? Or can we just mark the item only?
 		ItemData.MarkItemDirty(ItemData[Index]);
 		// We are calling this because of the above ItemData.AddDefaulted size change
-		ItemData.MarkArrayDirty(); 
+		ItemData.MarkArrayDirty();
 		return Index;
 	}
 	checkf(false, TEXT("AcquireAvailableItemData - No space left. Inventory is full or not initialized properly."));
@@ -633,6 +640,31 @@ int32 URockInventory::GetItemTotalCount()
 		}
 	}
 	return Count;
+}
+
+bool URockInventory::IsHandleValid(FRockItemStackHandle ItemHandle) const
+{
+	if (!ItemHandle.IsValid())
+	{
+		return false;
+	}
+	const int32 index = ItemHandle.GetIndex();
+	if (!ItemData.ContainsIndex(index))
+	{
+		return false;
+	}
+	return ItemData[index].Generation == ItemHandle.GetGeneration();
+}
+
+FRockItemReference URockInventory::MakeItemReference(FRockInventorySlotHandle SlotHandle)
+{
+	FRockInventorySlotEntry Slot = GetSlotByHandle(SlotHandle);
+	return FRockItemReference(this, Slot.ItemHandle);
+}
+
+FRockSlotReference URockInventory::MakeSlotReference(FRockInventorySlotHandle SlotHandle)
+{
+	return FRockSlotReference(this, SlotHandle);
 }
 
 
@@ -761,16 +793,98 @@ void URockInventory::SetItemStackCount(const FRockItemStackHandle& Handle, int32
 	}
 }
 
-void URockInventory::SetItemCustomValue1(const FRockItemStackHandle& Handle, int32 newCount)
+bool URockInventory::SetItemCustomValueByTag(const FRockItemStackHandle& Handle, FGameplayTag tag, int32 NewCount)
 {
 	FRockItemStack Stack = GetItemByHandle(Handle);
-	Stack.CustomValue1 = newCount;
-	SetItemByHandle(Handle, Stack);
+	if (tag == Stack.GetDefinition()->CustomValue1Tag)
+	{
+		Stack.CustomValue1 = NewCount;
+		SetItemByHandle(Handle, Stack);
+		return true;
+	}
+	else if (tag == Stack.GetDefinition()->CustomValue2Tag)
+	{
+		Stack.CustomValue2 = NewCount;
+		SetItemByHandle(Handle, Stack);
+		return true;
+	}
+	return false;
 }
 
-void URockInventory::SetItemCustomValue2(const FRockItemStackHandle& Handle, int32 newCount)
+void URockInventory::ForEachSlot(const FRockInventoryQuery& Query, const TFunctionRef<bool(const FRockInventorySectionInfo*, const FRockInventorySlotEntry*)>& Visitor)
 {
-	FRockItemStack Stack = GetItemByHandle(Handle);
-	Stack.CustomValue2 = newCount;
-	SetItemByHandle(Handle, Stack);
+	for (const FRockInventorySectionInfo& Section : SlotSections)
+	{
+		if (Query.SectionPredicate && !Query.SectionPredicate(&Section))
+		{
+			continue;
+		}
+		const int32 FirstSlotIndex = Section.GetFirstSlotIndex();
+		const int32 NumSlots = Section.GetNumSlots();
+		for (int32 slotIndex = 0; slotIndex < NumSlots; ++slotIndex)
+		{
+			const int32 AbsoluteIndex = FirstSlotIndex + slotIndex;
+			const FRockInventorySlotEntry* Slot = &SlotData[AbsoluteIndex];
+
+			if (Query.SlotPredicate && !Query.SlotPredicate(Slot))
+			{
+				continue;
+			}
+
+			if (Query.ItemPredicate)
+			{
+				const FRockItemStack* Stack = GetItemByHandlePtr(Slot->ItemHandle);
+				if (!Stack || !Stack->IsValid() || !Query.ItemPredicate(Stack))
+					continue;
+			}
+			if (!Visitor(&Section, Slot))
+			{
+				// Visitor can return false to break the loop early if needed
+				return;
+			}
+		}
+	}
+}
+
+TArray<FRockItemStackHandle> URockInventory::FindAllItemHandles(const FRockInventoryQuery& Query)
+{
+	TArray<FRockItemStackHandle> ResultArr;
+	ForEachSlot(Query,
+	            [&ResultArr](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
+	            {
+		            ResultArr.Add(Slot->ItemHandle);
+		            // Continue iterating through all slots
+		            return true;
+	            });
+	return ResultArr;
+}
+
+const FRockInventorySlotEntry* URockInventory::FindFirstSlot(const FRockInventoryQuery& Query)
+{
+	const FRockInventorySlotEntry* Found = nullptr;
+	ForEachSlot(Query,
+	            [&](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
+	            {
+		            if (!Found)
+		            {
+			            // Note: We need a non-const pointer if we want to modify the slot
+			            Found = Slot;
+			            return false;
+		            }
+		            return true;
+	            });
+	return Found;
+}
+
+TArray<FRockInventorySlotEntry> URockInventory::FindAllSlots(const FRockInventoryQuery& Query)
+{
+	TArray<FRockInventorySlotEntry> ResultArr;
+	ForEachSlot(Query,
+	            [&ResultArr](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
+	            {
+		            ResultArr.Add(*Slot);
+		            // Continue iterating through all slots
+		            return true;
+	            });
+	return ResultArr;
 }

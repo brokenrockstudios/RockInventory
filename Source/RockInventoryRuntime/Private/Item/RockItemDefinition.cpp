@@ -11,6 +11,15 @@ const TArray<FRockItemFragmentInstance>& URockItemDefinition::GetAllFragments() 
 	return Fragments;
 }
 
+FPrimaryAssetId URockItemDefinition::GetPrimaryAssetId() const
+{
+	if (ItemId != NAME_None)
+	{
+		return FPrimaryAssetId("RockItemDefinition", ItemId);
+	}
+	return FPrimaryAssetId("RockItemDefinition", GetFName());
+}
+
 void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewItem)
 {
 	checkf(false, TEXT("RegisterItemDefinition is not tested yet!"));

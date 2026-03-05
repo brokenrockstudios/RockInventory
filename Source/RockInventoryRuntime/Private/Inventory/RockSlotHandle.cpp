@@ -32,6 +32,11 @@ FRockInventorySlotHandle::FRockInventorySlotHandle(int32 InSectionIndex, int32 I
 {
 }
 
+FRockInventorySlotHandle FRockInventorySlotHandle::Invalid()
+{
+	return FRockInventorySlotHandle();
+}
+
 FString FRockInventorySlotHandle::ToString() const
 {
 	if (!IsValid())

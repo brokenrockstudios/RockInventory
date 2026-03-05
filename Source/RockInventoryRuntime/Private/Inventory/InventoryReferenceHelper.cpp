@@ -5,6 +5,11 @@
 
 #include "Inventory/RockInventory.h"
 
+bool FRockItemReference::IsValid() const
+{
+	return Inventory != nullptr && Inventory->IsHandleValid(ItemHandle);
+}
+
 FRockItemStack FRockItemReference::GetCopyOfItem() const
 {
 	if (Inventory == nullptr)
@@ -15,6 +20,11 @@ FRockItemStack FRockItemReference::GetCopyOfItem() const
 	return Inventory->GetItemByHandle(ItemHandle);
 }
 
+FRockItemReference::FRockItemReference(URockInventory* InInventory, FRockItemStackHandle InSlotHandle)
+	: Inventory(InInventory), ItemHandle(InSlotHandle)
+{
+}
+
 FRockInventorySlotEntry FRockSlotReference::GetSlotEntry() const
 {
 	if (Inventory == nullptr)
@@ -23,4 +33,9 @@ FRockInventorySlotEntry FRockSlotReference::GetSlotEntry() const
 	}
 
 	return Inventory->GetSlotByHandle(SlotHandle);
+}
+
+FRockSlotReference::FRockSlotReference(URockInventory* InInventory, FRockInventorySlotHandle InSlotHandle)
+	: Inventory(InInventory), SlotHandle(InSlotHandle)
+{
 }

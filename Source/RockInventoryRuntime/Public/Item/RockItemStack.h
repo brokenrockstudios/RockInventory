@@ -10,6 +10,7 @@
 
 #include "RockItemStack.generated.h"
 
+struct FGameplayTag;
 class URockItemInstance;
 class URockItemDefinition;
 
@@ -85,6 +86,8 @@ public:
 	// Custom
 	int32 GetCustomValue1() const;
 	int32 GetCustomValue2() const;
+	/** Gets a custom value based on the definition. */
+	TOptional<int32> GetCustomValueByTag(FGameplayTag CustomValueTag) const;
 	
 	// Util
 	FString GetDebugString() const;

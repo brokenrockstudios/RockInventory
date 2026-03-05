@@ -103,8 +103,9 @@ public:
 	// This needs to point to where the inventory is registered for replication
 	static UObject* GetTopLevelOwner(UObject* Instance);
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Components")
-	static URockInventory* GetInventory(AActor* Actor, bool bFindComponentByClass = false);
+	/** Searches the passed in actor for an Inventory, will use interface or fall back to a component search */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory|Components")
+	static URockInventory* GetInventory(AActor* Actor, bool bFindComponentByClass = true);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory|Components")
 	static int32 GetSlotIndex(const FRockInventorySlotHandle& SlotHandle);
@@ -113,4 +114,7 @@ public:
 	static void SetCustomValue1(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue);
 	UFUNCTION(BlueprintCallable)
 	static void SetCustomValue2(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue);
+	
+	UFUNCTION(BlueprintCallable)
+	static FRockInventorySlotHandle FindFirstSlotWithSectionTag(URockInventory* Inventory, FGameplayTag ItemId);
 };

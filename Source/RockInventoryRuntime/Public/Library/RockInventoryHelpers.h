@@ -41,8 +41,19 @@
 	int32 AddDefaulted(int32 Count) { return PropertyName.AddDefaulted(Count); } \
     int32 AddDefaulted() { return PropertyName.AddDefaulted(); } \
 	/* Misc */ \
-	bool ContainsIndex(int32 Index) const { return Index >= 0 && Index < PropertyName.Num(); }
-
+	bool ContainsIndex(int32 Index) const { return Index >= 0 && Index < PropertyName.Num(); } \
+	\
+	/* Data Access */ \
+	const auto* GetData() const { return PropertyName.GetData(); } \
+	auto* GetData() { return PropertyName.GetData(); } \
+	\
+	/* Search */ \
+	template<typename Predicate> \
+	int32 IndexOfByPredicate(Predicate Pred) const { return PropertyName.IndexOfByPredicate(Pred); } \
+	template<typename Predicate> \
+	auto* FindByPredicate(Predicate Pred) { return PropertyName.FindByPredicate(Pred); } \
+	template<typename Predicate> \
+	const auto* FindByPredicate(Predicate Pred) const { return PropertyName.FindByPredicate(Pred); }
 
 // No direct int32 access. Always assume we want to access via handle
 

@@ -17,7 +17,7 @@ enum class ERockSlotChangeType : uint8
 
 	// Default/Unknown state
 	None UMETA(DisplayName = "None"),
-	// We went from an Invalid ItemHandle to a valid one
+	// We went from this slot having an Invalid ItemHandle to a valid one. 
 	Added UMETA(DisplayName = "Added"),
 	// We went from a valid ItemHandle to an Invalid one
 	Removed UMETA(DisplayName = "Removed"),

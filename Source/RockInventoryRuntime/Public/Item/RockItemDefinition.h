@@ -215,6 +215,8 @@ public:
 
 	template <typename T> requires std::derived_from<T, FRockItemFragment>
 	const T* GetFragmentOfType() const;
+	template <typename T> requires std::derived_from<T, FRockItemFragment>
+	bool HasFragment() const;
 
 	const TArray<FRockItemFragmentInstance>& GetAllFragments() const;
 
@@ -239,14 +241,7 @@ public:
 	// UPROPERTY(EditDefaultsOnly, Category=Equipment)
 	// TArray<TObjectPtr<const URockItemAbilitySet>> AbilitySetsToGrant;
 
-	virtual FPrimaryAssetId GetPrimaryAssetId() const override
-	{
-		if (ItemId != NAME_None)
-		{
-			return FPrimaryAssetId("RockItemDefinition", ItemId);
-		}
-		return FPrimaryAssetId("RockItemDefinition", GetFName());
-	}
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 
 
 	// If creating a 'runtime instance definition', we'd need to manually register it with the asset manager
@@ -268,4 +263,10 @@ const T* URockItemDefinition::GetFragmentOfType() const
 	}
 
 	return nullptr;
+}
+
+template <typename T> requires std::derived_from<T, FRockItemFragment>
+bool URockItemDefinition::HasFragment() const
+{
+	return GetFragmentOfType<T>() != nullptr;
 }
