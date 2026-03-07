@@ -22,6 +22,11 @@ FName FRockInventorySectionInfo::GetSectionName() const
 	return SectionName;
 }
 
+FGameplayTag FRockInventorySectionInfo::GetSectionTag() const
+{
+	return SectionTag;
+}
+
 int32 FRockInventorySectionInfo::GetFirstSlotIndex() const
 {
 	return FirstSlotIndex;
@@ -50,6 +55,25 @@ FGameplayTagContainer FRockInventorySectionInfo::GetTags() const
 int32 FRockInventorySectionInfo::GetSectionIndex() const
 {
 	return SectionIndex;
+}
+
+bool FRockInventorySectionInfo::operator==(const FRockInventorySectionInfo& Other) const
+{
+	return SectionName == Other.SectionName
+		&& SectionTag == Other.SectionTag
+		&& SectionIndex == Other.SectionIndex
+		&& FirstSlotIndex == Other.FirstSlotIndex
+		&& Columns == Other.Columns
+		&& Rows == Other.Rows
+		&& SlotSizePolicy == Other.SlotSizePolicy
+		&& Tags == Other.Tags
+		&& SectionFilter == Other.SectionFilter;
+}
+
+bool FRockInventorySectionInfo::ContainsSlotHandle(FRockInventorySlotHandle InSlotHandle) const
+{
+	const int32 AbsoluteIndex = InSlotHandle.GetAbsoluteIndex();
+	return AbsoluteIndex >= FirstSlotIndex && AbsoluteIndex < FirstSlotIndex + GetNumSlots();
 }
 
 void FRockInventorySectionInfo::Initialize(int32 InFirstSlotIndex, int32 InSectionIndex)

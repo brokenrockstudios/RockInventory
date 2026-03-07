@@ -45,7 +45,7 @@ bool URockInventoryLibrary::LootItemToInventory(
 			break;
 		}
 		FRockInventorySlotHandle SlotHandle = Slot.SlotHandle;
-		const FRockInventorySectionInfo& SectionInfo = SlotSections[SlotHandle.GetSectionIndex()];
+		const FRockInventorySectionInfo& SectionInfo = Inventory->GetSectionInfoBySlotHandle(SlotHandle);
 		const int32 LocalSlotIndex = SectionInfo.GetLocalIndex(SlotHandle.GetAbsoluteIndex());
 		const int32 Column = LocalSlotIndex % SectionInfo.GetColumns();
 		const int32 Row = LocalSlotIndex / SectionInfo.GetRows();
@@ -196,7 +196,8 @@ bool URockInventoryLibrary::MoveItem(
 		return false;
 	}
 	// Can CanItemBePlacedInSection of TargetInventory
-	if (!CanItemBePlacedInSection(ValidatedSourceItem, TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()]))
+	FRockInventorySectionInfo TargetSection = TargetInventory->GetSectionInfoBySlotHandle(TargetSlotHandle);
+	if (!CanItemBePlacedInSection(ValidatedSourceItem, TargetSection))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be placed in target section"));
 		return false;
@@ -223,8 +224,7 @@ bool URockInventoryLibrary::MoveItem(
 		// Don't ignore any items in the target inventory
 		PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid);
 	}
-
-	const FRockInventorySectionInfo& targetSection = TargetInventory->SlotSections[TargetSlotHandle.GetSectionIndex()];
+	const FRockInventorySectionInfo& targetSection = TargetInventory->GetSectionInfoBySlotHandle(TargetSlotHandle);
 	const int32 localIndex = targetSection.GetLocalIndex(TargetSlotHandle.GetAbsoluteIndex());
 	const int32 Column = localIndex % targetSection.GetColumns();
 	const int32 Row = localIndex / targetSection.GetColumns();
@@ -307,7 +307,7 @@ bool URockInventoryLibrary::MoveItem(
 		}
 
 		const int32 targetCurrentStack = TargetItem.GetStackCount();
-		const int32 targetMaxStack = TargetItem.GetMaxStackSize();
+		const int32 targetMaxStack = TargetItem.GetMaxStackCount();
 		const int32 sourceCurrentStack = ValidatedSourceItem.GetStackCount();
 
 		// Calculate how much we can move
@@ -395,20 +395,20 @@ bool URockInventoryLibrary::CanMergeItemAtGridPosition(
 	}
 
 	const int32 CurrentStackSize = ExistingItemStack.GetStackCount();
-	const int32 MaxStackSize = ExistingItemStack.GetMaxStackSize();
+	const int32 MaxStackCount = ExistingItemStack.GetMaxStackCount();
 	const int32 IncomingStackSize = ItemStack.GetStackCount();
 
 	switch (MergeCondition)
 	{
 	case ERockItemStackMergeCondition::Full:
 		// Can we merge the entire incoming stack?
-		return (CurrentStackSize + IncomingStackSize) <= MaxStackSize;
+		return (CurrentStackSize + IncomingStackSize) <= MaxStackCount;
 	case ERockItemStackMergeCondition::Partial:
 		// Is there any space at all in the existing stack?
-		return CurrentStackSize < MaxStackSize;
+		return CurrentStackSize < MaxStackCount;
 	case ERockItemStackMergeCondition::None:
 		// Cannot merge at all
-		return CurrentStackSize >= MaxStackSize;
+		return CurrentStackSize >= MaxStackCount;
 	default:
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid merge condition"));
 		return false;
@@ -445,12 +445,12 @@ int32 URockInventoryLibrary::MergeItemAtGridPosition(
 	}
 
 	const int32 NewStackSize = ExistingItemStack.GetStackCount() + stackSize;
-	const int32 MaxStackSize = ExistingItemStack.GetMaxStackSize();
+	const int32 MaxStackCount = ExistingItemStack.GetMaxStackCount();
 
-	if (NewStackSize > MaxStackSize)
+	if (NewStackSize > MaxStackCount)
 	{
-		ExistingItemStack.StackCount = MaxStackSize;
-		stackSize = NewStackSize - MaxStackSize;
+		ExistingItemStack.StackCount = MaxStackCount;
+		stackSize = NewStackSize - MaxStackCount;
 	}
 	else
 	{
@@ -638,9 +638,11 @@ TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInve
 		const int32 localSlotIndex = section.GetLocalIndex(Slot.SlotHandle.GetAbsoluteIndex());
 
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(Slot.ItemHandle);
+		auto SectionInfo = Inventory->GetSectionInfoBySlotHandle(Slot.SlotHandle);
+		
 		FString LineItem = FString::Printf(
-			TEXT("Section:[%d] SlotIdx:[%d]; localIndex:[%d] ItemIdx:[%s], Item:[%s] Count:[%d]"),
-			Slot.SlotHandle.GetSectionIndex(),
+			TEXT("Section:[%s] SlotIdx:[%d]; localIndex:[%d] ItemIdx:[%s], Item:[%s] Count:[%d]"),
+			*SectionInfo.GetSectionTag().ToString(),
 			Slot.SlotHandle.GetAbsoluteIndex(),
 			localSlotIndex,
 			*Slot.ItemHandle.ToString(),

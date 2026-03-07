@@ -788,7 +788,11 @@ void URockInventory_ContainerBase::OnItemChanged(const FRockItemDelta& ItemDelta
 void URockInventory_ContainerBase::OnSlotChanged(const FRockSlotDelta& SlotDelta)
 {
 	// Check if this slot belongs to this section
-	if (!Inventory || SlotDelta.Inventory != Inventory || SlotDelta.SlotHandle.GetSectionIndex() != TabInfo.GetSectionIndex())
+	if (!Inventory || SlotDelta.Inventory != Inventory)
+	{
+		return;
+	}
+	if (Inventory->GetSectionInfoBySlotHandle(SlotDelta.SlotHandle).GetSectionIndex() != TabInfo.GetSectionIndex())
 	{
 		return;
 	}
@@ -889,11 +893,12 @@ void URockInventory_ContainerBase::DestroyWidgetForItem(const FRockItemStackHand
 		const FRockItemStack itemStack = Inventory->GetItemByHandle(ItemHandle);
 		if (itemStack.IsValid())
 		{
-			// This triggers when moving item from one container to another
-			// So it might still exist in the inventory, but not in this 'section'.
-			// Compare slot entry section to this container section
+			// This triggers when moving item from one container to another container.
+			// It might still exist in the inventory, but not in this 'section'.
+			// Compare slot entry sections to this container section
 			const FRockInventorySlotEntry slotEntry = Inventory->GetSlotByItemHandle(ItemHandle);
-			if (TabInfo.GetSectionIndex() == slotEntry.SlotHandle.GetSectionIndex())
+			FRockInventorySectionInfo slotSection = Inventory->GetSectionInfoBySlotHandle(slotEntry.SlotHandle);
+			if (TabInfo.GetSectionIndex() == slotSection.GetSectionIndex())
 			{
 				ensureMsgf(false, TEXT("DestroyWidgetForItem: Item %s still exists in inventory and this section, not destroying"), *ItemHandle.ToString());
 				UE_LOG(LogRockInventoryUI,
@@ -1072,7 +1077,7 @@ void URockInventory_ContainerBase::GenerateGrid()
 		backgroundSlotWidget->GridSlotMouseMoved.AddDynamic(this, &ThisClass::OnGridSlotMouseMoved);
 
 		// Relative slot to the section
-		backgroundSlotWidget->SetSlot(Inventory, FRockInventorySlotHandle(SectionIndex, AbsoluteIndex));
+		backgroundSlotWidget->SetSlot(Inventory, FRockInventorySlotHandle(AbsoluteIndex));
 		backgroundSlotWidget->SetSize(TileSize);
 		
 		UGridSlot* gridSlotWidget = GridPanel->AddChildToGrid(backgroundSlotWidget, Row, Column);

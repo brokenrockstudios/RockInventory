@@ -110,7 +110,7 @@ void URockInventory::Init(const URockInventoryConfig* config)
 		for (int32 SlotIndex = 0; SlotIndex < NumSlots; ++SlotIndex)
 		{
 			const int32 AbsoluteSlotIndex = TabOffset + SlotIndex;
-			SlotData[AbsoluteSlotIndex].SlotHandle = FRockInventorySlotHandle(SectionIndex, AbsoluteSlotIndex);
+			SlotData[AbsoluteSlotIndex].SlotHandle = FRockInventorySlotHandle(AbsoluteSlotIndex);
 			SlotData[AbsoluteSlotIndex].ItemHandle = FRockItemStackHandle::Invalid();
 			SlotData[AbsoluteSlotIndex].Orientation = ERockItemOrientation::Horizontal;
 			SlotData[AbsoluteSlotIndex].bIsLocked = false;
@@ -149,12 +149,14 @@ int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
 
 FRockInventorySectionInfo URockInventory::GetSectionInfoBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
-	if (InSlotHandle.IsValid())
+	// Food for Thought: 
+	// If we wanted to eliminate this loop, we could maintain a TArray<uint8> SlotIndexToSectionIndex; mapping
+	// Which would be 1 byte per section (usually less than 40)
+	for (const FRockInventorySectionInfo& Section : SlotSections)
 	{
-		const int32 SectionIndex = InSlotHandle.GetSectionIndex();
-		if (SlotSections.IsValidIndex(SectionIndex))
+		if (Section.ContainsSlotHandle(InSlotHandle))
 		{
-			return SlotSections[SectionIndex];
+			return Section;
 		}
 	}
 	return FRockInventorySectionInfo::Invalid();

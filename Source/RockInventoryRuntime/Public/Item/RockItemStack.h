@@ -79,7 +79,7 @@ public:
 	FName GetItemId() const;
 	URockItemDefinition* GetDefinition() const;
 	int32 GetStackCount() const;
-	int32 GetMaxStackSize() const;
+	int32 GetMaxStackCount() const;
 	URockItemInstance* GetRuntimeInstance() const;
 	bool CanStackWith(const FRockItemStack& Other) const;
 

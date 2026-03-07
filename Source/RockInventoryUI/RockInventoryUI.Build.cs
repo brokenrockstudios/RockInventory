@@ -17,6 +17,7 @@ public class RockInventoryUI : ModuleRules
 				"RockInventoryRuntime", 
 				"RockDragDrop", 
 				"CommonUI",
+				"ModelViewViewModel"
 			}
 		);
 

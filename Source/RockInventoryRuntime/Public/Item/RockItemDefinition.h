@@ -59,7 +59,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	// Core (Inventory)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
-	int32 MaxStackSize = 1;
+	int32 MaxStackCount = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	FIntPoint GridSize = FIntPoint(1, 1);

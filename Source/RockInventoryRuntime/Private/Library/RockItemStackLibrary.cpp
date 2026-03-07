@@ -63,22 +63,22 @@ bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const 
 		return false;
 	}
 	// Check if we have room to stack
-	const int32 MaxStackSize = GetMaxStackSize(FirstItem);
-	if (MaxStackSize <= 0)
+	const int32 MaxStackCount = GetMaxStackCount(FirstItem);
+	if (MaxStackCount <= 0)
 	{
 		return false;
 	}
-	return (FirstItem.GetStackCount() + SecondItem.GetStackCount()) <= MaxStackSize;
+	return (FirstItem.GetStackCount() + SecondItem.GetStackCount()) <= MaxStackCount;
 }
 
-int32 URockItemStackLibrary::GetMaxStackSize(const FRockItemStack& ItemStack)
+int32 URockItemStackLibrary::GetMaxStackCount(const FRockItemStack& ItemStack)
 {
-	return ItemStack.GetMaxStackSize();
+	return ItemStack.GetMaxStackCount();
 }
 
 bool URockItemStackLibrary::IsFull(const FRockItemStack& ItemStack)
 {
-	return ItemStack.GetStackCount() >= GetMaxStackSize(ItemStack);
+	return ItemStack.GetStackCount() >= GetMaxStackCount(ItemStack);
 }
 
 int32 URockItemStackLibrary::CalculateMoveAmount(const FRockItemStack& ItemStack, const ERockItemMoveMode& MoveMode, int32 MoveCount)

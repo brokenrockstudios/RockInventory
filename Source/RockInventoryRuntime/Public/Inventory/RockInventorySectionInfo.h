@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "RockSlotHandle.h"
 #include "Enums/RockItemSizePolicy.h"
 #include "UObject/Object.h"
 
@@ -28,20 +29,16 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
 	{
 	}
 
-	bool operator==(const FRockInventorySectionInfo& Other) const
-	{
-		return SectionName == Other.SectionName
-			&& SectionIndex == Other.SectionIndex
-			&& FirstSlotIndex == Other.FirstSlotIndex
-			&& Columns == Other.Columns
-			&& Rows == Other.Rows
-			&& SlotSizePolicy == Other.SlotSizePolicy
-			&& Tags == Other.Tags
-			&& SectionFilter == Other.SectionFilter;
-	}
+	bool operator==(const FRockInventorySectionInfo& Other) const;
+
+	bool ContainsSlotHandle(FRockInventorySlotHandle InSlotHandle) const;
 
 private:
+	UPROPERTY(EditAnywhere, meta = (Categories = "Inventory.Section,Inventory.Group"))
+	FGameplayTag SectionTag;
+	
 	/** Unique identifier for this tab */
+	UE_DEPRECATED(5.7, "SectionName is deprecated, please use SectionTag instead.")
 	UPROPERTY(EditAnywhere)
 	FName SectionName;
 
@@ -93,7 +90,10 @@ public:
 
 	/** Returns the name of the tab */
 	FName GetSectionName() const;
-
+	
+	/** Returns the tag of the tab */
+	FGameplayTag GetSectionTag() const;
+	
 	/** Returns the index of this section in the inventory's Sections array */
 	int32 GetSectionIndex() const;
 

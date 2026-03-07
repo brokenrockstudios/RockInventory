@@ -44,11 +44,11 @@ int32 FRockItemStack::GetStackCount() const
 	return StackCount;
 }
 
-int32 FRockItemStack::GetMaxStackSize() const
+int32 FRockItemStack::GetMaxStackCount() const
 {
 	if (Definition)
 	{
-		return Definition->MaxStackSize;
+		return Definition->MaxStackCount;
 	}
 	// No definition, no max stack size because this is an Invalid stack
 	return 0;

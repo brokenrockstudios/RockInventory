@@ -12,19 +12,18 @@
  * to allow for stable references even when slots are reused.
  */
 USTRUCT(BlueprintType)
-struct ROCKINVENTORYRUNTIME_API FRockItemStackHandle
+struct alignas(4) ROCKINVENTORYRUNTIME_API FRockItemStackHandle
 {
 	GENERATED_BODY()
 
 private:
 	/** The unique identifier for this item stack (combines index and generation) */
-	UPROPERTY()
 	int32 Handle = INDEX_NONE;
 
 public:
 	/** Bit counts for index and generation components */
-	static constexpr uint32 INDEX_BITS = 24; // 24 bits = 16 million unique items
-	static constexpr uint32 GENERATION_BITS = 8; // 8 bits = 256 generations
+	static constexpr uint32 INDEX_BITS = 20; // 20 bits ~ 1 million unique items in a single array
+	static constexpr uint32 GENERATION_BITS = 12; // 12 bits = 4096 generations
 
 	/** Bit masks and shifts based on bit counts */
 	static constexpr uint32 INDEX_MASK = (1 << INDEX_BITS) - 1; // Masks the lower 24 bits
@@ -40,8 +39,8 @@ public:
 
 	/**
 	 * Creates a handle with specific index and generation values
-	 * @param InIndex - The index component. 24 bits (0-16777215)
-	 * @param InGeneration - The generation component. 8 bits (0-255)
+	 * @param InIndex - The index component. 20 bits (0-1048576)
+	 * @param InGeneration - The generation component. 12 bits (0-4096)
 	 */
 	static FRockItemStackHandle Create(uint32 InIndex, uint32 InGeneration);
 

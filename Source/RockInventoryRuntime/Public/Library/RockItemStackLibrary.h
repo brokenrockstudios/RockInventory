@@ -41,7 +41,7 @@ public:
 
 	/** Returns the maximum stack size for this item stack */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
-	static int32 GetMaxStackSize(const FRockItemStack& ItemStack);
+	static int32 GetMaxStackCount(const FRockItemStack& ItemStack);
 
 	/** Returns true if the stack is at its maximum size */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
