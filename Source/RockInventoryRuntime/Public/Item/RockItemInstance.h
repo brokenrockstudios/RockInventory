@@ -57,7 +57,7 @@ public:
 	FGameplayTagContainer Tags;
 
 	/** Stat tags associated with this item instance */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	FGameplayTagStackContainer StatTags;
 
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")

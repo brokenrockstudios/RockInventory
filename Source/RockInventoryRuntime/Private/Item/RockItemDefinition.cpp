@@ -53,3 +53,46 @@ void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewI
 
 	UE_LOG(LogRockInventory, Warning, TEXT("Registered item %s with ID %s"), *NewItem->GetName(), *AssetId.ToString());
 }
+
+void URockItemDefinition::RebuildStatTags()
+{
+	StatTags = FGameplayTagStackContainer();
+	for (const FGameplayTagStack& StatTag : StatTagDefaults)
+	{
+		if (StatTag.GetTag().IsValid())
+		{
+			StatTags.SetStack(StatTag.GetTag(), StatTag.GetStackCount(), true);
+		}
+		else
+		{
+			UE_LOG(LogRockInventory, Warning, TEXT("RebuildStatTags - Invalid tag in StatTagDefaults for item %s"), *GetName());
+		}
+	}
+}
+
+void URockItemDefinition::SetDefaultItemId()
+{
+	if (ItemId == NAME_None)
+	{
+		ItemId = GetFName();
+		UE_LOG(LogRockInventory, Warning, TEXT("SetDefaultItemId - ItemId was not set for item %s, defaulting to %s"), *GetName(), *ItemId.ToString());
+	}
+}
+
+void URockItemDefinition::PostLoad()
+{
+	Super::PostLoad();
+	RebuildStatTags();
+	SetDefaultItemId();
+}
+
+void URockItemDefinition::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	static const FName StatTagDefaultsName = GET_MEMBER_NAME_CHECKED(URockItemDefinition, StatTagDefaults);
+	if (PropertyChangedEvent.GetPropertyName() == StatTagDefaultsName ||
+		PropertyChangedEvent.GetMemberPropertyName() == StatTagDefaultsName)
+	{
+		RebuildStatTags();
+	}
+}

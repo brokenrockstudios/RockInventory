@@ -13,13 +13,15 @@
  * 
  */
 USTRUCT(BlueprintType, Blueprintable)
-struct FRockItemReference
+struct ROCKINVENTORYRUNTIME_API FRockItemReference
 {
 	GENERATED_BODY()
 public:
 	FRockItemReference() = default;
 	URockInventory * GetInventory() const { return Inventory.Get(); }
 	FRockItemStackHandle GetItemHandle() const { return ItemHandle; }
+	
+	FRockItemStack GetCopyOfItem() const;
 	
 private:
 	// inventory and ItemHandle
@@ -29,8 +31,6 @@ private:
 	FRockItemStackHandle ItemHandle;
 	
 	bool IsValid() const;
-	// getter function
-	FRockItemStack GetCopyOfItem() const;
 private:
 	// Only allow an inventory to be able to create these references
 	FRockItemReference(URockInventory* InInventory, FRockItemStackHandle InSlotHandle);

@@ -54,6 +54,11 @@
 		{
 			"Name": "RockDragDrop",
 			"Enabled": true
+		},
+		{
+			"Name": "ModelViewViewModel",
+			"Enabled": true
 		}
+		
 	]
 }

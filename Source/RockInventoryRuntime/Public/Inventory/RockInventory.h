@@ -186,7 +186,7 @@ public:
 	
 	/** Does this handle point to a valid item stack in the inventory */
 	bool IsHandleValid(FRockItemStackHandle ItemHandle) const;
-	FRockItemReference MakeItemReference(FRockInventorySlotHandle SlotHandle);
+	FRockItemReference MakeItemReference(FRockItemStackHandle SlotHandle);
 	FRockSlotReference MakeSlotReference(FRockInventorySlotHandle SlotHandle);
 
 	// TODO: Should we handle ActivateItem, DeactivateItem, UseItem

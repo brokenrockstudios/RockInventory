@@ -24,7 +24,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
 	TSoftObjectPtr<UTexture2D> Icon;
-
+	
 	// TBD
 	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
 	// FVector2D IconSize = FVector2D(44.0f, 44.0f);
@@ -42,6 +42,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////	
 	// Item ID
 	// The internal ItemID. e.g. /spawn RedApple. This is not the DisplayName or Name.
+	// We technically could have used the AssetName as the ItemID, but this allows for more flexibility and control.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FName ItemId;
 	//////////////////////////////////////////////////////////////////////////
@@ -104,8 +105,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	float ItemValue = 0.0f;
 
+private:
 	// Note: These are for unchanging values. If you need dynamic values use the StatTags in RuntimeItemInstance.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
+	UPROPERTY(EditDefaultsOnly, Category = "Item|Stats", meta = (TitleProperty = "Tag", DisplayName = "Stat Tags"))
+	TArray<FGameplayTagStack> StatTagDefaults;
+public:	
+	// The main StatTags that should be queried. Readonly
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Stats", meta = (DisplayName = "Stat Tags (Runtime)"))
 	FGameplayTagStackContainer StatTags;
 
 	//////////////////////////////////////////////////////////////////////////
@@ -126,15 +132,15 @@ public:
 	// Is it used for durability, charge, etc..
 	// Build a system to use this to determine what the value is used for.
 	// Could/Should this be an enum instead?
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta = (DisplayName = "Custom Value 1 Tag"))
 	FGameplayTag CustomValue1Tag;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta = (DisplayName = "Custom Value 2 Tag"))
 	FGameplayTag CustomValue2Tag;
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	bool bRequiresRuntimeInstance = false;
 	// If this item requires a runtime instance, this is the class that will be used to create it.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
-	TSubclassOf<class URockItemInstance> RuntimeInstanceClass;
+	TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass;
 
 	// Runtime Instances nested inventory.
 	// e.g. If this Item was a Backpack, this should be set to the Backpack's InventoryConfig.
@@ -165,7 +171,7 @@ public:
 	FText UseItemTextOverride;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
-	TSubclassOf<UGameplayAbility> UseItemAbility;
+	TSoftClassPtr<UGameplayAbility> UseItemAbility;
 	// bActivateOnGranted = true;
 	// InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;
 	// bAutoRemoveOnEnd = true;
@@ -248,6 +254,23 @@ public:
 	// e.g. 
 	// Experimental 
 	void RegisterItemDefinition(const URockItemDefinition* NewItem);
+	
+private:
+	virtual void PostLoad() override;
+	
+	// If ItemID is not set, we can default it to the asset name. This is for ease of use, but it is still recommended to set it explicitly.
+	void SetDefaultItemId();
+	
+	// This is used to rebuild the StatTags from the StatTagDefaults. This is necessary because the StatTags are meant to be runtime values, while the 
+	// StatTagDefaults are meant to be design time values. This allows for the StatTags to be modified at runtime without affecting the defaults. This is also 
+	// used to rebuild the StatTags when the item definition is loaded or when a property is changed in the editor. This ensures that the StatTags are always 
+	// up to date with the StatTagDefaults. All of this is simply because FGameplayTagStackContainer doesn't allow setting default values in the constructor.
+	// If it did, we could simply set the StatTags and avoid all of this. But since it doesn't, we need to manually copy the values over.
+	void RebuildStatTags();
+	
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };
 
 template <typename T> requires std::derived_from<T, FRockItemFragment>

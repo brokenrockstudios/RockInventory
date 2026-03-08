@@ -658,17 +658,15 @@ bool URockInventory::IsHandleValid(FRockItemStackHandle ItemHandle) const
 	return ItemData[index].Generation == ItemHandle.GetGeneration();
 }
 
-FRockItemReference URockInventory::MakeItemReference(FRockInventorySlotHandle SlotHandle)
+FRockItemReference URockInventory::MakeItemReference(FRockItemStackHandle ItemHandle)
 {
-	FRockInventorySlotEntry Slot = GetSlotByHandle(SlotHandle);
-	return FRockItemReference(this, Slot.ItemHandle);
+	return FRockItemReference(this, ItemHandle);
 }
 
 FRockSlotReference URockInventory::MakeSlotReference(FRockInventorySlotHandle SlotHandle)
 {
 	return FRockSlotReference(this, SlotHandle);
 }
-
 
 FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& InItemStack)
 {
@@ -714,7 +712,19 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		// Right now I think we might disable splits for anything with bRequiresRuntimeInstance
 		if (NewItemStack.GetDefinition()->bRequiresRuntimeInstance)
 		{
-			NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
+			TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass = NewItemStack.GetDefinition()->RuntimeInstanceClass;
+			if (RuntimeInstanceClass.IsValid())
+			{
+				// TODO: This will synchronously load the class if it isn't already, which could cause hitches. 
+				// We should consider preloading or some other strategy if that becomes an issue.
+				// At the moment we have no BP RuntimeInstances so this is purely theoretical.
+				// As there is nothing to load for C++ defined RuntimeInstances, this is purely a BP concern.
+				NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this, RuntimeInstanceClass.Get());
+			}
+			else
+			{
+				NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
+			}
 			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
 		}
 		for (auto fragment : NewItemStack.GetDefinition()->Fragments)
