@@ -5,9 +5,10 @@
 
 #include "Inventory/RockInventory.h"
 
-bool FRockItemReference::IsValid() const
+
+FRockItemReference::FRockItemReference(URockInventory* InInventory, FRockItemStackHandle InSlotHandle)
+	: Inventory(InInventory), ItemHandle(InSlotHandle)
 {
-	return Inventory != nullptr && Inventory->IsHandleValid(ItemHandle);
 }
 
 FRockItemStack FRockItemReference::GetCopyOfItem() const
@@ -16,14 +17,69 @@ FRockItemStack FRockItemReference::GetCopyOfItem() const
 	{
 		return FRockItemStack::Invalid();
 	}
-	
+
 	return Inventory->GetItemByHandle(ItemHandle);
 }
 
-FRockItemReference::FRockItemReference(URockInventory* InInventory, FRockItemStackHandle InSlotHandle)
-	: Inventory(InInventory), ItemHandle(InSlotHandle)
+TOptional<int32> FRockItemReference::GetCustomValueByTag(FGameplayTag Tag) const
 {
+	const FRockItemStack* Stack = Inventory->GetItemByHandlePtr(ItemHandle);
+	if (!Stack) { return {}; }
+	return Stack->GetCustomValueByTag(Tag);
 }
+
+bool FRockItemReference::IsValid() const
+{
+	if (Inventory == nullptr)
+	{
+		return false;
+	}
+	if (!Inventory->IsHandleValid(ItemHandle))
+	{
+		return false;
+	}
+	return Inventory->GetItemByHandle(ItemHandle).IsValid();
+}
+
+URockItemDefinition* FRockItemReference::GetDefinition() const
+{
+	if (Inventory == nullptr)
+	{
+		return nullptr;
+	}
+	if (!Inventory->IsHandleValid(ItemHandle))
+	{
+		return nullptr;
+	}
+	return Inventory->GetItemByHandle(ItemHandle).GetDefinition();
+}
+
+URockItemInstance* FRockItemReference::GetRuntimeInstanceOrNull() const
+{
+	if (Inventory == nullptr)
+	{
+		return nullptr;
+	}
+	if (!Inventory->IsHandleValid(ItemHandle))
+	{
+		return nullptr;
+	}
+	return Inventory->GetItemByHandle(ItemHandle).GetRuntimeInstance();
+}
+
+int32 FRockItemReference::GetStackCount() const
+{
+	if (Inventory == nullptr)
+	{
+		return 0;
+	}
+	if (!Inventory->IsHandleValid(ItemHandle))
+	{
+		return 0;
+	}
+	return Inventory->GetItemByHandle(ItemHandle).GetStackCount();
+}
+
 
 FRockInventorySlotEntry FRockSlotReference::GetSlotEntry() const
 {

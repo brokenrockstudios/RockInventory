@@ -30,7 +30,7 @@ struct FRockLootWorldItemUndoTransaction : public FRockItemTransactionBase
 	bool Undo();
 };
 
-USTRUCT(Blueprintable, BlueprintType)
+USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockLootWorldItemTransaction : public FRockItemTransactionBase
 {
 	GENERATED_BODY()
