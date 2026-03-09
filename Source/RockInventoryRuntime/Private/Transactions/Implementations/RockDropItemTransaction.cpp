@@ -60,6 +60,7 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 
 	ARockInventoryWorldItemBase* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItemBase>(
 		GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass, transform);
+	checkf(NewWorldItem, TEXT("Failed to spawn world item actor of class. Possibly DefaultWorldItemClass is unset in Project Settings"));
 
 	if (!IsValid(NewWorldItem))
 	{
