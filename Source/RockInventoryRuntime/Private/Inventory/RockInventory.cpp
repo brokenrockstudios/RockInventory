@@ -261,11 +261,11 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 	const bool bNewItemValid = InSlotEntry.ItemHandle.IsValid();
 	if (!bOldItemValid && bNewItemValid)
 	{
-		ChangeType = ERockSlotChangeType::Added;
+		ChangeType = ERockSlotChangeType::ItemAdded;
 	}
 	else if (bOldItemValid && !bNewItemValid)
 	{
-		ChangeType = ERockSlotChangeType::Removed;
+		ChangeType = ERockSlotChangeType::ItemRemoved;
 	}
 	else
 	{
@@ -275,7 +275,7 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 
 		if (bItemChanged || bPropertiesChanged)
 		{
-			ChangeType = ERockSlotChangeType::Changed;
+			ChangeType = ERockSlotChangeType::ItemChanged;
 		}
 	}
 

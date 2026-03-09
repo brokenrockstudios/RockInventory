@@ -34,7 +34,10 @@ public:
 	/** The actual item in this slot */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockItemStackHandle ItemHandle;
-
+	// This is used for proper broadcasts behavior when an item changes. Was the item added, or removed? We can check the previous handle to determine this.
+	UPROPERTY(Transient, NotReplicated)
+	FRockItemStackHandle LastKnownItemHandle;
+	
 	/** Handle to identify this slot's position in the inventory */
 	UPROPERTY()
 	FRockInventorySlotHandle SlotHandle;
@@ -105,8 +108,8 @@ public:
 
 	// Override PostReplicatedChange to notify the owner about changes
 	//~ FFastArraySerializer contract
-	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
 	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
 	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
 	//~ End of FFastArraySerializer contract
 

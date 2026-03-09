@@ -797,17 +797,6 @@ void URockInventory_ContainerBase::OnSlotChanged(const FRockSlotDelta& SlotDelta
 		return;
 	}
 
-	if (SlotDelta.ChangeType == ERockSlotChangeType::PendingChange)
-	{
-		UE_LOG(LogRockInventoryUI,
-			Warning,
-			TEXT("!!!! URockInventory_Slot_ItemBase::OnInventorySlotChanged: %s %d"),
-			*SlotDelta.SlotHandle.ToString(),
-			SlotDelta.ChangeType);
-		// Ignore Pending for now?
-		// return;
-	}
-
 	// 2) Current state of the slot
 	const FRockInventorySlotHandle slotHandle = SlotDelta.SlotHandle;
 	const FRockItemStack currentItem = Inventory->GetItemBySlotHandle(slotHandle);

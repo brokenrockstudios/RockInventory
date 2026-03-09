@@ -17,17 +17,15 @@ enum class ERockSlotChangeType : uint8
 
 	// Default/Unknown state
 	None UMETA(DisplayName = "None"),
-	// We went from this slot having an Invalid ItemHandle to a valid one. 
-	Added UMETA(DisplayName = "Added"),
+	// We went from this slot having an Invalid ItemHandle to a valid one.
+	ItemAdded UMETA(DisplayName = "ItemAdded"),
 	// We went from a valid ItemHandle to an Invalid one
-	Removed UMETA(DisplayName = "Removed"),
-	// The slot changed properties (e.g. item, rotation, lock)
-	Changed UMETA(DisplayName = "Properties Changed"),
-	// The slot was cleared (e.g. item was split out)
-	//Cleared UMETA(DisplayName = "Cleared")
-
-	// Something is happening with this Slot, such that it's pending some action. Possibly being moved or locked or something.
-	PendingChange UMETA(DisplayName = "Pending Slot Change") // Internal use only
+	ItemRemoved UMETA(DisplayName = "ItemRemoved"),
+	// We went from one valid ItemHandle to another valid ItemHandle
+	ItemChanged UMETA(DisplayName = "ItemSwapped"),
+	
+	// The slot changed state (e.g. orientation, lock, item swapped, or out of scope something 'changed' about this slot)
+	PropertiesChanged UMETA(DisplayName = "Properties Changed"),
 };
 // { None=0, ItemRef=1<<0, Orientation=1<<1, Locked=1<<2, Anchor=1<<3 };
 ENUM_CLASS_FLAGS(ERockSlotChangeType);
