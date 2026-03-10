@@ -5,6 +5,7 @@
 
 #include "RockInventoryLogging.h"
 #include "Engine/AssetManager.h"
+#include "Misc/RockInventoryDeveloperSettings.h"
 
 const TArray<FRockItemFragmentInstance>& URockItemDefinition::GetAllFragments() const
 {
@@ -52,6 +53,13 @@ void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewI
 	// URockItemRegistrySubsystem::GetInstance()->RegisterRuntimeItemDefinition(NewItem);
 
 	UE_LOG(LogRockInventory, Warning, TEXT("Registered item %s with ID %s"), *NewItem->GetName(), *AssetId.ToString());
+}
+
+UClass* URockItemDefinition::GetWorldItemClass()
+{
+	// If you need different behavior, make a subclass of URockItemDefinition and override this function.
+	// Such as adding a fragment lookup or having the data be part of ItemDefinition.
+	return GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass;
 }
 
 void URockItemDefinition::RebuildStatTags()

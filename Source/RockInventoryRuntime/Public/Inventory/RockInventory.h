@@ -101,12 +101,12 @@ public:
 	/** Sets up slots and sections from the given config. Must be called before use. */
 	void Init(const URockInventoryConfig* config);
 
-	/** Returns section info by name, or an empty struct if not found. */
-	FRockInventorySectionInfo GetSectionInfo(const FName& SectionName) const;
-	FRockInventorySectionInfo GetSectionInfoBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
+	/** Returns section info by SectionTag, or an empty struct if not found. */
+	const FRockInventorySectionInfo& GetSectionInfo(const FGameplayTag& SectionTag) const;
+	const FRockInventorySectionInfo& GetSectionInfoBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 
-	/** Returns the index of the section with the given name, or INDEX_NONE if not found. */
-	int32 GetSectionIndexById(const FName& SectionName) const;
+	/** Returns the index of the section with the given SectionTag, or INDEX_NONE if not found. */
+	int32 GetSectionIndex(const FGameplayTag& SectionTag) const;
 
 
 	/** Returns the slot entry for the given handle, or a default entry if the handle is invalid. */

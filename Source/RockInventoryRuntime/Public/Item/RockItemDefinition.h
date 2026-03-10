@@ -127,10 +127,6 @@ public:
 	// This is useful if you wanted to place a 'live version' of the item (e.g. a campfire you can interact with)
 	UPROPERTY(EditDefaultsOnly, Category = "Item|World")
 	TSoftClassPtr<AActor> ActorClass;
-	// When an item is 'dropped' as a loose item (a campfire that isn't placed but possibly just a 'loose item'. 
-	// We generally use WorldItem, but if an item want's to override it (perhaps an auto-pick up loose coin, or something)
-	UPROPERTY(EditDefaultsOnly, Category = "Item|World")
-	TSoftClassPtr<AActor> WorldItemClassOverride;
 	
 	//////////////////////////////////////////////////////////////////////////
 	/// Advanced
@@ -260,7 +256,8 @@ public:
 	// e.g. 
 	// Experimental 
 	void RegisterItemDefinition(const URockItemDefinition* NewItem);
-	
+	virtual UClass* GetWorldItemClass();
+
 private:
 	virtual void PostLoad() override;
 	

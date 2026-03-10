@@ -23,9 +23,9 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
 	FRockInventorySectionInfo() = default;
 
 	FRockInventorySectionInfo(
-		FName InSectionName, int32 InFirstSlotIndex, int32 InColumns, int32 InRows,
+		FGameplayTag InSectionTag, int32 InFirstSlotIndex, int32 InColumns, int32 InRows,
 		ERockItemSizePolicy InSlotSizePolicy = ERockItemSizePolicy::RespectSize)
-		: SectionName(InSectionName), FirstSlotIndex(InFirstSlotIndex), Columns(InColumns), Rows(InRows), SlotSizePolicy(InSlotSizePolicy)
+		: SectionTag(InSectionTag), FirstSlotIndex(InFirstSlotIndex), Columns(InColumns), Rows(InRows), SlotSizePolicy(InSlotSizePolicy)
 	{
 	}
 
@@ -37,18 +37,13 @@ private:
 	UPROPERTY(EditAnywhere, meta = (Categories = "Inventory.Section,Inventory.Group"))
 	FGameplayTag SectionTag;
 	
-	/** Unique identifier for this tab */
-	UE_DEPRECATED(5.7, "SectionName is deprecated, please use SectionTag instead.")
-	UPROPERTY(EditAnywhere)
-	FName SectionName;
-
 	// Index of this section in the inventory's Sections array
 	UPROPERTY()
 	int32 SectionIndex = INDEX_NONE;
 
 	/** First slot index in the AllSlots array */
 	UPROPERTY()
-	int32 FirstSlotIndex = 0;
+	int32 FirstSlotIndex = -1;
 
 	// TODO: Switch over to Columns/Rows terminology instead of Width/Height?
 	/** Grid width (Columns) in slots */
@@ -88,9 +83,6 @@ public:
 	/** Returns the height (Rows) of the tab */
 	int32 GetRows() const;
 
-	/** Returns the name of the tab */
-	FName GetSectionName() const;
-	
 	/** Returns the tag of the tab */
 	FGameplayTag GetSectionTag() const;
 	
@@ -109,9 +101,9 @@ public:
 	/** Returns the tag query filter for this section */
 	FGameplayTagQuery GetSectionFilter() const;
 
-	/** Returns the tags associated with this section */
+	/** Returns the context tags associated with this section */
 	FGameplayTagContainer GetTags() const;
 
 	// Returns an invalid section info
-	static FRockInventorySectionInfo Invalid();
+	static const FRockInventorySectionInfo& Invalid();
 };

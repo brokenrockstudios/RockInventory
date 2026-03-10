@@ -6,7 +6,7 @@
 #include "Inventory/RockInventorySectionInfo.h"
 
 
-FName URockInventorySectionInfoLibrary::GetSectionName(const FRockInventorySectionInfo& SectionInfo)
+FGameplayTag URockInventorySectionInfoLibrary::GetSectionTag(const FRockInventorySectionInfo& SectionInfo)
 {
-	return SectionInfo.GetSectionName();
+	return SectionInfo.GetSectionTag();
 }

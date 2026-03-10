@@ -29,6 +29,7 @@ public:
 	virtual void SetItemStack(const FRockItemStack &InItemStack) override;
 	virtual void OnPickedUp(AActor *InInstigator) override;
 	virtual void OnLooted(AActor *InstigatorPawn, const FRockItemStack &LootedItem, int32 Excess) override;
+	virtual void ApplyThrowImpulse(const FVector& Impulse) override;
 	// ~End IRockLootableInterface
 
 protected:

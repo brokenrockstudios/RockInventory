@@ -17,11 +17,6 @@ int32 FRockInventorySectionInfo::GetRows() const
 	return Rows;
 }
 
-FName FRockInventorySectionInfo::GetSectionName() const
-{
-	return SectionName;
-}
-
 FGameplayTag FRockInventorySectionInfo::GetSectionTag() const
 {
 	return SectionTag;
@@ -59,8 +54,7 @@ int32 FRockInventorySectionInfo::GetSectionIndex() const
 
 bool FRockInventorySectionInfo::operator==(const FRockInventorySectionInfo& Other) const
 {
-	return SectionName == Other.SectionName
-		&& SectionTag == Other.SectionTag
+	return SectionTag == Other.SectionTag
 		&& SectionIndex == Other.SectionIndex
 		&& FirstSlotIndex == Other.FirstSlotIndex
 		&& Columns == Other.Columns
@@ -84,15 +78,11 @@ void FRockInventorySectionInfo::Initialize(int32 InFirstSlotIndex, int32 InSecti
 
 bool FRockInventorySectionInfo::IsValid() const
 {
-	return Columns > 0 && Rows > 0 && FirstSlotIndex >= 0 && SectionName != NAME_None;
+	return Columns > 0 && Rows > 0 && FirstSlotIndex >= 0 && SectionTag.IsValid();
 }
 
-FRockInventorySectionInfo FRockInventorySectionInfo::Invalid()
+const FRockInventorySectionInfo& FRockInventorySectionInfo::Invalid()
 {
-	FRockInventorySectionInfo InvalidSection;
-	InvalidSection.SectionName = NAME_None;
-	InvalidSection.FirstSlotIndex = -1;
-	InvalidSection.Columns = 0;
-	InvalidSection.Rows = 0;
+	static FRockInventorySectionInfo InvalidSection;
 	return InvalidSection;
 }

@@ -121,9 +121,9 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	ItemData.MarkArrayDirty();
 }
 
-FRockInventorySectionInfo URockInventory::GetSectionInfo(const FName& SectionName) const
+const FRockInventorySectionInfo& URockInventory::GetSectionInfo(const FGameplayTag& SectionTag) const
 {
-	const int32 SectionIndex = GetSectionIndexById(SectionName);
+	const int32 SectionIndex = GetSectionIndex(SectionTag);
 	if (SectionIndex != INDEX_NONE)
 	{
 		return SlotSections[SectionIndex];
@@ -132,13 +132,13 @@ FRockInventorySectionInfo URockInventory::GetSectionInfo(const FName& SectionNam
 }
 
 
-int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
+int32 URockInventory::GetSectionIndex(const FGameplayTag& SectionTag) const
 {
-	if (SectionName == NAME_None) { return INDEX_NONE; }
+	if (!SectionTag.IsValid()) { return INDEX_NONE; }
 
 	for (int32 i = 0; i < SlotSections.Num(); ++i)
 	{
-		if (SlotSections[i].GetSectionName() == SectionName)
+		if (SlotSections[i].GetSectionTag() == SectionTag)
 		{
 			return i;
 		}
@@ -147,7 +147,7 @@ int32 URockInventory::GetSectionIndexById(const FName& SectionName) const
 }
 
 
-FRockInventorySectionInfo URockInventory::GetSectionInfoBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const
+const FRockInventorySectionInfo& URockInventory::GetSectionInfoBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
 	// Food for Thought: 
 	// If we wanted to eliminate this loop, we could maintain a TArray<uint8> SlotIndexToSectionIndex; mapping

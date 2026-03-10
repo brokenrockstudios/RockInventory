@@ -21,7 +21,7 @@ struct FRockDropItemUndoTransaction
 
 	// Place this item
 	UPROPERTY()
-	TWeakObjectPtr<ARockInventoryWorldItemBase> SpawnedItemStack = nullptr;
+	TWeakObjectPtr<AActor> SpawnedItemStack = nullptr;
 	// In this inventory
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> TargetInventory = nullptr;

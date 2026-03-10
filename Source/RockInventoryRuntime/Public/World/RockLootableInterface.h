@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Item/RockItemStack.h"
+#include "Transactions/Implementations/RockDropItemTransaction.h"
 #include "UObject/Interface.h"
 #include "RockLootableInterface.generated.h"
 
@@ -43,4 +44,10 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory")
 	virtual void OnLooted(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 ExcessAmount) = 0;
+
+	/** Called to apply a physical impulse to this lootable item, e.g., when dropped or thrown. */
+	UFUNCTION(BlueprintCallable, Category = "RockInventory")
+	virtual void ApplyThrowImpulse(const FVector& Impulse)
+	{
+	};
 };

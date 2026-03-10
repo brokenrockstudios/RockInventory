@@ -167,7 +167,7 @@ public:
 	void CreateItemsPanel();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void BindToInventorySection(URockInventory* NewInventory, FName InSectionName = NAME_None);
+	void BindToInventorySection(URockInventory* NewInventory, FGameplayTag InSectionTag = FGameplayTag());
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void ForceRefreshInventory();

@@ -58,13 +58,8 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 
 	transform.AddToTranslation(transform.GetRotation().GetForwardVector() * DropLocationOffset.Size());
 
-	UClass * WorldItemClass = Item.GetDefinition()->WorldItemClassOverride.Get();
-	if (!WorldItemClass)
-	{
-		WorldItemClass = GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass.Get();
-	}
-	
-	ARockInventoryWorldItemBase* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItemBase>(WorldItemClass, transform);
+	UClass * WorldItemClass = Item.GetDefinition()->GetWorldItemClass();
+	AActor* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<AActor>(WorldItemClass, transform);
 	checkf(NewWorldItem, TEXT("Failed to spawn world item actor of class. Possibly DefaultWorldItemClass is unset in Project Settings"));
 
 	if (!IsValid(NewWorldItem))
@@ -72,17 +67,12 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 		return UndoTransaction;
 	}
 	IRockLootableInterface* WorldItemInterfaceActor = Cast<IRockLootableInterface>(NewWorldItem);
-	if (!WorldItemInterfaceActor)
+	if (WorldItemInterfaceActor)
 	{
-		UE_LOG(LogRockInventory, Error, TEXT("NewWorldItem does not implement URockWorldItemInterface!"));
-		return UndoTransaction;
+		WorldItemInterfaceActor->SetItemStack(Item);
+		WorldItemInterfaceActor->ApplyThrowImpulse(Impulse);
 	}
 	
-	WorldItemInterfaceActor->SetItemStack(Item);
-	if (NewWorldItem->StaticMeshComponent->IsSimulatingPhysics())
-	{
-		NewWorldItem->StaticMeshComponent->AddImpulse(Impulse, NAME_None, true);
-	}
 	UGameplayStatics::FinishSpawningActor(NewWorldItem, transform);
 
 	UndoTransaction.bSuccess = true;

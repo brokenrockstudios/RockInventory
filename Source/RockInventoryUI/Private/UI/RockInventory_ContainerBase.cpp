@@ -949,14 +949,14 @@ void URockInventory_ContainerBase::DestroyWidgetForItem(const FRockItemStackHand
 	}
 }
 
-void URockInventory_ContainerBase::BindToInventorySection(URockInventory* NewInventory, FName InSectionName)
+void URockInventory_ContainerBase::BindToInventorySection(URockInventory* NewInventory, FGameplayTag InSectionTag)
 {
 	// Use the current section name if we have one
-	if (InSectionName.IsNone())
+	if (!InSectionTag.IsValid())
 	{
-		InSectionName = TabInfo.GetSectionName();
+		InSectionTag = TabInfo.GetSectionTag();
 	}
-	if (InSectionName.IsNone())
+	if (!InSectionTag.IsValid())
 	{
 		// Is there another kind of fallback that we should/could support?
 		// e.g. the first section in the inventory?
@@ -978,7 +978,7 @@ void URockInventory_ContainerBase::BindToInventorySection(URockInventory* NewInv
 
 		// 3) Swap to the new inventory and cache section info
 		Inventory = NewInventory;
-		TabInfo = Inventory->GetSectionInfo(InSectionName);
+		TabInfo = Inventory->GetSectionInfo(InSectionTag);
 		SizePolicy = TabInfo.GetSlotSizePolicy();
 
 		// 4) Bind
@@ -1043,7 +1043,7 @@ void URockInventory_ContainerBase::GenerateGrid()
 	int32 SectionIndex = INDEX_NONE;
 	if (Inventory)
 	{
-		SectionIndex = Inventory->GetSectionIndexById(TabInfo.GetSectionName());
+		SectionIndex = Inventory->GetSectionIndex(TabInfo.GetSectionTag());
 	}
 
 	if (!GridSlotWidgetClass)

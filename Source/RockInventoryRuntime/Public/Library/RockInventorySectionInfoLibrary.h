@@ -18,5 +18,5 @@ class ROCKINVENTORYRUNTIME_API URockInventorySectionInfoLibrary : public UBluepr
 	// Generate getters for SectionInfo
 public:
 	UFUNCTION(BlueprintPure, Category = "RockInventory|SectionInfo")
-	static FName GetSectionName(const FRockInventorySectionInfo& SectionInfo);
+	static FGameplayTag GetSectionTag(const FRockInventorySectionInfo& SectionInfo);
 };

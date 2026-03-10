@@ -133,6 +133,14 @@ void ARockInventoryWorldItemBase::OnLooted(AActor* InstigatorPawn, const FRockIt
 	}
 }
 
+void ARockInventoryWorldItemBase::ApplyThrowImpulse(const FVector& Impulse)
+{
+	if (StaticMeshComponent && StaticMeshComponent->IsSimulatingPhysics())
+	{
+		StaticMeshComponent->AddImpulse(Impulse, NAME_None, true);
+	}
+}
+
 void ARockInventoryWorldItemBase::OnRep_ItemStack()
 {
 	SetItemStack(ItemStack);
