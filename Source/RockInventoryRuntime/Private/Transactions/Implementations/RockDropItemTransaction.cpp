@@ -58,8 +58,13 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 
 	transform.AddToTranslation(transform.GetRotation().GetForwardVector() * DropLocationOffset.Size());
 
-	ARockInventoryWorldItemBase* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItemBase>(
-		GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass, transform);
+	UClass * WorldItemClass = Item.GetDefinition()->WorldItemClassOverride.Get();
+	if (!WorldItemClass)
+	{
+		WorldItemClass = GetDefault<URockInventoryDeveloperSettings>()->DefaultWorldItemClass.Get();
+	}
+	
+	ARockInventoryWorldItemBase* NewWorldItem = SourceInventory->GetOwningActor()->GetWorld()->SpawnActorDeferred<ARockInventoryWorldItemBase>(WorldItemClass, transform);
 	checkf(NewWorldItem, TEXT("Failed to spawn world item actor of class. Possibly DefaultWorldItemClass is unset in Project Settings"));
 
 	if (!IsValid(NewWorldItem))
