@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Item/RockItemStack.h"
-#include "Transactions/Implementations/RockDropItemTransaction.h"
 #include "UObject/Interface.h"
 #include "RockLootableInterface.generated.h"
 
