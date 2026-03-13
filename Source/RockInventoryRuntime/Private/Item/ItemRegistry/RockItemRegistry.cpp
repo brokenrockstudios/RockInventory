@@ -34,6 +34,7 @@ URockItemRegistrySubsystem* URockItemRegistrySubsystem::GetInstance()
 void URockItemRegistrySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	
 	UE_LOG(LogRockItemRegistry, Log, TEXT("Initializing RockItemRegistry..."));
 	BuildRegistry();
 	bIsInitialized = true;
@@ -94,7 +95,7 @@ void URockItemRegistrySubsystem::BuildRegistry()
 						{
 							// Add the valid definition to the map
 							ItemDefinitionMap.Add(ItemDef->ItemId, ItemDef);
-							UE_LOG(LogRockItemRegistry, Warning, TEXT("Added Item Definition: ID '%s', Asset '%s'"), *ItemDef->ItemId.ToString(),
+							UE_LOG(LogRockItemRegistry, Display, TEXT("Added Item Definition: ID '%s', Asset '%s'"), *ItemDef->ItemId.ToString(),
 								*GetPathNameSafe(ItemDef));
 						}
 					}
