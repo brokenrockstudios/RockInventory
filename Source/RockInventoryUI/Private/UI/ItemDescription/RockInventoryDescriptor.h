@@ -74,7 +74,7 @@ struct ROCKINVENTORYUI_API FRockItemDescriptor
 	// 	}
 };
 
-// // Core — fragment extractor interface (no UMG types)
+// // Core fragment extractor interface (no UMG types)
 // class ROCKINVENTORYUI_API IRockFragmentExtractor
 // {
 // public:
