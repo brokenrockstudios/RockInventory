@@ -98,6 +98,9 @@ void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack
 			}
 		}));
 	}
+	
+	// TODO: Do we need to call if there is a runtime instance
+	// RegisterReplicationWithOwner since we aren't replicating the internal runtime instance
 }
 
 void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)

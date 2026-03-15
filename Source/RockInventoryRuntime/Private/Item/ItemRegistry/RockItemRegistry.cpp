@@ -51,14 +51,15 @@ void URockItemRegistrySubsystem::Deinitialize()
 
 void URockItemRegistrySubsystem::BuildRegistry()
 {
+	int32 NumAssetsLoaded = 0;
 	double TimeBuildingRegistry = 0.0;
 	{
 		FScopedDurationTimer Timer(TimeBuildingRegistry);
 		// Get all Primary Asset IDs for our item type
 		TArray<FPrimaryAssetId> PrimaryAssetIds;
 		UAssetManager::Get().GetPrimaryAssetIdList(ItemDefinitionAssetType, PrimaryAssetIds);
-
-		UE_LOG(LogRockItemRegistry, Warning, TEXT("Scanning for Primary Assets of type '%s'. Found %d potential assets."),
+		NumAssetsLoaded = PrimaryAssetIds.Num();
+		UE_LOG(LogRockItemRegistry, Display, TEXT("Scanning for Primary Assets of type '%s'. Found %d potential assets."),
 			*ItemDefinitionAssetType.ToString(), PrimaryAssetIds.Num());
 
 		for (const FPrimaryAssetId& AssetId : PrimaryAssetIds)
@@ -120,7 +121,7 @@ void URockItemRegistrySubsystem::BuildRegistry()
 		}
 	}
 
-	UE_LOG(LogRockItemRegistry, Warning, TEXT("BuildRegistry() took %.3f seconds."), TimeBuildingRegistry);
+	UE_LOG(LogRockItemRegistry, Warning, TEXT("BuildRegistry() took %.3f seconds to load %d assets."), TimeBuildingRegistry, NumAssetsLoaded);
 }
 
 URockItemDefinition* URockItemRegistrySubsystem::FindDefinition(FName ItemID) const
