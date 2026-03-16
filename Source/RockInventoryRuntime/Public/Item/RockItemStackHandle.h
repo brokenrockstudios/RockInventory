@@ -18,6 +18,7 @@ struct alignas(4) ROCKINVENTORYRUNTIME_API FRockItemStackHandle
 
 private:
 	/** The unique identifier for this item stack (combines index and generation) */
+	UPROPERTY()
 	int32 Handle = INDEX_NONE;
 
 public:

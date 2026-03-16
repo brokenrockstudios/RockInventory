@@ -179,8 +179,10 @@ public:
 	// Thus you have to use this function to change the count of an item stack, which will then trigger the appropriate events and delegates.
 	void SetItemStackCount(const FRockItemStackHandle& Handle, int32 NewCount, bool bAutoRemoveIfZero = true);
 	bool SetItemCustomValueByTag(const FRockItemStackHandle& Handle, FGameplayTag tag, int32 NewCount);
-
+private:
+	// Internal use only
 	uint32 AcquireAvailableItemIndex();
+public:
 	int32 GetItemStackCount();
 	int32 GetItemTotalCount();
 	

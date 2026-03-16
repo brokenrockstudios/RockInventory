@@ -608,10 +608,7 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 		const uint32 Index = ItemData.AddDefaulted();
 		ItemData[Index].Generation = 0;
 		ItemData[Index].ItemHandle = FRockItemStackHandle::Create(Index, 0);
-		// Since we modified the array, we need to mark it dirty? Or can we just mark the item only?
-		ItemData.MarkItemDirty(ItemData[Index]);
-		// We are calling this because of the above ItemData.AddDefaulted size change
-		ItemData.MarkArrayDirty();
+		// Since we modified the element+array, the caller should mark it dirty.
 		return Index;
 	}
 	checkf(false, TEXT("AcquireAvailableItemData - No space left. Inventory is full or not initialized properly."));
@@ -678,7 +675,8 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	AActor* OwningActor = GetOwningActor();
 	checkf(OwningActor && OwningActor->HasAuthority(),
 	       TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
-
+	
+	const int32 PreviousItemDataNum = ItemData.Num();
 	const uint32 Index = AcquireAvailableItemIndex();
 	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
 
@@ -690,7 +688,6 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	NewItemStack.StackCount = InItemStack.StackCount;
 	NewItemStack.CustomValue1 = InItemStack.CustomValue1;
 	NewItemStack.CustomValue2 = InItemStack.CustomValue2;
-
 
 	// Initialize the item stack
 	if (NewItemStack.RuntimeInstance != nullptr)
@@ -737,6 +734,11 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 
 	// Set up the item
 	ItemData.MarkItemDirty(ItemData[Index]);
+	if (ItemData.Num() != PreviousItemDataNum)
+	{
+		// Our array changed size. Mark dirty.
+		ItemData.MarkArrayDirty();
+	}
 	BroadcastItemChanged(ItemData[Index].ItemHandle, ERockItemChangeType::Added);
 	// Return handle with current index and generation
 	return NewItemStack.ItemHandle;
