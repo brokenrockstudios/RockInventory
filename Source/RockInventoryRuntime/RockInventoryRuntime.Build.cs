@@ -12,13 +12,11 @@ public class RockInventoryRuntime : ModuleRules
 			new string[]
 			{
 				"Core",
-				// ... add other public dependencies that you statically link with here ...
-				"GameplayAbilities",
 				"GameplayTags",
-				"GameplayTasks",
+				"RockGameplayTags",
 				"UMG",
 				"DeveloperSettings",
-				"RockGameplayTags",
+				// ... add public dependencies that you the /public files need
 			}
 		);
 
@@ -33,7 +31,7 @@ public class RockInventoryRuntime : ModuleRules
 				"AssetRegistry",
 				"Iris",
 				"IrisCore",
-				// ... add private dependencies that you statically link with here ...	
+				// ... add private dependencies that /private files need	
 			}
 		);
 		

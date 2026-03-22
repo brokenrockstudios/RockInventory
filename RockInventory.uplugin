@@ -32,19 +32,11 @@
 	],
 	"Plugins": [
 		{
-			"Name": "GameplayAbilities",
-			"Enabled": true
-		},
-		{
 			"Name": "Iris",
 			"Enabled": true
 		},
 		{
 			"Name": "RockGameplayTags",
-			"Enabled": true
-		},
-		{
-			"Name": "CommonUI",
 			"Enabled": true
 		},
 		{
@@ -56,9 +48,12 @@
 			"Enabled": true
 		},
 		{
+			"Name": "CommonUI",
+			"Enabled": true
+		},
+		{
 			"Name": "ModelViewViewModel",
 			"Enabled": true
 		}
-		
 	]
 }

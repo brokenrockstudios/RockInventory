@@ -31,11 +31,11 @@ class URockInventory;
 
 namespace RockInventoryUI
 {
-template <typename FuncT>
-concept SlotFunction = requires(FuncT f, int32 a, int32 b, int32 c, int32 d)
-{
-	f(a, b, c, d);
-};
+	template <typename FuncT>
+	concept SlotFunction = requires(FuncT f, int32 a, int32 b, int32 c, int32 d)
+	{
+		f(a, b, c, d);
+	};
 }
 
 /**
@@ -69,7 +69,8 @@ public:
 	bool IsInGridBounds(int32 StartIndex, FIntPoint ItemGridSize) const;
 
 	void OnTileParametersUpdated(const FRockInventory_TileParameters& Parameters);
-	void HighlightSlots(int32 Index, const FIntPoint& Dimensions);
+
+	void HighlightSlots(int32 Index, const FIntPoint& Dimensions); // bool bValidPlacement
 	void UnHighlightLast();
 	void UnHighlightSlots(int32 Index, const FIntPoint& Dimensions);
 	int32 GetIndexFromPosition(const FIntPoint& Position, int32 Columns) const;
@@ -115,7 +116,7 @@ public:
 	template <RockInventoryUI::SlotFunction FuncT>
 	void ForEachSlot(FuncT&& Function) const;
 
-	
+
 	template <RockInventoryUI::SlotFunction FuncT>
 	void ForEachSlotInternal(int32 StartIndex, int32 RangeWidth, int32 RangeHeight, FuncT&& Function) const;
 
@@ -168,7 +169,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void BindToInventorySection(URockInventory* NewInventory, FGameplayTag InSectionTag = FGameplayTag());
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void ForceRefreshInventory();
 
@@ -226,7 +227,7 @@ private:
 	void UpdateWidgetForItem(URockInventory_Slot_ItemBase* WidgetItem, const FRockItemStack& ItemStack, FRockInventorySlotHandle SlotHandle);
 	void EnsureWidgetForItem(const FRockItemStack& ItemStack, FRockInventorySlotHandle SlotHandle);
 
-	
+
 	//void MoveWidgetForItem(URockInventory_Slot_ItemBase* WidgetItem, const FRockInventorySlotHandle& From, const FRockInventorySlotHandle& To);
 
 	TMap<FRockItemStackHandle, FRockContainerItemView> ItemViews;
@@ -248,7 +249,7 @@ void URockInventory_ContainerBase::ForEachSlotInternal(int32 StartIndex, int32 R
 		// Invalid start index, nothing to do
 		return;
 	}
-	
+
 	const int32 gridWidth = TabInfo.GetColumns();
 	const int32 gridHeight = TabInfo.GetRows();
 	if (gridWidth <= 0 || gridHeight <= 0)

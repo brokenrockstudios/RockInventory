@@ -154,12 +154,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100))
 	TArray<FRockItemFragmentInstance> Fragments;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
-	FText UseItemTextOverride;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
-	TSoftClassPtr<UGameplayAbility> UseItemAbility;
-
 	template <typename T> requires std::derived_from<T, FRockItemFragment>
 	const T* GetFragmentOfType() const;
 	template <typename T> requires std::derived_from<T, FRockItemFragment>
