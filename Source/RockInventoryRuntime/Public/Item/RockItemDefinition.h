@@ -133,13 +133,13 @@ public:
 	// Used to identify the purpose or functionality of the item's CustomValue1.
 	// Is it used for durability, charge, etc..
 	// Build a system to use this to determine what the value is used for.
-	// Could/Should this be an enum instead?
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta = (DisplayName = "Custom Value 1 Tag"))
 	FGameplayTag CustomValue1Tag;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta = (DisplayName = "Custom Value 2 Tag"))
 	FGameplayTag CustomValue2Tag;
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	bool bRequiresRuntimeInstance = false;
+	
 	// If this item requires a runtime instance, this is the class that will be used to create it.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass;
@@ -148,78 +148,17 @@ public:
 	// e.g. If this Item was a Backpack, this should be set to the Backpack's InventoryConfig.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSoftObjectPtr<URockInventoryConfig> InventoryConfig = nullptr;
-
-	//////////////////////////////////////////////////////////////////////////
-	/// Sound
-	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc", meta = (AssetBundles= "UI"))
-	TSoftObjectPtr<USoundBase> InventoryMoveSoundOverride = nullptr;
-	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc", meta = (AssetBundles= "Gameplay"))
-	TSoftObjectPtr<USoundBase> PickupSoundOverride = nullptr;
-	UPROPERTY(EditDefaultsOnly, Category = "Item|Misc", meta = (AssetBundles= "Gameplay"))
-	TSoftObjectPtr<USoundBase> DropSoundOverride = nullptr;
-
+	
 	///////////////////////////////////////////////////////////////////////////
 	/// Fragments
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100))
 	TArray<FRockItemFragmentInstance> Fragments;
 
-
-	// the equivalent to the 'right click menu'
-	// Actions that all items can do
-	// Drop / Split (Is there a scenario where we'd want an item to not be droppable or not be splittable?
-
-	// Generally this should be "Use" but perhaps it's "Consume" or other things?
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
 	FText UseItemTextOverride;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
 	TSoftClassPtr<UGameplayAbility> UseItemAbility;
-	// bActivateOnGranted = true;
-	// InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;
-	// bAutoRemoveOnEnd = true;
-
-	// UPROPERTY(EditDefaultsOnly, Category="Usage")
-	// EItemUseType UseType = EItemUseType::Immediate; // Immediate, Toggle?
-
-
-	// GA_ConsumeApple: Heal 10 HP.
-	// Is there a way we can generalize this?  Should GA_ConsumeApple be different then GA_ConsumePie
-	// Or perhaps we can leverage some 'attribute' that is referenced from a GA_ConsumeGeneric, like leveraging the OnEquipment AbilityInfo?
-	// How do we tell the ability that THIS item is the one that is being used? Can we pass it in with the context?
-
-	// GA_UnwrapPresent: Spawn item in inventory or world.
-	// GA_LearnSkillFireball: Add ability to player.
-
-	// Perhaps instead of a direct ability, we could fall back to some 'generic' ability or global 'function library' based upon this tag?
-	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Usage")
-	//FGameplayTag UseAbilityTag; // Optional fallback route
-
-
-	// This might want to be a singular GameplayAbility, slightly different from Equip.
-	// Note: In the case of a 'hotbar', depending upon which slot is selected, that system likely relies upon Equip/Unequip
-	// The hot bar will need to determine if we are attemping to 'use' the item, or 'equip' the item.
-	// Because you are 'equipping' the gun, and then relying on Primary+Secondary triggers on it. 
-	// Grenade is likely a 'equip'.
-
-	// ConsumeItem (Should this be equivalent to UseItem?
-
-
-	// OpenItem
-	// Is this inventory inherit, and part of the 'runtime instance', since this would likely involve opening a nested inventory
-	// In the case of like a 'wrapped gift', that should rely on UseItem instead.   
-
-	// InspectItem
-	// Is this Inventory inherit, or do we want some items to have special things. 
-
-	// EquipItem
-	// Apply gameplaytags, abilities, attributes, gameplayeffects on 'equip', for 'equipment
-
-	// UnequipItem
-	// Same as equip but reverse. 
-
-	// UnloadItem
-	// Not neccesarily only for 'guns', could also be like removing a battery
-
 
 	template <typename T> requires std::derived_from<T, FRockItemFragment>
 	const T* GetFragmentOfType() const;
@@ -227,34 +166,11 @@ public:
 	bool HasFragment() const;
 
 	const TArray<FRockItemFragmentInstance>& GetAllFragments() const;
-
-
-	// Destroy
-
-	// destroy, drop, equip, inspect, open, unequip, unload, use
-
-	// EquipmentFragment
-	// Supports Attachment
-	// CoreItems Tags required to function (e.g. a battery or a barrel)
-	// SkelMesh
-	// StaticMesh
-	// EquipSocket?
-
-	// TOOD: Should this be in a game specific fragment instead?
-	// UPROPERTY(EditDefaultsOnly, Category=Equipment)
-	// TSubclassOf<URockEquipmentInstance> InstanceType;
-
-	// TOOD: Should this be in a game specific fragment instead?
-	// Gameplay ability sets to grant when this is equipped
-	// UPROPERTY(EditDefaultsOnly, Category=Equipment)
-	// TArray<TObjectPtr<const URockItemAbilitySet>> AbilitySetsToGrant;
-
+	
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 
 
-	// If creating a 'runtime instance definition', we'd need to manually register it with the asset manager
-	// e.g. 
-	// Experimental 
+	// If creating a 'runtime instance definition', we'd need to manually register it with the asset manager e.g. Experimental 
 	void RegisterItemDefinition(const URockItemDefinition* NewItem);
 	virtual UClass* GetWorldItemClass();
 

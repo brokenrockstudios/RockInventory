@@ -5,6 +5,7 @@
 #include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
+#include "Item/Fragment/RockItemFragment_Sound.h"
 #include "Kismet/GameplayStatics.h"
 #include "Library/RockInventoryManagerLibrary.h"
 #include "Transactions/Implementations/RockDropItemTransaction.h"
@@ -28,7 +29,12 @@ void URockItemDragDropOperation::OnBeginCarry_Implementation()
 			const FRockItemStack& item = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
 			if (item.GetDefinition())
 			{
-				const TSoftObjectPtr<USoundBase> soundOverride = item.GetDefinition()->PickupSoundOverride;
+				TSoftObjectPtr<USoundBase> soundOverride;
+				if (auto SoundFragment = item.GetDefinition()->GetFragmentOfType<FRockItemFragment_Sound>())
+				{
+					soundOverride = SoundFragment->InventoryPickup;
+				}
+				
 				if (soundOverride.IsValid())
 				{
 					// TODO: Async Load the sound
@@ -117,7 +123,11 @@ void URockItemDragDropOperation::PlayFeedbackForOutcome_Implementation(const FRo
 				const FRockItemStack& item = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
 				if (item.GetDefinition())
 				{
-					const TSoftObjectPtr<USoundBase> soundOverride = item.GetDefinition()->DropSoundOverride;
+					TSoftObjectPtr<USoundBase> soundOverride;
+					if (auto SoundFragment = item.GetDefinition()->GetFragmentOfType<FRockItemFragment_Sound>())
+					{
+						soundOverride = SoundFragment->InventoryDrop;
+					}
 
 					// Consider a some SoundRegistry based upon some 'traits' (e.g. wood, metal) that we could use
 					// based upon some gameplay tags or something on the item definition.
