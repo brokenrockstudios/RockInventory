@@ -53,7 +53,6 @@ public:
 	URockInventory_Slot_ItemBase* FindItemSlotWidgetBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 	URockInventory_Slot_ItemBase* FindItemSlotWidgetByItemHandle(const FRockItemStackHandle& InItemHandle) const;
 
-
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
