@@ -105,7 +105,7 @@ void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack
 
 void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)
 {
-	URockInventoryComponent* InventoryComp = Cast<URockInventoryComponent>(InInstigator->GetComponentByClass(URockInventoryComponent::StaticClass()));
+	URockInventoryComponent* InventoryComp = InInstigator->GetComponentByClass<URockInventoryComponent>();
 	if (InventoryComp)
 	{
 		int32 outExcess = ItemStack.StackCount;

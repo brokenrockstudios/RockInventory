@@ -39,10 +39,10 @@ struct FRockGridItemEventData
 	UPROPERTY()
 	TObjectPtr<URockInventory_Slot_ItemBase> SlotWidget;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	FGeometry Geometry;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	FPointerEvent PointerEvent;
 
 	UPROPERTY()

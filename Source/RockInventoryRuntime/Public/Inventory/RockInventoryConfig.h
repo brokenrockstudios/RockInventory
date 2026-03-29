@@ -27,5 +27,3 @@ public:
 	// TODO:
 	// Consider having a 'parent' config' or even an 'array' of composable configs?
 };
-
-

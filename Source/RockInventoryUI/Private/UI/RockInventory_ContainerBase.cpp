@@ -36,6 +36,8 @@ void URockInventory_ContainerBase::OnCarryEnded(const URockDragCarryOperation* O
 	}
 
 	UnHighlightLast();
+	
+	// Some code to go SetEmptyTexture/OccupiedTexture?
 }
 
 URockInventory_Slot_ItemBase* URockInventory_ContainerBase::FindItemSlotWidgetBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const
@@ -423,7 +425,7 @@ void URockInventory_ContainerBase::HighlightSlots(const int32 Index, const FIntP
 			URockInventory_Slot_BackgroundBase* BackgroundSlot = BackgroundGridSlots[SlotIndex];
 			if (BackgroundSlot)
 			{
-				// TODO: Set the background slot to highlighted texture
+				// TODO: Set the background slot to highlighted texture vs invalid/greyed out. Check if it was a valid placement
 				BackgroundSlot->SetGrayedOutTexture();
 			}
 		});
@@ -512,17 +514,22 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 	rockDragDrop->Orientation = ERockItemOrientation::Horizontal;
 	rockDragDrop->MoveMode = ERockItemMoveMode::FullStack;
 
-	{
-		const FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(InSlotHandle);
-		rockDragDrop->MoveCount = SlotEntry.ItemHandle.IsValid() ? Inventory->GetItemByHandle(SlotEntry.ItemHandle).GetStackCount() : 0;
-	}
+	const FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(InSlotHandle);
+	FRockItemStack cachedItem = Inventory->GetItemByHandle(SlotEntry.ItemHandle);
+	
+	rockDragDrop->MoveCount = SlotEntry.ItemHandle.IsValid() ? cachedItem.GetStackCount() : 0;
 
 	URockInventory_HoverItem* HoverItemWidget = CreateWidget<URockInventory_HoverItem>(GetWorld(), HoverItemClass);
 	HoverItemWidget->SetItemSource(Inventory, InSlotHandle);
 	HoverItemWidget->SetTargetSize(TileSize, TabInfo.GetSlotSizePolicy());
 
 	rockDragDrop->HoverDragVisual = HoverItemWidget;
+	
+	
+	// cache dimensions
+	const FIntPoint dimensions = cachedItem.IsValid() ? cachedItem.GetDefinition()->GridSize : FIntPoint(1, 1);
 
+	
 	carrySubsystem->BeginCarry(rockDragDrop);
 
 
@@ -537,6 +544,22 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 	// Update the SetOverallSize widget as Visible
 
 
+	// Clear the source slot background since the item is now in carry state
+	//const int32 localIndex = GetLocalIndexFromSlotHandle(InSlotHandle);
+	// if (localIndex != INDEX_NONE)
+	// {
+	// 	ForEachSlot(localIndex, dimensions,
+	// 		[&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
+	// 		{
+	// 			if (!BackgroundGridSlots.IsValidIndex(SlotIndex))
+	// 				return;
+	// 			if (URockInventory_Slot_BackgroundBase* BackgroundSlot = BackgroundGridSlots[SlotIndex])
+	// 			{
+	// 				BackgroundSlot->SetEmptyTexture();
+	// 			}
+	// 		});
+	// }
+	
 	// Make current 'widget' hit test invisible. So that we could move slightly and not have it interfere with the dragged item widget.
 	// We need to 'undo' this sometime later. But for now, refresh likely is remaking all the widgets
 	for (UWidget* child : GridPanel->GetAllChildren())
@@ -1168,7 +1191,7 @@ void URockInventory_ContainerBase::UpdateWidgetForItem(
 			if (URockInventory_Slot_BackgroundBase* gridSlot = BackgroundGridSlots[SlotIndex])
 			{
 				gridSlot->SetAnchorItemSlotHandle(SlotHandle);
-				// Optionally set occupancy visuals here
+				// TODO: Optionally set occupancy visuals here
 				// BG->SetOccupiedTexture();
 			}
 		});

@@ -69,7 +69,7 @@ public:
 
 	void OnTileParametersUpdated(const FRockInventory_TileParameters& Parameters);
 
-	void HighlightSlots(int32 Index, const FIntPoint& Dimensions); // bool bValidPlacement
+	void HighlightSlots(int32 Index, const FIntPoint& Dimensions); // bool bValidPlacement?
 	void UnHighlightLast();
 	void UnHighlightSlots(int32 Index, const FIntPoint& Dimensions);
 	int32 GetIndexFromPosition(const FIntPoint& Position, int32 Columns) const;

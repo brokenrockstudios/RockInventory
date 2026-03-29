@@ -461,7 +461,7 @@ int32 URockInventoryLibrary::MergeItemAtGridPosition(
 	return stackSize;
 }
 
-FRockItemStack URockInventoryLibrary::GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle)
+FRockItemStack URockInventoryLibrary::GetItemBySlotHandle(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle)
 {
 	if (!Inventory)
 	{
@@ -469,6 +469,16 @@ FRockItemStack URockInventoryLibrary::GetItemAtLocation(URockInventory* Inventor
 		return FRockItemStack::Invalid();
 	}
 	return Inventory->GetItemBySlotHandle(SlotHandle);
+}
+
+FRockItemStack URockInventoryLibrary::GetItemByItemHandle(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle)
+{
+	if (!Inventory)
+	{
+		UE_LOG(LogRockInventory, Warning, TEXT("GetItemAtLocation: Invalid Inventory"));
+		return FRockItemStack::Invalid();
+	} 
+	return Inventory->GetItemByHandle(ItemHandle);
 }
 
 int32 URockInventoryLibrary::GetItemCount(const URockInventory* Inventory, const FName& ItemId)
@@ -505,7 +515,8 @@ bool URockInventoryLibrary::CanItemBePlacedInSection(
 	{
 		return true;
 	}
-	return SectionInfo.GetSectionFilter().Matches(ItemStack.GetDefinition()->ItemType);
+	
+	return SectionInfo.GetSectionFilter().Matches(ItemStack.GetDefinition()->GetAllTags());
 }
 
 
@@ -773,16 +784,46 @@ void URockInventoryLibrary::SetCustomValue2(URockInventory* Inventory, const FRo
 	Inventory->SetItemByHandle(ItemHandle, ItemStack);
 }
 
-FRockInventorySlotHandle URockInventoryLibrary::FindFirstSlotWithSectionTag(URockInventory* Inventory, FGameplayTag ItemId)
+FRockInventorySlotHandle URockInventoryLibrary::FindFirstSlotInSection(URockInventory* Inventory, FGameplayTag SectionTag)
 {
 	if (!Inventory) { return FRockInventorySlotHandle::Invalid(); }
 
 	// We use the Core Query system to build the specific search
-	FRockInventoryQuery Q = FRockInventoryQuery::ForSectionWithTag(ItemId);
+	FRockInventoryQuery Q = FRockInventoryQuery::ForSectionWithSectionTag(SectionTag);
 	if (const FRockInventorySlotEntry* Slot = Inventory->FindFirstSlot(Q))
 	{
 		return Slot->SlotHandle; // Return the handle (safe for BP/external use)
 	}
 
 	return FRockInventorySlotHandle::Invalid();
+}
+
+TArray<FRockInventorySlotHandle> URockInventoryLibrary::FindAllSlotsInSection(URockInventory* Inventory, FGameplayTag SectionTag)
+{
+	TArray<FRockInventorySlotHandle> Slots;
+	if (!Inventory) { return Slots; }
+
+	// We use the Core Query system to build the specific search
+	FRockInventoryQuery Q = FRockInventoryQuery::ForSectionWithSectionTag(SectionTag);
+	TArray<FRockInventorySlotEntry> FoundSlots = Inventory->FindAllSlots(Q);
+	for (const FRockInventorySlotEntry& Slot : FoundSlots)
+	{
+		Slots.Add(Slot.SlotHandle);
+	}
+	return Slots;
+}
+
+TArray<FRockInventorySlotHandle> URockInventoryLibrary::FindAllSlotsInSectionsWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag)
+{
+	TArray<FRockInventorySlotHandle> Slots;
+	if (!Inventory) { return Slots; }
+
+	// We use the Core Query system to build the specific search
+	FRockInventoryQuery Q = FRockInventoryQuery::ForSectionWithMetaTag(SectionMetaTag);
+	TArray<FRockInventorySlotEntry> FoundSlots = Inventory->FindAllSlots(Q);
+	for (FRockInventorySlotEntry slot : FoundSlots)
+	{
+		Slots.Add(slot.SlotHandle);
+	}
+	return Slots;
 }

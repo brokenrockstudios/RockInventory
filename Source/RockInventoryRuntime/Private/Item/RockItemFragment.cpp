@@ -2,14 +2,19 @@
 
 #include "Item/RockItemFragment.h"
 
+#include "UObject/AssetRegistryTagsContext.h"
+
 void FRockItemFragment::OnItemCreated(FRockItemStack& ItemStack) const
 {
-	
 }
 
 bool FRockItemFragment::CanCombineItemStack(const FRockItemStack& ItemStack, const FRockItemStack& OtherItemStack) const
 {
 	return true;
+}
+
+void FRockItemFragment::GetAssetRegistryTags(FAssetRegistryTagsContext Context) const
+{
 }
 
 

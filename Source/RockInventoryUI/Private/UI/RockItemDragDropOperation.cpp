@@ -30,7 +30,7 @@ void URockItemDragDropOperation::OnBeginCarry_Implementation()
 			if (item.GetDefinition())
 			{
 				TSoftObjectPtr<USoundBase> soundOverride;
-				if (auto SoundFragment = item.GetDefinition()->GetFragmentOfType<FRockItemFragment_Sound>())
+				if (auto SoundFragment = item.GetDefinition()->FindFragment<FRockItemFragment_Sound>())
 				{
 					soundOverride = SoundFragment->InventoryPickup;
 				}
@@ -124,7 +124,7 @@ void URockItemDragDropOperation::PlayFeedbackForOutcome_Implementation(const FRo
 				if (item.GetDefinition())
 				{
 					TSoftObjectPtr<USoundBase> soundOverride;
-					if (auto SoundFragment = item.GetDefinition()->GetFragmentOfType<FRockItemFragment_Sound>())
+					if (auto SoundFragment = item.GetDefinition()->FindFragment<FRockItemFragment_Sound>())
 					{
 						soundOverride = SoundFragment->InventoryDrop;
 					}

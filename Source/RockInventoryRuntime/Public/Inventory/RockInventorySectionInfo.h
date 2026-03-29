@@ -12,8 +12,8 @@
 
 
 /**
- * Tab dimension info
- * This struct is used to define the dimensions of a tab or collection in a single inventory system.
+ * Section dimension info
+ * This struct is used to define the dimensions of a section in a single inventory system.
  */
 USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
@@ -29,23 +29,20 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
 	{
 	}
 
-	bool operator==(const FRockInventorySectionInfo& Other) const;
-
 	bool ContainsSlotHandle(FRockInventorySlotHandle InSlotHandle) const;
 
 private:
 	UPROPERTY(EditAnywhere, meta = (Categories = "Inventory.Section,Inventory.Group"))
 	FGameplayTag SectionTag;
-	
+
 	// Index of this section in the inventory's Sections array
 	UPROPERTY()
 	int32 SectionIndex = INDEX_NONE;
 
 	/** First slot index in the AllSlots array */
 	UPROPERTY()
-	int32 FirstSlotIndex = -1;
+	int32 FirstSlotIndex = INDEX_NONE;
 
-	// TODO: Switch over to Columns/Rows terminology instead of Width/Height?
 	/** Grid width (Columns) in slots */
 	UPROPERTY(EditAnywhere)
 	int32 Columns = 0;
@@ -58,13 +55,13 @@ private:
 	UPROPERTY(EditAnywhere)
 	ERockItemSizePolicy SlotSizePolicy = ERockItemSizePolicy::RespectSize;
 
-	// Can be used for a variety of purposes, such as categorizing the section. e.g. For 'AutoEquip' slots.
+	// Can be used for a variety of purposes, such as categorizing the section. e.g. For 'AutoEquip' slots, other behaviors, or characteristics about the section.
 	// An equipment manager might look for all sections with the "AutoEquip" tag to automatically equip items when items are added.
 	UPROPERTY(EditAnywhere)
-	FGameplayTagContainer Tags;
+	FGameplayTagContainer MetaTags;
 
-	/** Optional tags to filter items in this tab.
-	 * e.g. a Head Slot only accepts hat items, or weapons only accept weapons, Keychain only accepts keys. 
+	/** Optional tags to filter items in this section.
+	 * e.g., a Head Slot only accepts hat items, weapons only accept weapons, or a keychain only accepts keys. See ItemDefinition comment for more info
 	 */
 	UPROPERTY(EditAnywhere)
 	FGameplayTagQuery SectionFilter;
@@ -74,36 +71,36 @@ public:
 
 	bool IsValid() const;
 
-	/** Total number of slots in this tab */
-	FORCEINLINE int32 GetNumSlots() const;
+	/** Total number of slots in this section */
+	int32 GetNumSlots() const;
 
-	/** Returns the width (Columns) of the tab */
+	/** Returns the width (Columns) of the section */
 	int32 GetColumns() const;
 
-	/** Returns the height (Rows) of the tab */
+	/** Returns the height (Rows) of the section */
 	int32 GetRows() const;
 
-	/** Returns the tag of the tab */
+	/** Returns the tag of the section */
 	FGameplayTag GetSectionTag() const;
-	
+
 	/** Returns the index of this section in the inventory's Sections array */
 	int32 GetSectionIndex() const;
 
 	/** Returns the first slot index in the AllSlots array */
 	int32 GetFirstSlotIndex() const;
-	
+
 	/** Converts an absolute slot index to a relative index within this section */
 	int32 GetLocalIndex(int32 AbsoluteIndex) const;
-	
+
 	/** Returns the size policy for this section */
 	ERockItemSizePolicy GetSlotSizePolicy() const;
 
 	/** Returns the tag query filter for this section */
-	FGameplayTagQuery GetSectionFilter() const;
+	const FGameplayTagQuery& GetSectionFilter() const;
 
-	/** Returns the context tags associated with this section */
-	FGameplayTagContainer GetTags() const;
+	/** Returns the meta-tags associated with this section */
+	const FGameplayTagContainer& GetMetaTags() const;
 
-	// Returns an invalid section info
+	// Returns invalid section info
 	static const FRockInventorySectionInfo& Invalid();
 };

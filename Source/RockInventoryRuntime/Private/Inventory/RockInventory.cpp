@@ -167,7 +167,7 @@ FRockInventorySlotEntry URockInventory::GetSlotByHandle(const FRockInventorySlot
 	const int32 slotIndex = InSlotHandle.GetAbsoluteIndex();
 	if (!SlotData.ContainsIndex(slotIndex))
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("GetSlotByHandle - Invalid slot index"));
+		UE_LOG(LogRockInventory, Warning, TEXT("[%hs] - Invalid slot index"), __FUNCTION__);
 		return FRockInventorySlotEntry::Invalid();
 	}
 	return SlotData[slotIndex];
@@ -250,7 +250,7 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 	const int32 slotIndex = InSlotHandle.GetAbsoluteIndex();
 	if (!SlotData.ContainsIndex(slotIndex))
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("SetSlotByHandle - Invalid slot index"));
+		UE_LOG(LogRockInventory, Warning, TEXT("[%hs] - Invalid slot index"), __func__);
 		return;
 	}
 
@@ -675,7 +675,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	AActor* OwningActor = GetOwningActor();
 	checkf(OwningActor && OwningActor->HasAuthority(),
 	       TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
-	
+
 	const int32 PreviousItemDataNum = ItemData.Num();
 	const uint32 Index = AcquireAvailableItemIndex();
 	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
@@ -724,11 +724,13 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 			}
 			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
 		}
-		for (auto fragment : NewItemStack.GetDefinition()->Fragments)
+		for (const FInstancedStruct& fragment : NewItemStack.GetDefinition()->GetAllFragments())
 		{
-			const FRockItemFragment* itemFragment = fragment.GetFragmentData<FRockItemFragment>();
-
-			itemFragment->OnItemCreated(NewItemStack);
+			const FRockItemFragment* itemFragment = fragment.GetPtr<FRockItemFragment>();
+			if (itemFragment)
+			{
+				itemFragment->OnItemCreated(NewItemStack);
+			}
 		}
 	}
 
@@ -838,6 +840,7 @@ void URockInventory::ForEachSlot(const FRockInventoryQuery& Query, const TFuncti
 		for (int32 slotIndex = 0; slotIndex < NumSlots; ++slotIndex)
 		{
 			const int32 AbsoluteIndex = FirstSlotIndex + slotIndex;
+			ensure(AbsoluteIndex < SlotData.Num());
 			const FRockInventorySlotEntry* Slot = &SlotData[AbsoluteIndex];
 
 			if (Query.SlotPredicate && !Query.SlotPredicate(Slot))
@@ -897,6 +900,7 @@ TArray<FRockInventorySlotEntry> URockInventory::FindAllSlots(const FRockInventor
 	            [&ResultArr](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
 	            {
 		            ResultArr.Add(*Slot);
+
 		            // Continue iterating through all slots
 		            return true;
 	            });

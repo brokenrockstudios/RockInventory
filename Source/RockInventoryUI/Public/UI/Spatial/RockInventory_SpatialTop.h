@@ -32,7 +32,7 @@ class ROCKINVENTORYUI_API URockInventory_SpatialTop : public URockInventory_Inve
 	virtual URockInventory_HoverItem* GetHoverItem() const override;
 	virtual float GetTileSize() const override;
 	void AssimilateInventoryFragments(const FRockItemStack& ItemStack, URockInventory_ItemDescription* DescriptionComposite);
-	void Assimilate(URockInventory_CompositeBase* widget, const FRockItemFragmentInstance& fragment);
+	void Assimilate(URockInventory_CompositeBase* widget, const FInstancedStruct& fragment);
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> CanvasPanel;

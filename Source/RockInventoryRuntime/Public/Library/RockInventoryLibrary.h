@@ -27,8 +27,7 @@ public:
 	// Add it from anywhere. This will attempt to merge into existing stacks.
 	// In case of multiple stacks being merged, the last one will be assigned the OutHandle
 	// We also will 'fully initialized' any items not initialized (e.g. Create their runtime instances)
-	static bool LootItemToInventory(
-		URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess);
+	static bool LootItemToInventory(URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess);
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Inventory Location Manipulation
@@ -64,13 +63,21 @@ public:
 		ERockItemStackMergeCondition MergeCondition = ERockItemStackMergeCondition::Full);
 	static int32 MergeItemAtGridPosition(URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack);
 
-	/** Get the item at a specific location
+	/** Get the item by the Slot Handle
 	 * @param Inventory - The inventory to get the item from
 	 * @param SlotHandle - The handle of the slot to get the item from
 	 * @return The item stack at the specified location
 	 */
 	UFUNCTION(BlueprintCallable)
-	static FRockItemStack GetItemAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle);
+	static FRockItemStack GetItemBySlotHandle(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle);
+
+	/** Get the item by the Item Handle
+	 * @param Inventory - The inventory to get the item from
+	 * @param SlotHandle - The handle of the item to get
+	 * @return The item stack at the specified location
+	 */
+	UFUNCTION(BlueprintCallable)
+	static FRockItemStack GetItemByItemHandle(URockInventory* Inventory, const FRockItemStackHandle& SlotHandle);
 
 	/** Get the item count in an inventory
 	 * @param Inventory - The inventory to get the item from
@@ -109,12 +116,20 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory|Components")
 	static int32 GetSlotIndex(const FRockInventorySlotHandle& SlotHandle);
-	
+
 	UFUNCTION(BlueprintCallable)
 	static void SetCustomValue1(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue);
 	UFUNCTION(BlueprintCallable)
 	static void SetCustomValue2(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue);
+
+	// The header section tag
+	UFUNCTION(BlueprintCallable)
+	static FRockInventorySlotHandle FindFirstSlotInSection(URockInventory* Inventory, FGameplayTag SectionTag);
 	
 	UFUNCTION(BlueprintCallable)
-	static FRockInventorySlotHandle FindFirstSlotWithSectionTag(URockInventory* Inventory, FGameplayTag ItemId);
+	static TArray<FRockInventorySlotHandle> FindAllSlotsInSection(URockInventory* Inventory, FGameplayTag SectionTag);
+	
+	// The internal meta-tags
+	UFUNCTION(BlueprintCallable)
+	static TArray<FRockInventorySlotHandle> FindAllSlotsInSectionsWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag);
 };

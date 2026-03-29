@@ -76,7 +76,7 @@ void URockInventory_SpatialTop::AssimilateInventoryFragments(const FRockItemStac
 	// // }
 }
 
-void URockInventory_SpatialTop::Assimilate(URockInventory_CompositeBase* widget, const FRockItemFragmentInstance& fragment)
+void URockInventory_SpatialTop::Assimilate(URockInventory_CompositeBase* widget, const FInstancedStruct& fragment)
 {
 	// const FRockItemFragment_SetStats* Fragment = fragment.GetFragmentData<FRockItemFragment_SetStats>();
 	// auto Frag = Cast<FRockItemFragment_SetStats>(Fragment);

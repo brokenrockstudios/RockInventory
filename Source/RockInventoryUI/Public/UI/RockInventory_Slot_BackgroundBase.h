@@ -34,7 +34,7 @@ public:
 	FGridSlotEvent GridSlotMouseMoved;
 
 private:
-	//─────────────────────────────────────────────────────────────────────────
+	// ─────────────────────────────────────────────────────────────────────────
 	// We might not need this, but it is here for now. This is the inventory that this slot is representing.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Slot", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<URockInventory> Inventory;
@@ -47,30 +47,33 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Slot", meta = (AllowPrivateAccess = "true"))
 	FRockInventorySlotHandle AnchorHandle;
 
-	//─ Widgets ───────────────────────────────────────────────────────────────
+	// ─ Widgets ───────────────────────────────────────────────────────────────
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_GridSlot;
 
-	UPROPERTY( meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USizeBox> SizeBox;
 
 #pragma region "Widget Bindings"
-	//─────────────────────────────────────────────────────────────────────────
-	// Empty slot, default state.
+	// ─────────────────────────────────────────────────────────────────────────
+	/** Empty slot, default state. */
 	UPROPERTY(EditAnywhere, Category = "Inventory")
-	FSlateBrush Brush_Unoccupied;
+	FSlateBrush Brush_Unoccupied; // Brush_Empty
 
-	// During Hover and always on Item exists background? 
+	/** During Hover and always on Item exists background? */
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	FSlateBrush Brush_Occupied;
 
-	// Seemingly never used?
+	// No idea the intended purpose. 
+	// Meant to highlight currently hovered item (unpicked up) ??
+	/** Seemingly never used? */
 	UPROPERTY(EditAnywhere, Category = "Inventory")
-	FSlateBrush Brush_Selected;
+	FSlateBrush Brush_Selected; // Brush_Highlighted
 
-	// Used when hovering over an item that already has an item? 
+	/** Used when hovering over an item that already has an item? */
+	// Only highlights when moving an item. "Possible location", "Available"?
 	UPROPERTY(EditAnywhere, Category = "Inventory")
-	FSlateBrush Brush_GrayedOut;
+	FSlateBrush Brush_GrayedOut; // Brush_Invalid
 #pragma endregion
 
 	// In the event we had some information like if this slot is 'locked' or 'expecting a specific item
@@ -82,28 +85,28 @@ private:
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slot", meta = (BindWidget))
 	// TObjectPtr<UImage> ItemLockIcon;
 
-	//─────────────────────────────────────────────────────────────────────────
+	// ─────────────────────────────────────────────────────────────────────────
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 
-	//─ V2 ────────────────────────────────────────────────────────────────────
+	// ─ V2 ────────────────────────────────────────────────────────────────────
 public:
-	void SetOccupiedTexture();
-	void SetUnoccupiedTexture();
-	void SetSelectedTexture();
-	void SetGrayedOutTexture();
+	virtual void SetOccupiedTexture();
+	virtual void SetUnoccupiedTexture();
+	virtual void SetSelectedTexture();
+	virtual void SetGrayedOutTexture(); // Update func to reflect underlying brush states 
 
 	void SetSlot(URockInventory* InInventory, FRockInventorySlotHandle InSlotHandle);
 	void SetSize(float InTileSize);
 
-	
+
 	// Sets the handle of the item that is occupying this slot. This is used for drag/drop and other functionality.
 	void SetAnchorItemSlotHandle(const FRockInventorySlotHandle& InHandle);
 	void ResetAnchorItemSlotHandle();
-	
+
 	FRockInventorySlotHandle GetSlotHandle() const;
 	FRockInventorySlotHandle GetAnchorItemSlotHandle() const;
 

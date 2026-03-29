@@ -37,14 +37,14 @@ ERockItemSizePolicy FRockInventorySectionInfo::GetSlotSizePolicy() const
 	return SlotSizePolicy;
 }
 
-FGameplayTagQuery FRockInventorySectionInfo::GetSectionFilter() const
+const FGameplayTagQuery& FRockInventorySectionInfo::GetSectionFilter() const
 {
 	return SectionFilter;
 }
 
-FGameplayTagContainer FRockInventorySectionInfo::GetTags() const
+const FGameplayTagContainer& FRockInventorySectionInfo::GetMetaTags() const
 {
-	return Tags;
+	return MetaTags;
 }
 
 int32 FRockInventorySectionInfo::GetSectionIndex() const
@@ -52,26 +52,17 @@ int32 FRockInventorySectionInfo::GetSectionIndex() const
 	return SectionIndex;
 }
 
-bool FRockInventorySectionInfo::operator==(const FRockInventorySectionInfo& Other) const
-{
-	return SectionTag == Other.SectionTag
-		&& SectionIndex == Other.SectionIndex
-		&& FirstSlotIndex == Other.FirstSlotIndex
-		&& Columns == Other.Columns
-		&& Rows == Other.Rows
-		&& SlotSizePolicy == Other.SlotSizePolicy
-		&& Tags == Other.Tags
-		&& SectionFilter == Other.SectionFilter;
-}
-
 bool FRockInventorySectionInfo::ContainsSlotHandle(FRockInventorySlotHandle InSlotHandle) const
 {
+	if (FirstSlotIndex == INDEX_NONE) { return false; }
 	const int32 AbsoluteIndex = InSlotHandle.GetAbsoluteIndex();
 	return AbsoluteIndex >= FirstSlotIndex && AbsoluteIndex < FirstSlotIndex + GetNumSlots();
 }
 
 void FRockInventorySectionInfo::Initialize(int32 InFirstSlotIndex, int32 InSectionIndex)
 {
+	ensureMsgf(Columns > 0 && Rows > 0, TEXT("SectionInfo '%s' has invalid dimensions (%dx%d)"), *SectionTag.ToString(), Columns, Rows);
+
 	FirstSlotIndex = InFirstSlotIndex;
 	SectionIndex = InSectionIndex;
 }

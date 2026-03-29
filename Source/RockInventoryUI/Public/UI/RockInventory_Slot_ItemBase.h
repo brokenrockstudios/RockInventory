@@ -179,8 +179,12 @@ private:
 
 public:
 	// ---------- Slot Events (lightweight delegates for outer UI) ----------
+	UPROPERTY(BlueprintReadWrite, BlueprintAssignable, Category = "Inventory")
 	FGridSlotItemEvent ItemClicked;
+	UPROPERTY(BlueprintReadWrite, BlueprintAssignable, Category = "Inventory")
 	FGridSlotItemEvent ItemReleased;
+	UPROPERTY(BlueprintReadWrite, BlueprintAssignable, Category = "Inventory")
 	FGridSlotItemEvent ItemHovered;
+	UPROPERTY(BlueprintReadWrite, BlueprintAssignable, Category = "Inventory")
 	FGridSlotItemEvent ItemUnhovered;
 };

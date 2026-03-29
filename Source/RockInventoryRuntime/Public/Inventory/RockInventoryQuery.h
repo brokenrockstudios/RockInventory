@@ -53,18 +53,19 @@ public:
 	static FRockInventoryQuery ForItemWithDefinition(URockItemDefinition* ItemDef);
 
 	// Section
-	static FRockInventoryQuery ForSectionWithTag(FGameplayTag SectionTag);
+	static FRockInventoryQuery ForSectionWithSectionTag(FGameplayTag SectionTag);
+	static FRockInventoryQuery ForSectionWithMetaTag(FGameplayTag MetaTag);
 
 	// Slot
-	static FRockInventoryQuery ForSlotLockedSlots();
-	static FRockInventoryQuery ForSlotUnlockedSlots();
-	
+	static FRockInventoryQuery ForSlotLocked();
+	static FRockInventoryQuery ForSlotUnlocked();
+
 	// "Which sections would accept this item?" respects the SectionFilter
 	static FRockInventoryQuery ForSectionsAcceptingItemType(const FGameplayTagContainer& ItemTags);
 
-	FRockInventoryQuery& AndSection(TFunction<bool(const FRockInventorySectionInfo*)> Pred);
-	FRockInventoryQuery& AndSlot(TFunction<bool(const FRockInventorySlotEntry*)> Pred);
-	FRockInventoryQuery& AndItem(TFunction<bool(const FRockItemStack*)> Pred);
+	FRockInventoryQuery& AndSection(TFunction<bool(const FRockInventorySectionInfo*)> Predicate);
+	FRockInventoryQuery& AndSlot(TFunction<bool(const FRockInventorySlotEntry*)> Predicate);
+	FRockInventoryQuery& AndItem(TFunction<bool(const FRockItemStack*)> Predicate);
 
 	template <typename T>
 	static FRockInventoryQuery ForItemsWithFragment();
@@ -75,6 +76,7 @@ template <typename T>
 FRockInventoryQuery FRockInventoryQuery::ForItemsWithFragment()
 {
 	static_assert(TIsDerivedFrom<T, FRockItemFragment>::IsDerived, "T must be a FRockItemFragment");
+	// Fallback alternative to DerivedFrom? std::is_base_of_v<FRockItemFragment, T> 
 
 	FRockInventoryQuery Q;
 	Q.ItemPredicate = [](const FRockItemStack* Stack)

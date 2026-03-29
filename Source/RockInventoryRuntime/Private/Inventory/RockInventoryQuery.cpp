@@ -35,17 +35,27 @@ FRockInventoryQuery FRockInventoryQuery::ForItemWithDefinition(URockItemDefiniti
 	return Query;
 }
 
-FRockInventoryQuery FRockInventoryQuery::ForSectionWithTag(FGameplayTag SectionTag)
+FRockInventoryQuery FRockInventoryQuery::ForSectionWithSectionTag(FGameplayTag SectionTag)
 {
 	FRockInventoryQuery Query;
 	Query.SectionPredicate = [SectionTag](const FRockInventorySectionInfo* Section)
 	{
-		return Section->GetTags().HasTag(SectionTag);
+		return Section->GetSectionTag() == SectionTag;
 	};
 	return Query;
 }
 
-FRockInventoryQuery FRockInventoryQuery::ForSlotLockedSlots()
+FRockInventoryQuery FRockInventoryQuery::ForSectionWithMetaTag(FGameplayTag MetaTag)
+{
+	FRockInventoryQuery Query;
+	Query.SectionPredicate = [MetaTag](const FRockInventorySectionInfo* Section)
+	{
+		return Section->GetMetaTags().HasTag(MetaTag);
+	};
+	return Query;
+}
+
+FRockInventoryQuery FRockInventoryQuery::ForSlotLocked()
 {
 	FRockInventoryQuery Query;
 	Query.SlotPredicate = [](const FRockInventorySlotEntry* Slot)
@@ -55,7 +65,7 @@ FRockInventoryQuery FRockInventoryQuery::ForSlotLockedSlots()
 	return Query;
 }
 
-FRockInventoryQuery FRockInventoryQuery::ForSlotUnlockedSlots()
+FRockInventoryQuery FRockInventoryQuery::ForSlotUnlocked()
 {
 	FRockInventoryQuery Query;
 	Query.SlotPredicate = [](const FRockInventorySlotEntry* Slot)
@@ -76,53 +86,53 @@ FRockInventoryQuery FRockInventoryQuery::ForSectionsAcceptingItemType(const FGam
 	return Query;
 }
 
-FRockInventoryQuery& FRockInventoryQuery::AndSection(TFunction<bool(const FRockInventorySectionInfo*)> Pred)
+FRockInventoryQuery& FRockInventoryQuery::AndSection(TFunction<bool(const FRockInventorySectionInfo*)> Predicate)
 {
 	if (SectionPredicate)
 	{
-		auto Existing = MoveTemp(SectionPredicate);
-		SectionPredicate = [Existing, Pred](const FRockInventorySectionInfo* S)
+		auto ExistingPred = MoveTemp(SectionPredicate);
+		SectionPredicate = [Existing = MoveTemp(ExistingPred), Pred=MoveTemp(Predicate)](const FRockInventorySectionInfo* S)
 		{
 			return Existing(S) && Pred(S);
 		};
 	}
 	else
 	{
-		SectionPredicate = MoveTemp(Pred);
+		SectionPredicate = MoveTemp(Predicate);
 	}
 	return *this;
 }
 
-FRockInventoryQuery& FRockInventoryQuery::AndSlot(TFunction<bool(const FRockInventorySlotEntry*)> Pred)
+FRockInventoryQuery& FRockInventoryQuery::AndSlot(TFunction<bool(const FRockInventorySlotEntry*)> Predicate)
 {
 	if (SlotPredicate)
 	{
-		auto Existing = MoveTemp(SlotPredicate);
-		SlotPredicate = [Existing, Pred](const FRockInventorySlotEntry* S)
+		auto ExistingPred = MoveTemp(SlotPredicate);
+		SlotPredicate = [Existing = MoveTemp(ExistingPred), Pred=MoveTemp(Predicate)](const FRockInventorySlotEntry* S)
 		{
 			return Existing(S) && Pred(S);
 		};
 	}
 	else
 	{
-		SlotPredicate = MoveTemp(Pred);
+		SlotPredicate = MoveTemp(Predicate);
 	}
 	return *this;
 }
 
-FRockInventoryQuery& FRockInventoryQuery::AndItem(TFunction<bool(const FRockItemStack*)> Pred)
+FRockInventoryQuery& FRockInventoryQuery::AndItem(TFunction<bool(const FRockItemStack*)> Predicate)
 {
 	if (ItemPredicate)
 	{
-		auto Existing = MoveTemp(ItemPredicate);
-		ItemPredicate = [Existing, Pred](const FRockItemStack* I)
+		auto ExistingPred = MoveTemp(ItemPredicate);
+		ItemPredicate = [Existing = MoveTemp(ExistingPred), Pred=MoveTemp(Predicate)](const FRockItemStack* I)
 		{
 			return Existing(I) && Pred(I);
 		};
 	}
 	else
 	{
-		ItemPredicate = MoveTemp(Pred);
+		ItemPredicate = MoveTemp(Predicate);
 	}
 	return *this;
 }

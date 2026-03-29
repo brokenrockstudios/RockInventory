@@ -6,10 +6,17 @@
 #include "RockInventoryLogging.h"
 #include "Engine/AssetManager.h"
 #include "Misc/RockInventoryDeveloperSettings.h"
+#include "StructUtils/InstancedStruct.h"
+#include "UObject/AssetRegistryTagsContext.h"
 
-const TArray<FRockItemFragmentInstance>& URockItemDefinition::GetAllFragments() const
+const TArray<FInstancedStruct>& URockItemDefinition::GetAllFragments() const
 {
 	return Fragments;
+}
+
+const FGameplayTagContainer& URockItemDefinition::GetAllTags() const
+{
+	return CachedAllTags;
 }
 
 FPrimaryAssetId URockItemDefinition::GetPrimaryAssetId() const
@@ -78,6 +85,31 @@ void URockItemDefinition::RebuildStatTags()
 	}
 }
 
+void URockItemDefinition::RebuildCachedTags()
+{
+	CachedAllTags.Reset();;
+	CachedAllTags.AppendTags(ItemType);
+	CachedAllTags.AppendTags(ItemTags);
+}
+
+void URockItemDefinition::GetAssetRegistryTags(FAssetRegistryTagsContext Context) const
+{
+	Super::GetAssetRegistryTags(Context);
+
+	Context.AddTag(FAssetRegistryTag(FPrimaryAssetId::PrimaryAssetDisplayNameTag, ItemId.ToString(), FAssetRegistryTag::TT_Alphabetical));
+
+	// The following code is still experimental and heavily WIP
+	TSet<FName> Tokens;
+	for (const FInstancedStruct& FragmentInstance : GetAllFragments())
+	{
+		if (const FRockItemFragment* Fragment = FragmentInstance.GetPtr<FRockItemFragment>())
+		{
+			Fragment->GetAssetRegistryTags(Context);
+		}
+	}
+}
+
+
 void URockItemDefinition::SetDefaultItemId()
 {
 	if (ItemId == NAME_None)
@@ -90,17 +122,34 @@ void URockItemDefinition::SetDefaultItemId()
 void URockItemDefinition::PostLoad()
 {
 	Super::PostLoad();
-	RebuildStatTags();
 	SetDefaultItemId();
+
+	RebuildStatTags();
+	RebuildCachedTags();
 }
 
+#if WITH_EDITOR
 void URockItemDefinition::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
+	const FName MemberPropertyName = PropertyChangedEvent.GetMemberPropertyName();
+
+
 	static const FName StatTagDefaultsName = GET_MEMBER_NAME_CHECKED(URockItemDefinition, StatTagDefaults);
-	if (PropertyChangedEvent.GetPropertyName() == StatTagDefaultsName ||
-		PropertyChangedEvent.GetMemberPropertyName() == StatTagDefaultsName)
+	if (PropertyName == StatTagDefaultsName ||
+		MemberPropertyName == StatTagDefaultsName)
 	{
 		RebuildStatTags();
 	}
+
+	static const FName ItemTypeName = GET_MEMBER_NAME_CHECKED(URockItemDefinition, ItemType);
+	static const FName ItemTagsName = GET_MEMBER_NAME_CHECKED(URockItemDefinition, ItemTags);
+	if (PropertyName == ItemTypeName || MemberPropertyName == ItemTypeName ||
+		PropertyName == ItemTagsName || MemberPropertyName == ItemTagsName)
+	{
+		RebuildCachedTags();
+	}
 }
+#endif

@@ -7,6 +7,7 @@
 #include "GameplayTagStack.h"
 #include "RockItemFragment.h"
 #include "Engine/DataAsset.h"
+#include "StructUtils/InstancedStruct.h"
 #include "RockItemDefinition.generated.h"
 
 class UGameplayAbility;
@@ -24,7 +25,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
 	TSoftObjectPtr<UTexture2D> Icon;
-	
+
 	// TBD
 	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
 	// FVector2D IconSize = FVector2D(44.0f, 44.0f);
@@ -70,37 +71,71 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	/// Information
 	// Examples
-	// "A wooden shield"    | ItemType { Item.Type.Armor, Item.Type.Offhand"}		Subtype { Item.Subtype.Armor.Shield }			Tags { Tag.Equippable, Tag.Blocking, Tag.Wooden, Tag.OneHanded }
-	// "Cooked Meat"        | ItemType { Item.Type.Consumable, Item.Type.Food }		Subtype { Item.Subtype.Consumable.Food.Meat }	Tags { Tag.HealsHP, Tag.Cooked, Tag.CanSpoil }
-	// "Scroll of Fireball" | ItemType { Item.Type.Consumable, Item.Type.Magic }	SubType { Item.SubType.Magic.Scroll }			Tags: { Tag.Property.SingleUse, Tag.Effect.Damage.Fire.AreaOfEffect, Tag.Character.Class.CanBeUsedBy.Mage }
+	// "M4 Rifle"           | ItemType { Item.Type.Weapon, Item.Type.Ranged }						Tags { Tag.Equippable, Tag.TwoHanded, Tag.Automatic, Tag.UsesAmmo.Rifle.556, Tag.Attachable, Tag.Suppressable }
+	// "A wooden shield"    | ItemType { Item.Type.Armor, Item.Type.Offhand, Item.Type.Shield }		Tags { Tag.Equippable, Tag.Blocking, Tag.Wooden, Tag.OneHanded }
+	// "Aviator Sunglasses" | ItemType { Item.Type.Armor, Item.Type.Accessory }						Tags { Tag.Equippable, Tag.Slot.Face, Tag.Slot.Eyes }
+	// "Baseball Cap"       | ItemType { Item.Type.Cosmetic }										Tags { Tag.Equippable, Tag.Slot.Head }
+	// "Leather Gloves"     | ItemType { Item.Type.Armor, Item.Type.Cosmetic }						Tags { Tag.Equippable, Tag.Slot.Hands }
+	// "9mm Magazine"       | ItemType { Item.Type.Ammo, Item.Type.Consumable }						Tags { Tag.Ammo.Caliber.9mm, Tag.Stackable, Tag.FitsWeapon.Pistol }
+	// "Cooked Meat"        | ItemType { Item.Type.Consumable, Item.Type.Food }						Tags { Tag.HealsHP, Tag.Cooked, Tag.CanSpoil }
+	// "Scroll of Fireball" | ItemType { Item.Type.Consumable, Item.Type.Magic, Item.Type.Scroll }	Tags { Tag.Property.SingleUse, Tag.Effect.Damage.Fire.AreaOfEffect, Tag.Character.Class.CanBeUsedBy.Mage }
 
-	// Note: In case of an 'animation' or needing an explicit type, use the ItemSubType as a 'singular choice' when needed.
-	// Otherwise the ItemType and Tags should be sufficient to describe the item most of the time.
-	// Probably best to avoid needing to use ItemSubType, but it is there for flexibility.
+	// Vendor: I only sell Item.Type.Weapon, I only Buy Item.Type.Food
+	// AI looting: Prioritize Ammo and Weapons
+	// Quest requests 2 Item.Type.Ore (instead of providing a list of all 'ores')
+	// Slot can hold ANY(Item.Type.Weapon, Item.Type.Shield, Item.Type.Consumable)
+	// Slot can hold ALL(Item.Type.Armor AND NOT Item.Type.Cosmetic)
+	// Slot requires ALL(Item.Type.Cosmetic AND Item.Tag.Slot.Eyes)
+	// Slot requires ALL(Item.Type.Cosmetic AND Item.Tag.Slot.Torso.Outer)
 
-	// It is encouraged to only use certain tags in certain containers (e.g. Item.Type.* in ItemType, Tags.* in Tag, and Item.SubType.* in ItemSubType).
-	// Because if you start using Tag in ItemType, it could lead to inconsistencies.
-	// Consider limiting to meta=(Categories="Item.Type")
+	// Other potential ItemTag ideas
+	// Tag.Binding.NoTrade, Tag.Binding.NoPortal, Tag.Binding.DeathDrop, Tag.Binding.ServerLocked etc. A system just checks "does this item have Tag.Binding.NoPortal
+	// That aren't really fragment worthy but might be mostly boolean ish in nature
+	// Alternative to Fragments 
+	//  * Tag.Material.Wood,Metal,Steel instead of Fragment material
+	//  * Tag.Elemental.Fire (should probably live in a Fragment_DamageModifier, damagetype?
+	//  * TwoHanded vs. OneHanded
+
+	// ItemType answers "what kind of thing is this?"
+	// Tags answer "what can this thing do / where can it go?"
+
+	// For SectionInfo SectionFilters
+
+	// Wrong approach - slot filter on Subtype
+	// SectionFilter: Item.Subtype.Weapon.Firearm.Rifle
+	// Now you need a separate slot definition for every weapon subcategory
+
+	// Right approach - slot filter on ItemType or behavioral tag
+	// Primary weapon slot SectionFilter: Item.Type.Weapon && Item.Tag.TwoHanded
+	// Offhand slot SectionFilter:        Item.Type.Offhand || (Item.Type.Weapon && Item.Tag.OneHanded)
+	// Rifle-only slot SectionFilter:     Item.Type.Weapon && Item.Tag.Firearm.Rifle
+	// Head slot SectionFilter:           Item.Type.Armor && Item.Tag.Slot.Head
+
+	// Slot SectionFilters:
+	// Hands slot:   Item.Type.Armor AND Tag.Slot.Hands                        -> accepts gloves, gauntlets, etc.
+	// Head slot:    Item.Type.Armor AND Tag.Slot.Head                         -> accepts cap, helmet, etc.
+	// Eyes slot:    Item.Type.Armor AND Tag.Slot.Eyes                         -> accepts only eyewear
+	// Face slot:    (Item.Type.Armor OR Item.Type.Cosmetic) AND Tag.Slot.Face -> accepts glasses, mask, etc.
+
+	// Note: In case of an 'animation' or needing an explicit type, consider a specific Item.Tag choice
 
 	// An item can be 'multiple types' (e.g. a 'battery' can be a 'tool' and a 'battery')
 	// Item.Type.Weapon, Item.Type.Tool, Item.Type.Consumable
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(Categories="Item.Type,Item.Subtype"))
 	FGameplayTagContainer ItemType;
-	// Though this could be a subtag of ItemType, it is separated to allow for more flexibility.
-	// Item.SubType.Sword? Feels redundant to above? Perhaps have better usage?  
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
-	FGameplayTag ItemSubType;
+
 	// General purpose tags that can be used for filtering, sorting, or categorization.
-	// Item.Tag.Quality.Magical, Item.Tag.Elemental.Fire, Item.Tag.Set.DragonSlayer, Item.Tag.Binding.SoulBound, Item.Tag.Material.Steel
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	// Item.Tag.Quality.Premium, Item.Tag.Elemental.Fire, Item.Tag.Slot.Face, Item.Tag.DestroyOnDeath, Item.Tag.Material.Steel
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(Categories="Item.Tag"))
 	FGameplayTagContainer ItemTags;
 
 	// Item rarity, e.g. Item.Rarity.Common, Item.Rarity.Uncommon, Item.Rarity.Rare, Item.Rarity.Epic, Item.Rarity.Legendary
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(Categories="Item.Rarity"))
 	FGameplayTag ItemRarity;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	float Weight = 0.0f;
+
 	// Not necessarily a 'price', but perhaps some internal value for sorting, crafting, or other purposes.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	float ItemValue = 0.0f;
@@ -109,7 +144,12 @@ private:
 	// Note: These are for unchanging values. If you need dynamic values use the StatTags in RuntimeItemInstance.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Stats", meta = (TitleProperty = "Tag", DisplayName = "Stat Tags"))
 	TArray<FGameplayTagStack> StatTagDefaults;
-public:	
+
+	// A cache of ItemType, Tags, Subtype
+	UPROPERTY(Transient) // not EditAnywhere, derived
+	FGameplayTagContainer CachedAllTags;
+
+public:
 	// The main StatTags that should be queried. Readonly
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Stats", meta = (DisplayName = "Stat Tags (Runtime)"))
 	FGameplayTagStackContainer StatTags;
@@ -124,10 +164,11 @@ public:
 	TSoftObjectPtr<USkeletalMesh> ItemSkeletalMesh;
 
 	// When this item is spawned in the world, it will spawn an actor of this class.
-	// This is useful if you wanted to place a 'live version' of the item (e.g. a campfire you can interact with)
+	// This is useful if you want to place a 'live version' of the item (e.g. a campfire you can interact with).
+	// Though maybe you'd rather leverage this for something different and have a ItemFragment_Placeable or something
 	UPROPERTY(EditDefaultsOnly, Category = "Item|World")
 	TSoftClassPtr<AActor> ActorClass;
-	
+
 	//////////////////////////////////////////////////////////////////////////
 	/// Advanced
 	// Used to identify the purpose or functionality of the item's CustomValue1.
@@ -139,30 +180,34 @@ public:
 	FGameplayTag CustomValue2Tag;
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	bool bRequiresRuntimeInstance = false;
-	
+
 	// If this item requires a runtime instance, this is the class that will be used to create it.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass;
 
 	// Runtime Instances nested inventory.
-	// e.g. If this Item was a Backpack, this should be set to the Backpack's InventoryConfig.
+	// e.g., If this Item was a Backpack, this should be set to the Backpack's InventoryConfig.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSoftObjectPtr<URockInventoryConfig> InventoryConfig = nullptr;
-	
+
 	///////////////////////////////////////////////////////////////////////////
 	/// Fragments
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100))
-	TArray<FRockItemFragmentInstance> Fragments;
+
+	/** Item Fragments */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100, BaseStruct = "/Script/RockInventoryRuntime.RockItemFragment"))
+	TArray<FInstancedStruct> Fragments;
 
 	template <typename T> requires std::derived_from<T, FRockItemFragment>
-	const T* GetFragmentOfType() const;
+	const T* FindFragment() const;
+
 	template <typename T> requires std::derived_from<T, FRockItemFragment>
 	bool HasFragment() const;
 
-	const TArray<FRockItemFragmentInstance>& GetAllFragments() const;
-	
-	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+	const TArray<FInstancedStruct>& GetAllFragments() const;
 
+	const FGameplayTagContainer& GetAllTags() const;
+
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 
 	// If creating a 'runtime instance definition', we'd need to manually register it with the asset manager e.g. Experimental 
 	void RegisterItemDefinition(const URockItemDefinition* NewItem);
@@ -170,39 +215,37 @@ public:
 
 private:
 	virtual void PostLoad() override;
-	
+
 	// If ItemID is not set, we can default it to the asset name. This is for ease of use, but it is still recommended to set it explicitly.
 	void SetDefaultItemId();
-	
+
 	// This is used to rebuild the StatTags from the StatTagDefaults. This is necessary because the StatTags are meant to be runtime values, while the 
 	// StatTagDefaults are meant to be design time values. This allows for the StatTags to be modified at runtime without affecting the defaults. This is also 
 	// used to rebuild the StatTags when the item definition is loaded or when a property is changed in the editor. This ensures that the StatTags are always 
 	// up to date with the StatTagDefaults. All of this is simply because FGameplayTagStackContainer doesn't allow setting default values in the constructor.
 	// If it did, we could simply set the StatTags and avoid all of this. But since it doesn't, we need to manually copy the values over.
 	void RebuildStatTags();
-	
+	void RebuildCachedTags();
+
+	virtual void GetAssetRegistryTags(FAssetRegistryTagsContext Context) const override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 };
 
 template <typename T> requires std::derived_from<T, FRockItemFragment>
-const T* URockItemDefinition::GetFragmentOfType() const
+const T* URockItemDefinition::FindFragment() const
 {
-	for (const FRockItemFragmentInstance& Instance : Fragments)
+	for (const FInstancedStruct& Fragment : GetAllFragments())
 	{
-		// Check if the fragment is of the requested type
-		if (const T* FragmentPtr = Instance.Fragment.GetPtr<T>())
-		{
+		if (const T* FragmentPtr = Fragment.GetPtr<T>())
 			return FragmentPtr;
-		}
 	}
-
 	return nullptr;
 }
 
 template <typename T> requires std::derived_from<T, FRockItemFragment>
 bool URockItemDefinition::HasFragment() const
 {
-	return GetFragmentOfType<T>() != nullptr;
+	return FindFragment<T>() != nullptr;
 }
