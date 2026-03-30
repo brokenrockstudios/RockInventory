@@ -268,14 +268,14 @@ bool URockInventoryLibrary::MoveItem(
 
 			// Split the source item stack based on the move amount
 			auto ItemDef = ValidatedSourceItem.GetDefinition();
-			
+
 			// We currently aren't supporting partial moves of items that require runtime instances.
 			if (ItemDef->bRequiresRuntimeInstance)
 			{
 				UE_LOG(LogRockInventory, Warning, TEXT("Partial moves of items that require runtime instances are not supported"));
 				return false;
 			}
-			
+
 			const FRockItemStack ItemToMove = SplitItemStackAtLocation(SourceInventory, SourceSlotHandle, MoveAmount);
 			if (!ItemToMove.IsValid())
 			{
@@ -477,7 +477,7 @@ FRockItemStack URockInventoryLibrary::GetItemByItemHandle(URockInventory* Invent
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("GetItemAtLocation: Invalid Inventory"));
 		return FRockItemStack::Invalid();
-	} 
+	}
 	return Inventory->GetItemByHandle(ItemHandle);
 }
 
@@ -515,7 +515,7 @@ bool URockInventoryLibrary::CanItemBePlacedInSection(
 	{
 		return true;
 	}
-	
+
 	return SectionInfo.GetSectionFilter().Matches(ItemStack.GetDefinition()->GetAllTags());
 }
 
@@ -650,7 +650,7 @@ TArray<FString> URockInventoryLibrary::GetInventoryContentsDebug(const URockInve
 
 		const FRockItemStack& ItemStack = Inventory->GetItemByHandle(Slot.ItemHandle);
 		auto SectionInfo = Inventory->GetSectionInfoBySlotHandle(Slot.SlotHandle);
-		
+
 		FString LineItem = FString::Printf(
 			TEXT("Section:[%s] SlotIdx:[%d]; localIndex:[%d] ItemIdx:[%s], Item:[%s] Count:[%d]"),
 			*SectionInfo.GetSectionTag().ToString(),
@@ -811,6 +811,20 @@ TArray<FRockInventorySlotHandle> URockInventoryLibrary::FindAllSlotsInSection(UR
 		Slots.Add(Slot.SlotHandle);
 	}
 	return Slots;
+}
+
+FRockInventorySlotHandle URockInventoryLibrary::FindFirstSlotInSectionWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag)
+{
+	if (!Inventory) { return FRockInventorySlotHandle::Invalid(); }
+
+	// We use the Core Query system to build the specific search
+	FRockInventoryQuery Q = FRockInventoryQuery::ForSectionWithMetaTag(SectionMetaTag);
+	if (const FRockInventorySlotEntry* Slot = Inventory->FindFirstSlot(Q))
+	{
+		return Slot->SlotHandle; // Return the handle (safe for BP/external use)
+	}
+
+	return FRockInventorySlotHandle::Invalid();
 }
 
 TArray<FRockInventorySlotHandle> URockInventoryLibrary::FindAllSlotsInSectionsWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag)

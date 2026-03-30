@@ -125,11 +125,12 @@ public:
 	// The header section tag
 	UFUNCTION(BlueprintCallable)
 	static FRockInventorySlotHandle FindFirstSlotInSection(URockInventory* Inventory, FGameplayTag SectionTag);
-	
 	UFUNCTION(BlueprintCallable)
 	static TArray<FRockInventorySlotHandle> FindAllSlotsInSection(URockInventory* Inventory, FGameplayTag SectionTag);
-	
+
 	// The internal meta-tags
+	UFUNCTION(BlueprintCallable)
+	static FRockInventorySlotHandle FindFirstSlotInSectionWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag);
 	UFUNCTION(BlueprintCallable)
 	static TArray<FRockInventorySlotHandle> FindAllSlotsInSectionsWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag);
 };
