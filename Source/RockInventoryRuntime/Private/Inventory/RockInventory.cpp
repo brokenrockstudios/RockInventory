@@ -273,9 +273,13 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 		const bool bPropertiesChanged = ChangedSlot.Orientation != InSlotEntry.Orientation || ChangedSlot.bIsLocked != InSlotEntry.bIsLocked;
 		// Does the SlotHandle ever actually change? As far as I can tell it doesn't after initialization.
 
-		if (bItemChanged || bPropertiesChanged)
+		if (bItemChanged)
 		{
 			ChangeType = ERockSlotChangeType::ItemChanged;
+		}
+		else if (bPropertiesChanged)
+		{
+			ChangeType = ERockSlotChangeType::PropertiesChanged;
 		}
 	}
 
@@ -284,12 +288,15 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 		// SlotHandle shouldn't ever change. It only is a way to reference itself.
 		//ChangedSlot.SlotHandle = InSlotEntry.SlotHandle;
 
+		const FRockItemStackHandle PreviousItemHandle = ChangedSlot.LastKnownItemHandle;
 		ChangedSlot.ItemHandle = InSlotEntry.ItemHandle;
+		ChangedSlot.LastKnownItemHandle = InSlotEntry.ItemHandle;
 		ChangedSlot.Orientation = InSlotEntry.Orientation;
 		ChangedSlot.bIsLocked = InSlotEntry.bIsLocked;
 		SlotData.MarkItemDirty(ChangedSlot);
-		// TODO: Refactor to include ChangeType
-		BroadcastSlotChanged(InSlotHandle, ChangeType);
+
+		FRockSlotDelta slotDelta(this, InSlotHandle, ChangeType, PreviousItemHandle);
+		BroadcastSlotChanged(slotDelta);
 	}
 }
 
@@ -403,9 +410,9 @@ void URockInventory::UnregisterReplicationWithOwner()
 	}
 }
 
-void URockInventory::BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle, ERockSlotChangeType ChangeType)
+void URockInventory::BroadcastSlotChanged(const FRockSlotDelta& SlotDelta)
 {
-	OnSlotChanged.Broadcast(FRockSlotDelta(this, SlotHandle, ChangeType));
+	OnSlotChanged.Broadcast(SlotDelta);
 }
 
 void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle, ERockItemChangeType ChangeType)

@@ -11,6 +11,7 @@
 #include "RockSlotHandle.h"
 #include "Events/RockItemDelta.h"
 #include "Events/RockSlotChangeType.h"
+#include "Events/RockSlotDelta.h"
 #include "Item/RockItemStack.h"
 #include "UObject/Object.h"
 
@@ -144,7 +145,7 @@ public:
 	void UnregisterReplicationWithOwner();
 
 	/** Broadcast the inventory changed event */
-	void BroadcastSlotChanged(const FRockInventorySlotHandle& SlotHandle, ERockSlotChangeType ChangeType);
+	void BroadcastSlotChanged(const FRockSlotDelta& SlotDelta);
 	void BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle, ERockItemChangeType ChangeType);
 
 	//////////////////////////////////////////////////////////////////////////

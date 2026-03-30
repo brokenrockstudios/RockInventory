@@ -4,7 +4,7 @@
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventory.h"
 
-FRockInventorySlotEntry::FRockInventorySlotEntry():
+FRockInventorySlotEntry::FRockInventorySlotEntry() :
 	ItemHandle(),
 	SlotHandle(),
 	Orientation(ERockItemOrientation::Horizontal),
@@ -78,15 +78,17 @@ void FRockInventorySlotContainer::PostReplicatedAdd(const TArrayView<int32> Adde
 		if (AllSlots.IsValidIndex(Index))
 		{
 			FRockInventorySlotEntry& Slot = AllSlots[Index];
-			
+
+			const FRockItemStackHandle PreviousItemHandle = Slot.LastKnownItemHandle;
 			// Initialize a tracking handle so PostReplicatedChange can detect transitions
 			Slot.LastKnownItemHandle = Slot.ItemHandle;
 			auto isItemValid = OwnerInventory->GetItemByHandle(Slot.LastKnownItemHandle).IsValid();
-			ERockSlotChangeType ChangeType = isItemValid ?  ERockSlotChangeType::ItemAdded : ERockSlotChangeType::None;
-			
+			ERockSlotChangeType ChangeType = isItemValid ? ERockSlotChangeType::ItemAdded : ERockSlotChangeType::None;
+
 			if (ChangeType != ERockSlotChangeType::None)
 			{
-				OwnerInventory->BroadcastSlotChanged(Slot.SlotHandle, ChangeType);
+				FRockSlotDelta SlotDelta(OwnerInventory, AllSlots[Index].SlotHandle, ChangeType, PreviousItemHandle);
+				OwnerInventory->BroadcastSlotChanged(SlotDelta);
 			}
 		}
 	}
@@ -109,7 +111,8 @@ void FRockInventorySlotContainer::PreReplicatedRemove(const TArrayView<int32> Re
 			// before slots are removed, but replication ordering isn't always guaranteed.
 			if (OwnerInventory->GetItemByHandle(Slot.ItemHandle).IsValid())
 			{
-				OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle, ERockSlotChangeType::ItemRemoved);
+				FRockSlotDelta SlotDelta(OwnerInventory, AllSlots[Index].SlotHandle, ERockSlotChangeType::ItemRemoved, Slot.LastKnownItemHandle);
+				OwnerInventory->BroadcastSlotChanged(SlotDelta);
 			}
 		}
 	}
@@ -146,9 +149,12 @@ void FRockInventorySlotContainer::PostReplicatedChange(const TArrayView<int32> C
 				// Something has changed, and if it wasn't an item, it was anything else (orientation, lock state, etc.)
 				ChangeType = ERockSlotChangeType::PropertiesChanged;
 			}
+			const FRockItemStackHandle PreviousItemHandle = Slot.LastKnownItemHandle;
 			// Update tracking for next change
 			Slot.LastKnownItemHandle = Slot.ItemHandle;
-			OwnerInventory->BroadcastSlotChanged(AllSlots[Index].SlotHandle, ChangeType);
+
+			FRockSlotDelta SlotDelta(OwnerInventory, AllSlots[Index].SlotHandle, ChangeType, PreviousItemHandle);
+			OwnerInventory->BroadcastSlotChanged(SlotDelta);
 		}
 	}
 }

@@ -26,6 +26,9 @@ struct ROCKINVENTORYRUNTIME_API FRockSlotDelta
 
 	UPROPERTY()
 	ERockSlotChangeType ChangeType = ERockSlotChangeType::None;
+
+	// May be invalid if there wasn't a previous item handle.
+	// Get the current item handle via direct lookup. 
+	UPROPERTY()
+	FRockItemStackHandle PreviousItemHandle;
 };
-
-
