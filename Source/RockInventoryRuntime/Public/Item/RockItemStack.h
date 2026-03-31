@@ -38,6 +38,7 @@ private:
 	friend class URockInventoryLibrary;
 	friend class ARockInventoryWorldItemBase; // I don't like this being here, redesign to not need?
 	friend struct FRockItemFragment_SetStats;
+	friend struct FRockInventoryItemContainer;
 	
 	/** Unique identifier for the item */
 	UPROPERTY(EditAnywhere)

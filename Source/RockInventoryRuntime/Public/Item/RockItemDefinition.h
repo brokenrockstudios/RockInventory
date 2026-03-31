@@ -178,8 +178,6 @@ public:
 	FGameplayTag CustomValue1Tag;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta = (DisplayName = "Custom Value 2 Tag"))
 	FGameplayTag CustomValue2Tag;
-	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
-	bool bRequiresRuntimeInstance = false;
 
 	// If this item requires a runtime instance, this is the class that will be used to create it.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")

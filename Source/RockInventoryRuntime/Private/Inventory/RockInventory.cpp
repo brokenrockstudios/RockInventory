@@ -713,23 +713,23 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		NewItemStack.bInitialized = true;
 
 		// TODO: Would we want to do this for 'splits' and not necessarily only once?
-		// Right now I think we might disable splits for anything with bRequiresRuntimeInstance
-		if (NewItemStack.GetDefinition()->bRequiresRuntimeInstance)
+		// Right now I think we might disable splits for anything with a RuntimeInstanceClass
+		
+		TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass = NewItemStack.GetDefinition()->RuntimeInstanceClass;
+		if (RuntimeInstanceClass.IsValid())
 		{
-			TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass = NewItemStack.GetDefinition()->RuntimeInstanceClass;
-			if (RuntimeInstanceClass.IsValid())
-			{
-				// TODO: This will synchronously load the class if it isn't already, which could cause hitches. 
-				// We should consider preloading or some other strategy if that becomes an issue.
-				// At the moment we have no BP RuntimeInstances so this is purely theoretical.
-				// As there is nothing to load for C++ defined RuntimeInstances, this is purely a BP concern.
-				NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this, RuntimeInstanceClass.Get());
-			}
-			else
-			{
-				NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this);
-			}
+			// TODO: This will synchronously load the class if it isn't already, which could cause hitches. 
+			// We should consider preloading or some other strategy if that becomes an issue.
+			// At the moment we have no BP RuntimeInstances so this is purely theoretical.
+			// As there is nothing to load for C++ defined RuntimeInstances, this is purely a BP concern.
+			NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this, RuntimeInstanceClass.Get());
 			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
+			NewItemStack.RuntimeInstance->ItemHandle = NewItemStack.ItemHandle;
+			NewItemStack.RuntimeInstance->OwningInventory = this;
+			// Anytime the item moves, we'd need to optionally update this?
+			// Or should we just not maintain it?
+			//NewItemStack.RuntimeInstance->SlotHandle = 
+			
 		}
 		for (const FInstancedStruct& fragment : NewItemStack.GetDefinition()->GetAllFragments())
 		{

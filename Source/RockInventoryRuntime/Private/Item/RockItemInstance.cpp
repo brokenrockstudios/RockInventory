@@ -13,11 +13,15 @@ void URockItemInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(URockItemInstance, OwningInventory);
-	DOREPLIFETIME(URockItemInstance, SlotHandle);
 	DOREPLIFETIME(URockItemInstance, ItemHandle);
-	DOREPLIFETIME(URockItemInstance, CachedDefinition);
 	DOREPLIFETIME(URockItemInstance, StatTags);
 	DOREPLIFETIME(URockItemInstance, NestedInventory);
+	
+	// Do we want to replicate the CachedDefinition?
+	// When the ItemInstance is replicated on ItemStack, we can probably set it locally there?
+	
+	// DOREPLIFETIME(URockItemInstance, SlotHandle);
+	// DOREPLIFETIME(URockItemInstance, CachedDefinition);
 }
 
 
@@ -168,23 +172,23 @@ URockInventory* URockItemInstance::GetOwningInventory() const
 	return OwningInventory.Get();
 }
 
-void URockItemInstance::SetSlotHandle(FRockInventorySlotHandle InSlotHandle)
-{
-	SlotHandle = InSlotHandle;
-}
+// void URockItemInstance::SetSlotHandle(FRockInventorySlotHandle InSlotHandle)
+// {
+// 	SlotHandle = InSlotHandle;
+// }
 
-FRockInventorySlotEntry URockItemInstance::GetItemSlot() const
-{
-	if (const URockInventory* Inventory = GetOwningInventory())
-	{
-		return Inventory->GetSlotByHandle(GetSlotHandle());
-	}
-	return FRockInventorySlotEntry();
-}
+// FRockInventorySlotEntry URockItemInstance::GetItemSlot() const
+// {
+// 	if (const URockInventory* Inventory = GetOwningInventory())
+// 	{
+// 		return Inventory->GetSlotByHandle(GetSlotHandle());
+// 	}
+// 	return FRockInventorySlotEntry();
+// }
 
 FRockItemStack URockItemInstance::GetItemStack() const
 {
-	return GetOwningInventory()->GetItemBySlotHandle(GetSlotHandle());
+	return GetOwningInventory()->GetItemByHandle(ItemHandle);
 }
 
 

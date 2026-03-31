@@ -18,7 +18,7 @@ class URockInventory;
 /**
  * Base class for all item instances in the Rock Inventory system.
  * Item instances represent runtime objects that can have state and behavior associated with them.
- * They are created when an item definition requires runtime instantiation (bRequiresRuntimeInstance = true).
+ * They are created when an item definition requires runtime instantiation.
  * 
  * Item instances maintain a reference to their owning inventory and slot, allowing them to access
  * and modify their associated item stack data.
@@ -32,8 +32,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetDefinition(const TObjectPtr<URockItemDefinition>& object);
 
-	///////////////////////////////////////////////////////////////////////////
-	// Core Properties~
+	// -- Core Properties ----------------------------------------------------
 
 	/** The inventory that currently owns this item instance */
 	// Note: This might be null, in the case of a 'world item' that is not currently in an inventory.
@@ -42,15 +41,14 @@ public:
 	// TODO: Replicated Owner since UObject's Owner doesn't replicate 
 
 	/** Handle to the slot in the inventory where this item instance is located */
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
-	FRockInventorySlotHandle SlotHandle;
+	// Not currently functional. Might end up removing it? Unless we have a super compelling reason to keep it
+	// UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
+	//FRockInventorySlotHandle SlotHandle;
 
+	// --- Replicated ---
+	/** Item Handle */
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
 	FRockItemStackHandle ItemHandle;
-
-	/** Cached reference to the item definition for quick access */
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
-	TObjectPtr<URockItemDefinition> CachedDefinition = nullptr;
 
 	/** Gameplay tags associated with this item instance */
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
@@ -63,6 +61,10 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	TObjectPtr<URockInventory> NestedInventory = nullptr;
 
+	// --- Not Replicated ---
+	/** Cached reference to the item definition for quick access */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
+	TObjectPtr<URockItemDefinition> CachedDefinition = nullptr;
 
 	// TODO: Add mutable fragments. 
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
@@ -70,7 +72,7 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////
 	// Core Functions
-	
+
 	/** Sets the owning inventory for this item instance */
 	void SetOwningInventory(URockInventory* InOwningInventory);
 	void RegisterReplicationWithOwner();
@@ -80,13 +82,13 @@ public:
 	URockInventory* GetOwningInventory() const;
 
 	/** Sets the slot handle for this item instance */
-	void SetSlotHandle(FRockInventorySlotHandle InSlotHandle);
+	// void SetSlotHandle(FRockInventorySlotHandle InSlotHandle);
 
 	/** Gets the slot handle for this item instance */
-	FRockInventorySlotHandle GetSlotHandle() const { return SlotHandle; }
+	// FRockInventorySlotHandle GetSlotHandle() const { return SlotHandle; }
 
 	/** Gets the inventory slot associated with this item instance */
-	FRockInventorySlotEntry GetItemSlot() const;
+	// FRockInventorySlotEntry GetItemSlot() const;
 
 	/** Gets the item stack associated with this item instance */
 	FRockItemStack GetItemStack() const;
@@ -94,7 +96,7 @@ public:
 	/** Gets the item definition for this item instance */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|Core")
 	const URockItemDefinition* GetItemDefinition() const;
-	
+
 	UFUNCTION(BlueprintCallable)
 	int32 GetStatTagCount(FGameplayTag Tag) const;
 
@@ -103,7 +105,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void RemoveStatTagStack(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks = false);
-	
+
 	UFUNCTION(BlueprintCallable)
 	void SetStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks = false);
 

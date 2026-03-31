@@ -231,6 +231,12 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 		}
 		else // Item is valid
 		{
+			// Refresh the Cached Definition on the instance if it exists.
+			if (CurrentItem.GetRuntimeInstance())
+			{
+				CurrentItem.RuntimeInstance->CachedDefinition = CurrentItem.GetDefinition();
+			}
+			
 			if (!bWasPreviouslyValid)
 			{
 				// Scenario: Slot was empty, now has an item.

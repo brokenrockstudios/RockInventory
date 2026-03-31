@@ -270,7 +270,7 @@ bool URockInventoryLibrary::MoveItem(
 			auto ItemDef = ValidatedSourceItem.GetDefinition();
 
 			// We currently aren't supporting partial moves of items that require runtime instances.
-			if (ItemDef->bRequiresRuntimeInstance)
+			if (!ItemDef->RuntimeInstanceClass.IsNull())
 			{
 				UE_LOG(LogRockInventory, Warning, TEXT("Partial moves of items that require runtime instances are not supported"));
 				return false;
