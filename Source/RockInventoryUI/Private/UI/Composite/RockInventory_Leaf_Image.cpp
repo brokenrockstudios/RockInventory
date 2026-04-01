@@ -15,12 +15,12 @@ URockInventory_Leaf_Image::URockInventory_Leaf_Image(const FObjectInitializer& O
 
 void URockInventory_Leaf_Image::SetImage(UTexture2D* Texture) const
 {
-	LazyImage_Icon->SetBrushFromTexture(Texture);
+	LazyImage_Icon->SetBrushFromTexture(Texture, true);
 }
 
 void URockInventory_Leaf_Image::SetImage(TSoftObjectPtr<UTexture2D> Texture) const
 {
-	LazyImage_Icon->SetBrushFromSoftTexture(Texture);
+	LazyImage_Icon->SetBrushFromSoftTexture(Texture, true);
 }
 
 void URockInventory_Leaf_Image::SetBoxSize(const FVector2D& Size) const

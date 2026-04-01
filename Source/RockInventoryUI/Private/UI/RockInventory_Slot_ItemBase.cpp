@@ -220,7 +220,7 @@ void URockInventory_Slot_ItemBase::SetIconData(const FRockItemUIData& InIconData
 	// If already loaded, use it immediately
 	if (IconData.Icon.IsValid())
 	{
-		ItemIcon->SetBrushFromTexture(IconData.Icon.Get());
+		ItemIcon->SetBrushFromTexture(IconData.Icon.Get(), true);
 		SetIsLoading(false);
 		return;
 	}
