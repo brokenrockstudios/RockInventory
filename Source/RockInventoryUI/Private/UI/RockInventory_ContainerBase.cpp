@@ -171,7 +171,7 @@ void URockInventory_ContainerBase::NativeOnMouseEnter(const FGeometry& InGeometr
 			URockInventory_HoverItem* HoverItemWidget = Cast<URockInventory_HoverItem>(subsystem->GetActiveVisual());
 			if (HoverItemWidget)
 			{
-				HoverItemWidget->SetTargetSize(TileSize, TabInfo.GetSlotSizePolicy());
+				// HoverItemWidget->SetTargetSize(TileSize, TabInfo.GetSlotSizePolicy());
 			}
 		}
 	}

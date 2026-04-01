@@ -61,7 +61,7 @@ private:
 	//ERockItemSizePolicy SizePolicy = ERockItemSizePolicy::RespectSize;
 	//FIntPoint GridSize = FIntPoint(1, 1);
 	// TODO: Do I want the default to be 40 or 48 instead of the 64?
-	//float TileSize = 64.f;
+	float TileSize = 64.f;
 	
 
 	void SetItemStack(const FRockItemStack& ItemStack);

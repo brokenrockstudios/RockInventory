@@ -72,13 +72,18 @@ void URockInventory_HoverItem::NativeTick(const FGeometry& MyGeometry, float InD
 void URockInventory_HoverItem::SetTargetSize(int32 InTileSize, ERockItemSizePolicy InSizePolicy)
 {
 	FIntPoint GridSize = FIntPoint(1, 1);
-	if (InSizePolicy == ERockItemSizePolicy::RespectSize && CopyItemStack.IsValid() && CopyItemStack.GetDefinition())
+	// InSizePolicy == ERockItemSizePolicy::RespectSize &&
+	if (CopyItemStack.IsValid() && CopyItemStack.GetDefinition())
 	{
 		GridSize = CopyItemStack.GetDefinition()->GridSize;
 	}
+	//if (bUseContainerTileSize){
+	//	TileSize = InTileSize;
+	// }
+	// else us hover item built in tilesize
 
-	SizeBox->SetWidthOverride(GridSize.X * InTileSize);
-	SizeBox->SetHeightOverride(GridSize.Y * InTileSize);
+	SizeBox->SetWidthOverride(GridSize.X * TileSize);
+	SizeBox->SetHeightOverride(GridSize.Y * TileSize);
 }
 
 void URockInventory_HoverItem::SetItemStack(const FRockItemStack& ItemStack)

@@ -35,7 +35,8 @@ bool FRockItemDescriptorBuilder::Build(const FRockItemStack& Item, FRockItemDesc
 	OutDesc.Description = Def->Description;
 
 	OutDesc.Icon = Def->IconData;
-	OutDesc.Rarity = Def->ItemRarity;	
+	OutDesc.IconSize = Def->GridSize;
+	OutDesc.Rarity = Def->ItemRarity;
 
 	OutDesc.ItemTags = Def->ItemTags;
 	OutDesc.StackCount = Item.GetStackCount();
