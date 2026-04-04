@@ -26,4 +26,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemDelta
 
 	UPROPERTY()
 	ERockItemChangeType ChangeType = ERockItemChangeType::None;
+	// TODO:
+	// Add DirtyFlags to core ItemStack to have 4 bits dedicated to StackCount, CustomValue1, CustomValue2, RuntimeInstance
+	// And when replicating modify a last changed in replication then reset it back after replication broadcast
 };
