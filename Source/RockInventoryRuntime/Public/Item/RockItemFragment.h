@@ -8,6 +8,8 @@
 
 #include "RockItemFragment.generated.h"
 
+class URockItemDefinition;
+
 /**
  * Base struct for item fragment data types used by the Rock Inventory system.
  * Derived structs define specific fragment behavior that can be attached to items.
@@ -18,6 +20,8 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment
 	GENERATED_BODY()
 	FRockItemFragment() = default;
 
+	virtual void OnPostLoad(const URockItemDefinition* OwnerDef) {}
+	virtual void OnPostEditChangeProperty(const URockItemDefinition* OwnerDef) {}
 	// Rule of five: Because the presence of a user defined destructor should declare all five special member functions
 	virtual ~FRockItemFragment() = default;
 	// Copy

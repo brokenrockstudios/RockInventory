@@ -122,8 +122,15 @@ void URockItemDefinition::SetDefaultItemId()
 void URockItemDefinition::PostLoad()
 {
 	Super::PostLoad();
-	SetDefaultItemId();
+	for (FInstancedStruct& Fragment : Fragments)
+	{
+		if (FRockItemFragment* FragmentPtr = Fragment.GetMutablePtr<FRockItemFragment>())
+		{
+			FragmentPtr->OnPostLoad(this);
+		}
+	}
 
+	SetDefaultItemId();
 	RebuildStatTags();
 	RebuildCachedTags();
 }
@@ -132,14 +139,23 @@ void URockItemDefinition::PostLoad()
 void URockItemDefinition::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-
 	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
 	const FName MemberPropertyName = PropertyChangedEvent.GetMemberPropertyName();
 
+	static const FName FragmentsName = GET_MEMBER_NAME_CHECKED(URockItemDefinition, Fragments);
+	if (MemberPropertyName == FragmentsName)
+	{
+		for (FInstancedStruct& Fragment : Fragments)
+		{
+			if (FRockItemFragment* Data = Fragment.GetMutablePtr<FRockItemFragment>())
+			{
+				Data->OnPostEditChangeProperty(this);
+			}
+		}
+	}
 
 	static const FName StatTagDefaultsName = GET_MEMBER_NAME_CHECKED(URockItemDefinition, StatTagDefaults);
-	if (PropertyName == StatTagDefaultsName ||
-		MemberPropertyName == StatTagDefaultsName)
+	if (PropertyName == StatTagDefaultsName || MemberPropertyName == StatTagDefaultsName)
 	{
 		RebuildStatTags();
 	}
