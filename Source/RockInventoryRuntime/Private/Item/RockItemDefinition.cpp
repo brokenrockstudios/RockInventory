@@ -136,6 +136,20 @@ void URockItemDefinition::PostLoad()
 }
 
 #if WITH_EDITOR
+
+EDataValidationResult URockItemDefinition::IsDataValid(FDataValidationContext& Context) const
+{
+	EDataValidationResult Result = Super::IsDataValid(Context);
+	for (const FInstancedStruct& fragment : Fragments)
+	{
+		if (const FRockItemFragment* data = fragment.GetPtr<FRockItemFragment>())
+		{
+			Result = CombineDataValidationResults(Result, data->IsDataValid(Context, this));
+		}
+	}
+	return Result;
+}
+
 void URockItemDefinition::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);

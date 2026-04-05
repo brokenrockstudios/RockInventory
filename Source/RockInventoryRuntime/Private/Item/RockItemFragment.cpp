@@ -19,7 +19,7 @@ void FRockItemFragment::GetAssetRegistryTags(FAssetRegistryTagsContext Context) 
 
 
 #if WITH_EDITOR
-inline EDataValidationResult FRockItemFragment::IsDataValid(FDataValidationContext& Context) const
+inline EDataValidationResult FRockItemFragment::IsDataValid(FDataValidationContext& Context, const URockItemDefinition* OwnerDef) const
 {
 	return EDataValidationResult::Valid;
 }

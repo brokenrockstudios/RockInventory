@@ -46,6 +46,6 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment
 	// FGameplayTag FragmentTag = FGameplayTag::EmptyTag;
 
 #if WITH_EDITOR
-	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const;
+	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context, const URockItemDefinition* OwnerDef) const;
 #endif // WITH_EDITOR
 };
