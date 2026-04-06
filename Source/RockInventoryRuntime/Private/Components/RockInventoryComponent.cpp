@@ -107,7 +107,7 @@ bool URockInventoryComponent::K2_HasItem(const FName ItemId, int32 MinQuantity)
 
 int32 URockInventoryComponent::K2_GetItemCount(const FName ItemId)
 {
-	if (!Inventory || ItemId != NAME_None)
+	if (!Inventory || ItemId == NAME_None)
 	{
 		return 0;
 	}
