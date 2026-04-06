@@ -36,7 +36,7 @@ void URockInventory_ContainerBase::OnCarryEnded(const URockDragCarryOperation* O
 	}
 
 	UnHighlightLast();
-	
+
 	// Some code to go SetEmptyTexture/OccupiedTexture?
 }
 
@@ -163,7 +163,7 @@ void URockInventory_ContainerBase::NativeOnMouseEnter(const FGeometry& InGeometr
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
 	bMouseWithinCanvas = true;
-	
+
 	if (const URockItemDragCarrySubsystem* subsystem = URockItemDragCarrySubsystem::Get(GetWorld()))
 	{
 		if (subsystem->IsCarrying())
@@ -415,20 +415,20 @@ void URockInventory_ContainerBase::HighlightSlots(const int32 Index, const FIntP
 	UnHighlightLast();
 
 	ForEachSlot(Index,
-		Dimensions,
-		[&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
-		{
-			if (!BackgroundGridSlots.IsValidIndex(SlotIndex))
-			{
-				return;
-			}
-			URockInventory_Slot_BackgroundBase* BackgroundSlot = BackgroundGridSlots[SlotIndex];
-			if (BackgroundSlot)
-			{
-				// TODO: Set the background slot to highlighted texture vs invalid/greyed out. Check if it was a valid placement
-				BackgroundSlot->SetGrayedOutTexture();
-			}
-		});
+	            Dimensions,
+	            [&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
+	            {
+		            if (!BackgroundGridSlots.IsValidIndex(SlotIndex))
+		            {
+			            return;
+		            }
+		            URockInventory_Slot_BackgroundBase* BackgroundSlot = BackgroundGridSlots[SlotIndex];
+		            if (BackgroundSlot)
+		            {
+			            // TODO: Set the background slot to highlighted texture vs invalid/greyed out. Check if it was a valid placement
+			            BackgroundSlot->SetGrayedOutTexture();
+		            }
+	            });
 	LastHighlightedDimensions = Dimensions;
 	LastHighlightedIndex = Index;
 }
@@ -441,28 +441,28 @@ void URockInventory_ContainerBase::UnHighlightLast()
 void URockInventory_ContainerBase::UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions)
 {
 	ForEachSlot(Index,
-		Dimensions,
-		[&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
-		{
-			if (!BackgroundGridSlots.IsValidIndex(SlotIndex))
-			{
-				return;
-			}
-			URockInventory_Slot_BackgroundBase* BackgroundSlot = BackgroundGridSlots[SlotIndex];
-			if (!BackgroundSlot)
-			{
-				return;
-			}
-			if (HasItemAtAbsoluteIndex(AbsoluteIndex))
-			{
-				//BackgroundSlot->SetOccupiedTexture();
-				BackgroundSlot->SetUnoccupiedTexture();
-			}
-			else
-			{
-				BackgroundSlot->SetUnoccupiedTexture();
-			}
-		});
+	            Dimensions,
+	            [&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
+	            {
+		            if (!BackgroundGridSlots.IsValidIndex(SlotIndex))
+		            {
+			            return;
+		            }
+		            URockInventory_Slot_BackgroundBase* BackgroundSlot = BackgroundGridSlots[SlotIndex];
+		            if (!BackgroundSlot)
+		            {
+			            return;
+		            }
+		            if (HasItemAtAbsoluteIndex(AbsoluteIndex))
+		            {
+			            //BackgroundSlot->SetOccupiedTexture();
+			            BackgroundSlot->SetUnoccupiedTexture();
+		            }
+		            else
+		            {
+			            BackgroundSlot->SetUnoccupiedTexture();
+		            }
+	            });
 }
 
 int32 URockInventory_ContainerBase::GetIndexFromPosition(const FIntPoint& Position, const int32 Columns) const
@@ -516,7 +516,7 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 
 	const FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(InSlotHandle);
 	FRockItemStack cachedItem = Inventory->GetItemByHandle(SlotEntry.ItemHandle);
-	
+
 	rockDragDrop->MoveCount = SlotEntry.ItemHandle.IsValid() ? cachedItem.GetStackCount() : 0;
 
 	URockInventory_HoverItem* HoverItemWidget = CreateWidget<URockInventory_HoverItem>(GetWorld(), HoverItemClass);
@@ -524,12 +524,12 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 	HoverItemWidget->SetTargetSize(TileSize, TabInfo.GetSlotSizePolicy());
 
 	rockDragDrop->HoverDragVisual = HoverItemWidget;
-	
-	
+
+
 	// cache dimensions
 	const FIntPoint dimensions = cachedItem.IsValid() ? cachedItem.GetDefinition()->GridSize : FIntPoint(1, 1);
 
-	
+
 	carrySubsystem->BeginCarry(rockDragDrop);
 
 
@@ -559,7 +559,7 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 	// 			}
 	// 		});
 	// }
-	
+
 	// Make current 'widget' hit test invisible. So that we could move slightly and not have it interfere with the dragged item widget.
 	// We need to 'undo' this sometime later. But for now, refresh likely is remaking all the widgets
 	for (UWidget* child : GridPanel->GetAllChildren())
@@ -602,11 +602,11 @@ FRockDropOutcome URockInventory_ContainerBase::OnCarryDrop(const URockDragCarryO
 		if (const UInventoryCarryContextData* itemContext = Cast<UInventoryCarryContextData>(DropContext.ContextData))
 		{
 			const FRockMoveItemTransaction moveTransaction(GetOwningPlayer(),
-				dragOperation->SourceInventory,
-				dragOperation->SourceSlotHandle,
-				itemContext->TargetInventory,
-				itemContext->TargetSlotHandle,
-				dragOperation->MoveItemParams);
+			                                               dragOperation->SourceInventory,
+			                                               dragOperation->SourceSlotHandle,
+			                                               itemContext->TargetInventory,
+			                                               itemContext->TargetSlotHandle,
+			                                               dragOperation->MoveItemParams);
 
 			if (URockInventoryManagerComponent* manager = URockInventoryManagerLibrary::GetInventoryManager(GetOwningPlayer()))
 			{
@@ -772,6 +772,24 @@ void URockInventory_ContainerBase::OnItemClicked(const FRockGridItemEventData& E
 					carrySubsystem->CancelCarry(Outcome);
 					return;
 				}
+				else
+				{
+					// Context
+					FRockCarryDropContext dropContext;
+					dropContext.MouseEvent = EventData.PointerEvent;
+					dropContext.TargetObject = this;
+
+					// Context Data
+					UInventoryCarryContextData* contextData = NewObject<UInventoryCarryContextData>(GetOwningPlayer());
+					contextData->TargetInventory = EventData.Inventory;
+					contextData->TargetSlotHandle = EventData.SlotHandle;
+					dropContext.ContextData = contextData;
+
+					// ItemDropIndex is updated in the OnTileParametersUpdated
+					contextData->TargetSlotHandle = BackgroundGridSlots[ItemDropIndex]->GetSlotHandle();
+
+					carrySubsystem->RequestTargetDrop(dropContext);
+				}
 				return;
 			}
 			else
@@ -793,6 +811,10 @@ void URockInventory_ContainerBase::OnItemReleased(const FRockGridItemEventData& 
 
 void URockInventory_ContainerBase::OnItemHovered(const FRockGridItemEventData& EventData)
 {
+	TileParameters.TileQuadrant = EventData.TileQuadrant;
+	TileParameters.SlotHandle = EventData.SlotHandle;
+	OnTileParametersUpdated(TileParameters);
+
 	//UE_LOG(LogRockInventoryUI, Warning, TEXT("OnItemHovered: %s"), *InSlotHandle.ToString());
 }
 
@@ -801,12 +823,14 @@ void URockInventory_ContainerBase::OnItemUnhovered(const FRockGridItemEventData&
 	//UE_LOG(LogRockInventoryUI, Warning, TEXT("OnItemUnhovered: %s"), *InSlotHandle.ToString());
 }
 
-
 void URockInventory_ContainerBase::OnItemChanged(const FRockItemDelta& ItemDelta)
 {
-	// Update the relevant ItemSlot widgets
+	TWeakObjectPtr<URockInventory_Slot_ItemBase> weakWidget = ItemViews.FindRef(ItemDelta.ItemHandle).Widget;
+	if (URockInventory_Slot_ItemBase* strongWidget = weakWidget.Get())
+	{
+		strongWidget->Update();
+	}
 }
-
 
 void URockInventory_ContainerBase::OnSlotChanged(const FRockSlotDelta& SlotDelta)
 {
@@ -879,11 +903,11 @@ void URockInventory_ContainerBase::ScheduleDeferredDestroy(const FRockItemStackH
 	}
 
 	const FTimerDelegate timerDelegate = FTimerDelegate::CreateWeakLambda(this,
-		[this, ItemHandle]()
-		{
-			PendingDestroyTimers.Remove(ItemHandle);
-			DestroyWidgetForItem(ItemHandle);
-		});
+	                                                                      [this, ItemHandle]()
+	                                                                      {
+		                                                                      PendingDestroyTimers.Remove(ItemHandle);
+		                                                                      DestroyWidgetForItem(ItemHandle);
+	                                                                      });
 
 	const FTimerHandle Handle = GetWorld()->GetTimerManager().SetTimerForNextTick(timerDelegate);
 	PendingDestroyTimers.Add(ItemHandle, Handle);
@@ -914,9 +938,9 @@ void URockInventory_ContainerBase::DestroyWidgetForItem(const FRockItemStackHand
 			{
 				ensureMsgf(false, TEXT("DestroyWidgetForItem: Item %s still exists in inventory and this section, not destroying"), *ItemHandle.ToString());
 				UE_LOG(LogRockInventoryUI,
-					Warning,
-					TEXT("DestroyWidgetForItem: Item %s still exists in inventory, not destroying"),
-					*ItemHandle.ToString());
+				       Warning,
+				       TEXT("DestroyWidgetForItem: Item %s still exists in inventory, not destroying"),
+				       *ItemHandle.ToString());
 				// Item still exists, do not destroy
 				return;
 			}
@@ -925,7 +949,6 @@ void URockInventory_ContainerBase::DestroyWidgetForItem(const FRockItemStackHand
 				// It moved to another section, we can destroy the widget
 				// Since it will be recreated in the other section.
 				// Later on, we can perhaps attempt to pool it, or move the ownership of ItemWidgets to some parent item 'manager' widget?
-				
 			}
 		}
 	}
@@ -951,18 +974,18 @@ void URockInventory_ContainerBase::DestroyWidgetForItem(const FRockItemStackHand
 		const int32 localIndex = TabInfo.GetLocalIndex(absIndex);
 
 		ForEachSlot(localIndex,
-			size,
-			[&](int32 SlotIndex, int32 C, int32 R, int32 AbsIdx)
-			{
-				if (URockInventory_Slot_BackgroundBase* gridSlot = BackgroundGridSlots[SlotIndex])
-				{
-					// Clear anchor if it was set to this slot
-					if (gridSlot->GetAnchorItemSlotHandle() == lastAnchor)
-					{
-						gridSlot->ResetAnchorItemSlotHandle();
-					}
-				}
-			});
+		            size,
+		            [&](int32 SlotIndex, int32 C, int32 R, int32 AbsIdx)
+		            {
+			            if (URockInventory_Slot_BackgroundBase* gridSlot = BackgroundGridSlots[SlotIndex])
+			            {
+				            // Clear anchor if it was set to this slot
+				            if (gridSlot->GetAnchorItemSlotHandle() == lastAnchor)
+				            {
+					            gridSlot->ResetAnchorItemSlotHandle();
+				            }
+			            }
+		            });
 	}
 
 	// Destroy the widget
@@ -1091,7 +1114,7 @@ void URockInventory_ContainerBase::GenerateGrid()
 		// Relative slot to the section
 		backgroundSlotWidget->SetSlot(Inventory, FRockInventorySlotHandle(AbsoluteIndex));
 		backgroundSlotWidget->SetSize(TileSize);
-		
+
 		UGridSlot* gridSlotWidget = GridPanel->AddChildToGrid(backgroundSlotWidget, Row, Column);
 		if (gridSlotWidget)
 		{
@@ -1164,18 +1187,18 @@ void URockInventory_ContainerBase::UpdateWidgetForItem(
 	{
 		// Clear OLD anchors
 		ForEachSlot(oldLocalIndex,
-			oldSize,
-			[&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
-			{
-				if (URockInventory_Slot_BackgroundBase* gridSlot = BackgroundGridSlots[SlotIndex])
-				{
-					// Only clear if it still points to THIS item's old anchor
-					if (gridSlot->GetAnchorItemSlotHandle() == oldAnchor)
-					{
-						gridSlot->ResetAnchorItemSlotHandle();
-					}
-				}
-			});
+		            oldSize,
+		            [&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
+		            {
+			            if (URockInventory_Slot_BackgroundBase* gridSlot = BackgroundGridSlots[SlotIndex])
+			            {
+				            // Only clear if it still points to THIS item's old anchor
+				            if (gridSlot->GetAnchorItemSlotHandle() == oldAnchor)
+				            {
+					            gridSlot->ResetAnchorItemSlotHandle();
+				            }
+			            }
+		            });
 	}
 
 	// Update view record
@@ -1185,16 +1208,16 @@ void URockInventory_ContainerBase::UpdateWidgetForItem(
 
 	// Update background anchors for all covered tiles
 	ForEachSlot(localIndex,
-		itemGridSize,
-		[&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
-		{
-			if (URockInventory_Slot_BackgroundBase* gridSlot = BackgroundGridSlots[SlotIndex])
-			{
-				gridSlot->SetAnchorItemSlotHandle(SlotHandle);
-				// TODO: Optionally set occupancy visuals here
-				// BG->SetOccupiedTexture();
-			}
-		});
+	            itemGridSize,
+	            [&](int32 SlotIndex, int32 Column, int32 Row, int32 AbsoluteIndex)
+	            {
+		            if (URockInventory_Slot_BackgroundBase* gridSlot = BackgroundGridSlots[SlotIndex])
+		            {
+			            gridSlot->SetAnchorItemSlotHandle(SlotHandle);
+			            // TODO: Optionally set occupancy visuals here
+			            // BG->SetOccupiedTexture();
+		            }
+	            });
 
 	if (WidgetItem && IsValid(WidgetItem))
 	{
