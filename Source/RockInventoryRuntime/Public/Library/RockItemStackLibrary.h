@@ -16,7 +16,6 @@ UCLASS()
 class ROCKINVENTORYRUNTIME_API URockItemStackLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
-
 public:
 	/** Returns the item definition for this item stack */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
@@ -49,7 +48,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
 	static int32 CalculateMoveAmount(const FRockItemStack& ItemStack, const ERockItemMoveMode& MoveMode, int32 MoveCount);
-	
+
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
 	static bool IsValid(const FRockItemStack& ItemStack);
+
+	static FName GetDefinitionMemberName();
 };

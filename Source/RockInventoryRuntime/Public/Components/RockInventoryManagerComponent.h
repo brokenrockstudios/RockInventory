@@ -42,9 +42,10 @@ UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnab
 class ROCKINVENTORYRUNTIME_API URockInventoryManagerComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
 public:
 	URockInventoryManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	// TODO: static URockInventoryManagerComponent* Get(UObject* WorldContextObject);
 
 private:
 	// TODO: Spin into a custom CircularBuffer later...
@@ -81,6 +82,9 @@ public:
 	void Server_LootWorldItem(FRockLootWorldItemTransaction ItemTransaction);
 	void Server_LootWorldItem_Implementation(FRockLootWorldItemTransaction ItemTransaction);
 
+	// TODO: Give a 'preferred location' option, and what to do if it can't place it there (fallback to other slots or 'fail')
+	// TODO: For a server to do an action like 'give players to the item' from a task reward or something.  Need a more fleshed out UX dev consumer pattern
+
 	UFUNCTION(BlueprintCallable)
 	bool MoveItem(const FRockMoveItemTransaction& ItemTransaction);
 	UFUNCTION(Server, Reliable)
@@ -93,7 +97,6 @@ public:
 	void Server_DropItem(FRockDropItemTransaction ItemTransaction);
 	void Server_DropItem_Implementation(FRockDropItemTransaction ItemTransaction);
 
-
 	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void Server_RegisterSlotStatus(
 		URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
@@ -103,11 +106,9 @@ public:
 	void Server_ReleaseSlotStatus(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
 	void Server_ReleaseSlotStatus_Implementation(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
 
-
 	// Clear transaction history
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	void ClearHistory();
-
 
 	// Deprioritizing undo and redo for now.
 	//
@@ -126,7 +127,4 @@ public:
 	// // Check if can redo
 	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
 	// bool CanRedo() const;
-
-
-	// URockInventoryManagerComponent
 };

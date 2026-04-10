@@ -43,10 +43,8 @@ UCLASS(Blueprintable, BlueprintType)
 class ROCKINVENTORYRUNTIME_API URockInventory : public UObject
 {
 	GENERATED_BODY()
-
 public:
 	URockInventory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
 private:
 	/** The item data */
 	UPROPERTY(VisibleAnywhere, Replicated)
@@ -73,7 +71,6 @@ private:
 	/** Snapshot of the previous replication state; diffed in OnRep to detect added/removed pending operations. */
 	UPROPERTY()
 	TArray<FRockPendingSlotOperation> PreviousPendingSlotOperations;
-
 public:
 	/** Broadcast when a slot's state changes (item assigned, removed, etc). */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
@@ -172,9 +169,14 @@ public:
 	/** Get a debug string representation of the inventory */
 	FString GetDebugString() const;
 
+	// Need to add a 'preference' on where it goes.
+	// Does the caller have a preference or does the inventory itself have a preference
 	FRockItemStackHandle AddItemToInventory(const FRockItemStack& InItemStack);
+
+
 	void RemoveItemFromInventory(const FRockItemStackHandle& InItemStackHandle);
 	void RemoveItemFromInventory(const FRockItemStack& InItemStack);
+	// TODO: Instead of just SetItem, consider a RemoveItem with stackCount option? (and with query option?)
 
 	// Because of some delegates/events and how our core Item works, we can't allow directly modifying it
 	// Thus you have to use this function to change the count of an item stack, which will then trigger the appropriate events and delegates.
@@ -186,7 +188,7 @@ private:
 public:
 	int32 GetItemStackCount();
 	int32 GetItemTotalCount();
-	
+
 	/** Does this handle point to a valid item stack in the inventory */
 	bool IsHandleValid(FRockItemStackHandle ItemHandle) const;
 	FRockItemReference MakeItemReference(FRockItemStackHandle SlotHandle);
@@ -198,12 +200,12 @@ public:
 	void ForEachSlot(const FRockInventoryQuery& Query, const TFunctionRef<bool(const FRockInventorySectionInfo*, const FRockInventorySlotEntry*)>& Visitor);
 
 	const FRockInventorySlotEntry* FindFirstSlot(const FRockInventoryQuery& Query);
-	
+
 	/** Note: This function should be considered expensive. O(n) with no early out */
 	TArray<FRockInventorySlotEntry> FindAllSlots(const FRockInventoryQuery& Query);
 	/** Note: This function should be considered expensive O(n) with no early out */
 	TArray<FRockItemStackHandle> FindAllItemHandles(const FRockInventoryQuery& Query);
-	
+
 
 	///////////////////////////////////
 	// Misc

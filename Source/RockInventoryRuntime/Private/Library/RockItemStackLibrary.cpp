@@ -116,3 +116,8 @@ bool URockItemStackLibrary::IsValid(const FRockItemStack& ItemStack)
 {
 	return ItemStack.IsValid();
 }
+
+FName URockItemStackLibrary::GetDefinitionMemberName()
+{
+	return GET_MEMBER_NAME_CHECKED(FRockItemStack, Definition);
+}

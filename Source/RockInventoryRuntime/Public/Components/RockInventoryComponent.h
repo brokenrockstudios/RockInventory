@@ -53,7 +53,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Loot Item"))
 	bool K2_LootItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess);
 
-	// After calling this, the item will cease to exist in this inventory, do something with it! 
+	// After calling this, the item will cease to exist in this inventory, do something with it!
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Loot Item"))
 	FRockItemStack K2_DropItem(const FRockInventorySlotHandle& SlotHandle);
 

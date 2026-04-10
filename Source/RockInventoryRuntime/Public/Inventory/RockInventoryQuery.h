@@ -91,3 +91,72 @@ FRockInventoryQuery FRockInventoryQuery::ForItemsWithFragment()
 	};
 	return Q;
 }
+
+
+
+
+
+UENUM(BlueprintType)
+enum class ERockSectionFillStrategy : uint8
+{
+	// Try merging into partials first, then empty slots (within this section)
+	MergeThenFill,
+	// Only merge into partials, skip empty slots
+	MergeOnly,
+	// Only use empty slots, ignore partials
+	EmptySlotsOnly,
+	// First empty slot wins, no merge attempt
+	FirstAvailable,
+};
+
+USTRUCT(BlueprintType)
+struct FRockLootPhase
+{
+	GENERATED_BODY()
+
+	//UPROPERTY(BlueprintReadWrite)
+	//TArray<FGameplayTag> Sections;
+	//FGameplayTag Sections;
+	// "Which sections qualify for this phase"
+	// e.g. ForSectionWithMetaTag(TAG_Meta_WalletLike)
+	//      ForSectionWithMetaTag(TAG_Meta_Pocket)
+	//      ForSectionsAcceptingItemType(ItemTags)
+	//UPROPERTY(BlueprintReadWrite)
+	FRockInventoryQuery SectionFilter;
+
+	// UPROPERTY(BlueprintReadWrite)
+	ERockSectionFillStrategy Strategy = ERockSectionFillStrategy::MergeThenFill;
+};
+
+USTRUCT(BlueprintType)
+struct FRockLootParams
+{
+	GENERATED_BODY()
+
+	// Ordered. First entry is tried first. Strategy is per-section.
+	// Executed in order until item is fully placed or phases exhausted
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FRockLootPhase> Phases;
+
+	// If all preferred sections exhausted, try remaining sections with this strategy
+	UPROPERTY(BlueprintReadWrite)
+	bool bFallbackToOtherSections = true;
+
+	UPROPERTY(BlueprintReadWrite)
+	ERockSectionFillStrategy FallbackStrategy = ERockSectionFillStrategy::MergeThenFill;
+
+	UPROPERTY(BlueprintReadWrite)
+	int32 MaxQuantity = MAX_int32;
+};
+
+//
+// Params.SectionPreferences = {
+// Params.Phases = {
+// 	    { { TAG_Section_Wallet, TAG_Section_Backpack }, ERockSectionFillStrategy::MergeOnly },
+// 		{ { TAG_Section_Wallet, TAG_Section_Backpack }, ERockSectionFillStrategy::EmptySlotsOnly },
+// 	};
+//  This would attempt to merge 
+//
+
+
+

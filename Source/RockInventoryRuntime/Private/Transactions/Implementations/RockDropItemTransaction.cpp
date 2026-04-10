@@ -70,6 +70,8 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 	if (WorldItemInterfaceActor)
 	{
 		WorldItemInterfaceActor->SetItemStack(Item);
+		
+		// TODO: What if we wanted to 'place' an item instead of 'drop/throw' it
 		WorldItemInterfaceActor->ApplyThrowImpulse(Impulse);
 	}
 	

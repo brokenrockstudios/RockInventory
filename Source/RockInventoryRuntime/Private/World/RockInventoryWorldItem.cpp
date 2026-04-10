@@ -32,7 +32,8 @@ ARockInventoryWorldItemBase::ARockInventoryWorldItemBase(const FObjectInitialize
 void ARockInventoryWorldItemBase::BeginPlay()
 {
 	Super::BeginPlay();
-	// Normally we shouldn't call the implementation directly, but 🤷‍♂️
+	// Is this redundant if PostEditChangeProperty already did it?
+	// What if it was stale, then we would. Need more testing.
 	SetItemStack(ItemStack);
 }
 
@@ -85,20 +86,22 @@ void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack
 	else
 	{
 		FStreamableManager& Manager = UAssetManager::GetStreamableManager();
-		Manager.RequestAsyncLoad(Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Mesh]
-		{
-			UStaticMesh* LoadedStaticMesh = Mesh.Get();
-			if (LoadedStaticMesh)
-			{
-				StaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
-			}
-			else
-			{
-				UE_LOG(LogRockInventory, Error, TEXT("ARockInventoryWorldItem::SetItemStack - Failed to load static mesh for item stack"));
-			}
-		}));
+		Manager.RequestAsyncLoad(
+			Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(
+				this, [this, Mesh]
+				{
+					UStaticMesh* LoadedStaticMesh = Mesh.Get();
+					if (LoadedStaticMesh)
+					{
+						StaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
+					}
+					else
+					{
+						UE_LOG(LogRockInventory, Error, TEXT("ARockInventoryWorldItem::SetItemStack - Failed to load static mesh for item stack"));
+					}
+				}));
 	}
-	
+
 	// TODO: Do we need to call if there is a runtime instance
 	// RegisterReplicationWithOwner since we aren't replicating the internal runtime instance
 }
@@ -138,8 +141,10 @@ void ARockInventoryWorldItemBase::OnLooted(AActor* InstigatorPawn, const FRockIt
 
 void ARockInventoryWorldItemBase::ApplyThrowImpulse(const FVector& Impulse)
 {
-	if (StaticMeshComponent && StaticMeshComponent->IsSimulatingPhysics())
+	if (StaticMeshComponent) // && StaticMeshComponent->IsSimulatingPhysics())
 	{
+		// Is there a better place to do this? We didn't want to always simulate on intentionally placed locations, so if we are 'throwing' it 
+		StaticMeshComponent->SetSimulatePhysics(true);
 		StaticMeshComponent->AddImpulse(Impulse, NAME_None, true);
 	}
 }

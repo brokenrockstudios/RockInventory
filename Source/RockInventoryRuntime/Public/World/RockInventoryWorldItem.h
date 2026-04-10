@@ -19,16 +19,17 @@ public:
 	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
 
 	// Sets default values for this actor's properties
-	ARockInventoryWorldItemBase(const FObjectInitializer &ObjectInitializer = FObjectInitializer::Get());
-
+	ARockInventoryWorldItemBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+protected:
 	virtual void BeginPlay() override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// ~Begin IRockLootableInterface
-	virtual FRockItemStack GetItemStack(AActor *InstigatorPawn) const override;
-	virtual void SetItemStack(const FRockItemStack &InItemStack) override;
-	virtual void OnPickedUp(AActor *InInstigator) override;
-	virtual void OnLooted(AActor *InstigatorPawn, const FRockItemStack &LootedItem, int32 Excess) override;
+	virtual FRockItemStack GetItemStack(AActor* InstigatorPawn) const override;
+	virtual void SetItemStack(const FRockItemStack& InItemStack) override;
+	virtual void OnPickedUp(AActor* InInstigator) override;
+	virtual void OnLooted(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 Excess) override;
 	virtual void ApplyThrowImpulse(const FVector& Impulse) override;
 	// ~End IRockLootableInterface
 
@@ -41,6 +42,6 @@ protected:
 
 #if WITH_EDITOR
 public:
-	virtual void PostEditChangeProperty(FPropertyChangedEvent &PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 };
