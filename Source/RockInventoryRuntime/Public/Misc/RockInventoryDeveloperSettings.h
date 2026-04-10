@@ -13,12 +13,15 @@ UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "RockInventory"))
 class ROCKINVENTORYRUNTIME_API URockInventoryDeveloperSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
-
 public:
 	URockInventoryDeveloperSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	virtual void PostInitProperties() override;
 
 	UPROPERTY(EditDefaultsOnly, Config, Category = "RockInventory")
 	TSubclassOf<AActor> DefaultWorldItemClass;
+
+	UPROPERTY(EditDefaultsOnly, Config, Category = "RockInventory|Visuals")
+	TSoftObjectPtr<UStaticMesh> FallbackWorldItemMesh;
 
 #if WITH_EDITOR
 	// data validator

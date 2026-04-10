@@ -18,11 +18,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
 
-	// Sets default values for this actor's properties
+	// ~Ctor + Overrides
 	ARockInventoryWorldItemBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-protected:
-	virtual void BeginPlay() override;
-public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// ~Begin IRockLootableInterface
@@ -33,10 +30,13 @@ public:
 	virtual void ApplyThrowImpulse(const FVector& Impulse) override;
 	// ~End IRockLootableInterface
 
+	void UpdateItemVisuals();
+	void ApplyItemVisuals();
 protected:
+	virtual void BeginPlay() override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_ItemStack, Category = "RockInventory")
 	FRockItemStack ItemStack;
-
 	UFUNCTION()
 	void OnRep_ItemStack();
 

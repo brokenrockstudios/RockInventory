@@ -30,7 +30,8 @@ public class RockInventoryRuntime : ModuleRules
 				"NetCore",
 				"AssetRegistry",
 				"Iris",
-				"IrisCore",
+				"IrisCore", 
+				"RockCore",
 				// ... add private dependencies that /private files need	
 			}
 		);

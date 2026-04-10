@@ -36,6 +36,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "RockCore",
+			"Enabled": true
+		},
+		{
 			"Name": "RockGameplayTags",
 			"Enabled": true
 		},

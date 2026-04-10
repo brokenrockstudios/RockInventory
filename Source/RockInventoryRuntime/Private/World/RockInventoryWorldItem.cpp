@@ -2,13 +2,16 @@
 
 #include "World/RockInventoryWorldItem.h"
 
+#include "RockAssetLibrary.h"
 #include "RockInventoryLogging.h"
 #include "Components/RockInventoryComponent.h"
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
+#include "Item/Fragment/RockItemFragment_MeshMaterialOverride.h"
 #include "Library/RockInventoryLibrary.h"
+#include "Misc/RockInventoryDeveloperSettings.h"
 #include "Net/UnrealNetwork.h"
 
 ARockInventoryWorldItemBase::ARockInventoryWorldItemBase(const FObjectInitializer& ObjectInitializer)
@@ -59,51 +62,7 @@ void ARockInventoryWorldItemBase::SetItemStack(const FRockItemStack& InItemStack
 		this->ForceNetUpdate();
 	}
 
-	// Update the static mesh component with the item definition's mesh
-
-	TSoftObjectPtr<UStaticMesh> Mesh = nullptr;
-	if (const URockItemDefinition* Definition = ItemStack.GetDefinition())
-	{
-		Mesh = Definition->ItemMesh;
-	}
-	// Check if the mesh is already loaded
-	if (Mesh.IsNull())
-	{
-		StaticMeshComponent->SetStaticMesh(nullptr);
-#if WITH_EDITOR
-		// Set it to the CDO of this class if it exists, otherwise set to nullptr
-		if (UStaticMesh* DefaultMesh = GetClass()->GetDefaultObject<ARockInventoryWorldItemBase>()->StaticMeshComponent->GetStaticMesh())
-		{
-			StaticMeshComponent->SetStaticMesh(DefaultMesh);
-		}
-#endif
-		return;
-	}
-	else if (Mesh.IsValid())
-	{
-		StaticMeshComponent->SetStaticMesh(Mesh.Get());
-	}
-	else
-	{
-		FStreamableManager& Manager = UAssetManager::GetStreamableManager();
-		Manager.RequestAsyncLoad(
-			Mesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(
-				this, [this, Mesh]
-				{
-					UStaticMesh* LoadedStaticMesh = Mesh.Get();
-					if (LoadedStaticMesh)
-					{
-						StaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
-					}
-					else
-					{
-						UE_LOG(LogRockInventory, Error, TEXT("ARockInventoryWorldItem::SetItemStack - Failed to load static mesh for item stack"));
-					}
-				}));
-	}
-
-	// TODO: Do we need to call if there is a runtime instance
-	// RegisterReplicationWithOwner since we aren't replicating the internal runtime instance
+	UpdateItemVisuals();
 }
 
 void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)
@@ -146,6 +105,58 @@ void ARockInventoryWorldItemBase::ApplyThrowImpulse(const FVector& Impulse)
 		// Is there a better place to do this? We didn't want to always simulate on intentionally placed locations, so if we are 'throwing' it 
 		StaticMeshComponent->SetSimulatePhysics(true);
 		StaticMeshComponent->AddImpulse(Impulse, NAME_None, true);
+	}
+}
+
+void ARockInventoryWorldItemBase::UpdateItemVisuals()
+{
+	// Update the static mesh component with the item definition's mesh
+	const URockItemDefinition* Definition = ItemStack.GetDefinition();
+	const TSoftObjectPtr<UStaticMesh> Mesh = Definition ? Definition->ItemMesh : nullptr;
+
+	// Check if the mesh is already loaded
+	if (Mesh.IsNull())
+	{
+		const URockInventoryDeveloperSettings* Settings = GetDefault<URockInventoryDeveloperSettings>();
+		StaticMeshComponent->SetStaticMesh(Settings->FallbackWorldItemMesh.LoadSynchronous());
+		UE_LOG(LogRockInventory, Warning, TEXT("ARockInventoryWorldItemBase::UpdateItemVisuals - Mesh is null, using fallback mesh"));
+		return;
+	}
+
+	TArray<FSoftObjectPath> PathsToLoad;
+	PathsToLoad.Add(Mesh.ToSoftObjectPath());
+	if (const auto* MatOverride = FRockItemFragment_MeshMaterialOverride::Find(Definition))
+	{
+		MatOverride->AppendSoftPaths(PathsToLoad);
+	}
+
+	// LoadAndExecute internally handles both fast path and async path
+	URockAssetLibrary::LoadAndExecute(
+		PathsToLoad, this, [this, Mesh]
+		{
+			if (UStaticMesh* LoadedMesh = Mesh.Get())
+			{
+				StaticMeshComponent->SetStaticMesh(LoadedMesh);
+				ApplyItemVisuals();
+			}
+			else
+			{
+				UE_LOG(LogRockInventory, Error, TEXT("ARockInventoryWorldItemBase::UpdateItemVisuals - Failed to load static mesh"));
+			}
+		});
+
+	// TODO: Do we need to call if there is a runtime instance
+	// RegisterReplicationWithOwner since we aren't replicating the internal runtime instance
+}
+
+void ARockInventoryWorldItemBase::ApplyItemVisuals()
+{
+	if (const URockItemDefinition* Definition = ItemStack.GetDefinition())
+	{
+		if (const FRockItemFragment_MeshMaterialOverride* MatOverride = Definition->FindFragment<FRockItemFragment_MeshMaterialOverride>())
+		{
+			MatOverride->ApplyTo(StaticMeshComponent);
+		}
 	}
 }
 

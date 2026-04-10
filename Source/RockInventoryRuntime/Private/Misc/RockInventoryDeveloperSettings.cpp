@@ -6,8 +6,14 @@
 
 #define LOCTEXT_NAMESPACE "RockInventory"
 
-URockInventoryDeveloperSettings::URockInventoryDeveloperSettings(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
+URockInventoryDeveloperSettings::URockInventoryDeveloperSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+}
+
+void URockInventoryDeveloperSettings::PostInitProperties()
+{
+	Super::PostInitProperties();
+	FallbackWorldItemMesh.LoadSynchronous();
 }
 
 #if WITH_EDITOR
@@ -19,6 +25,12 @@ EDataValidationResult URockInventoryDeveloperSettings::IsDataValid(FDataValidati
 	{
 		Result = EDataValidationResult::Invalid;
 		Context.AddError(FText(LOCTEXT("DefaultWorldItemClass", "DefaultWorldItemClass is not set.")));
+	}
+
+	if (FallbackWorldItemMesh != nullptr)
+	{
+		Result = EDataValidationResult::Invalid;
+		Context.AddError(FText(LOCTEXT("FallbackWorldItemMesh", "FallbackWorldItemMesh is not set.")));
 	}
 
 	return Result;
