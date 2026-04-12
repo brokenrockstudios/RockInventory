@@ -192,7 +192,6 @@ const FRockItemStack* URockInventory::GetItemByHandlePtr(const FRockItemStackHan
 	const int32 Index = InItemHandle.GetIndex();
 	if (!ItemData.ContainsIndex(Index))
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("GetItemByHandlePtr - Bad Item Index"));
 		return nullptr;
 	}
 

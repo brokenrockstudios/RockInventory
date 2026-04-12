@@ -85,10 +85,13 @@ public:
 
 	// Customizations
 	// Override in BP version
+	// Default to slightly forward and up. Alternatively could spawn from inside the player of 0,0,0 and just make sure
+	// there is no collision against the player.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
-	FVector DropLocationOffset = FVector(150, 0, 0);
+	FVector DropLocationOffset = FVector(100, 0, 25);
+	// Default to forward and up throw
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
-	FVector DropImpulse = FVector(0, 0, 0);
+	FVector DropImpulse = FVector(150, 0, 50);
 	
 	// UPROPERTY()
 	// FRockItemStack ItemStack;

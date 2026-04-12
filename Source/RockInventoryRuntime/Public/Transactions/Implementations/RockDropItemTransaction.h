@@ -74,4 +74,7 @@ struct ROCKINVENTORYRUNTIME_API FRockDropItemTransaction : public FRockItemTrans
 	bool CanExecute() const;
 	FRockDropItemUndoTransaction Execute() const;
 	bool AttemptPredict() const;
+	
+	FVector FindThrowDirection(const AController* Controller) const;
+	FVector FindSafeDropLocation(const AController* Controller, const FVector& DesiredDropLocation) const;
 };

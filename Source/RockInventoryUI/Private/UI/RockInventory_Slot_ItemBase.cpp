@@ -128,7 +128,11 @@ FReply URockInventory_Slot_ItemBase::NativeOnMouseButtonUp(const FGeometry& InGe
 	constexpr ERockInventory_TileQuadrant Quadrant = ERockInventory_TileQuadrant::None;
 	const FRockGridItemEventData EventData(this, InGeometry, InMouseEvent, Inventory, SlotHandle, Quadrant);
 	ItemReleased.Broadcast(EventData);
-	return FReply::Handled();
+	
+	// Note: There were scenarios where if we were holding mouse button down, prior to opening inventory, then releasing mouse here
+	// the action in game would continue.
+	// If this ever needs to be Handled, it should be only under specific conditions. 
+	return FReply::Unhandled();
 }
 
 static FVector2D GetViewportPos(UWorld* World, const FVector2D& AbsolutePos)

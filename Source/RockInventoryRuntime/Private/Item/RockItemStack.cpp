@@ -7,16 +7,12 @@
 #include "Item/RockItemInstance.h"
 
 FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackCount)
-	: StackCount(InStackCount)
+	: Definition(InDefinition),
+	  StackCount(InStackCount)
 {
-	if (InDefinition)
-	{
-		Definition = InDefinition;
-	}
-	else
-	{
-		UE_LOG(LogRockInventory, Error, TEXT("ItemStack %s has no ItemId set!"), *GetDebugString());
-	}
+	const bool bValidItem = ::IsValid(InDefinition) && InStackCount > 0;
+	const bool bEmptyItem = !InDefinition && InStackCount == 0;
+	ensureMsgf(bValidItem || bEmptyItem, TEXT("ItemStack has partially invalid config! Definition: %s, StackCount: %d"), *GetNameSafe(InDefinition), InStackCount);
 }
 
 const FRockItemStack& FRockItemStack::Invalid()
@@ -236,7 +232,7 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 			{
 				CurrentItem.RuntimeInstance->CachedDefinition = CurrentItem.GetDefinition();
 			}
-			
+
 			if (!bWasPreviouslyValid)
 			{
 				// Scenario: Slot was empty, now has an item.

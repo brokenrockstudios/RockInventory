@@ -31,15 +31,21 @@ FReply URockInventory_Slot_BackgroundBase::NativeOnMouseButtonDown(
 	const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	GridSlotClicked.Broadcast(CreateEventData(InGeometry, InMouseEvent));
+	// Perhaps only handle it if we had a active drag/drop
+	// What's the point of consuming a mouse button down on empty background?
+	// to prevent bubbling down?
 	return FReply::Handled();
 }
 
 FReply URockInventory_Slot_BackgroundBase::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	GridSlotReleased.Broadcast(CreateEventData(InGeometry, InMouseEvent));
-	return FReply::Handled();
-}
 
+	// Note: There were scenarios where if we were holding the mouse button down, before opening inventory, 
+	// then when releasing the mouse here the action in game would continue.
+	// If this ever needs to be Handled, it should be only under specific conditions. 
+	return FReply::Unhandled();
+}
 
 FReply URockInventory_Slot_BackgroundBase::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {

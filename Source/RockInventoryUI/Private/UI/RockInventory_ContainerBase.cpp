@@ -510,9 +510,7 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 	rockDragDrop->Instigator = GetOwningPlayer();
 	rockDragDrop->SourceInventory = InInventory;
 	rockDragDrop->SourceSlotHandle = InSlotHandle;
-	rockDragDrop->Offset = FVector2D(150.0f, 0.0f);
 	rockDragDrop->MoveItemParams = FRockMoveItemParams();
-	rockDragDrop->DropImpulse = FVector::ZeroVector;
 	rockDragDrop->Orientation = ERockItemOrientation::Horizontal;
 	rockDragDrop->MoveMode = ERockItemMoveMode::FullStack;
 
@@ -829,9 +827,17 @@ void URockInventory_ContainerBase::OnItemUnhovered(const FRockGridItemEventData&
 void URockInventory_ContainerBase::OnItemChanged(const FRockItemDelta& ItemDelta)
 {
 	TWeakObjectPtr<URockInventory_Slot_ItemBase> weakWidget = ItemViews.FindRef(ItemDelta.ItemHandle).Widget;
-	if (URockInventory_Slot_ItemBase* strongWidget = weakWidget.Get())
+	if (ItemDelta.ChangeType == ERockItemChangeType::Changed)
 	{
-		strongWidget->Update();
+		if (URockInventory_Slot_ItemBase* strongWidget = weakWidget.Get())
+		{
+			strongWidget->Update();
+		}
+	}
+	else if (ItemDelta.ChangeType == ERockItemChangeType::Removed)
+	{
+		// The OnSlotChanged should be trigger momentarily and this will go away.
+		// Alternatively we could try and clean up the widget here?  
 	}
 }
 
