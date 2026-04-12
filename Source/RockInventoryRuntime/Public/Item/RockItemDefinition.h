@@ -17,7 +17,6 @@ USTRUCT(BlueprintType)
 struct FRockItemUIData
 {
 	GENERATED_BODY()
-
 public:
 	// Hover text for the icon.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI")
@@ -38,9 +37,8 @@ UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockItemDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
-
 public:
-	//////////////////////////////////////////////////////////////////////////	
+	//////////////////////////////////////////////////////////////////////////    
 	// Item ID
 	// The internal ItemID. e.g. /spawn RedApple. This is not the DisplayName or Name.
 	// We technically could have used the AssetName as the ItemID, but this allows for more flexibility and control.
@@ -71,14 +69,14 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	/// Information
 	// Examples
-	// "M4 Rifle"           | ItemType { Item.Type.Weapon, Item.Type.Ranged }						Tags { Tag.Equippable, Tag.TwoHanded, Tag.Automatic, Tag.UsesAmmo.Rifle.556, Tag.Attachable, Tag.Suppressable }
-	// "A wooden shield"    | ItemType { Item.Type.Armor, Item.Type.Offhand, Item.Type.Shield }		Tags { Tag.Equippable, Tag.Blocking, Tag.Wooden, Tag.OneHanded }
-	// "Aviator Sunglasses" | ItemType { Item.Type.Armor, Item.Type.Accessory }						Tags { Tag.Equippable, Tag.Slot.Face, Tag.Slot.Eyes }
-	// "Baseball Cap"       | ItemType { Item.Type.Cosmetic }										Tags { Tag.Equippable, Tag.Slot.Head }
-	// "Leather Gloves"     | ItemType { Item.Type.Armor, Item.Type.Cosmetic }						Tags { Tag.Equippable, Tag.Slot.Hands }
-	// "9mm Magazine"       | ItemType { Item.Type.Ammo, Item.Type.Consumable }						Tags { Tag.Ammo.Caliber.9mm, Tag.Stackable, Tag.FitsWeapon.Pistol }
-	// "Cooked Meat"        | ItemType { Item.Type.Consumable, Item.Type.Food }						Tags { Tag.HealsHP, Tag.Cooked, Tag.CanSpoil }
-	// "Scroll of Fireball" | ItemType { Item.Type.Consumable, Item.Type.Magic, Item.Type.Scroll }	Tags { Tag.Property.SingleUse, Tag.Effect.Damage.Fire.AreaOfEffect, Tag.Character.Class.CanBeUsedBy.Mage }
+	// "M4 Rifle"           | ItemType { Item.Type.Weapon, Item.Type.Ranged }                      Tags { Tag.Equippable, Tag.TwoHanded, Tag.Automatic, Tag.UsesAmmo.Rifle.556, Tag.Attachable, Tag.Suppressable }
+	// "A wooden shield"    | ItemType { Item.Type.Armor, Item.Type.Offhand, Item.Type.Shield }    Tags { Tag.Equippable, Tag.Blocking, Tag.Wooden, Tag.OneHanded }
+	// "Aviator Sunglasses" | ItemType { Item.Type.Armor, Item.Type.Accessory }                    Tags { Tag.Equippable, Tag.Slot.Face, Tag.Slot.Eyes }
+	// "Baseball Cap"       | ItemType { Item.Type.Cosmetic }                                      Tags { Tag.Equippable, Tag.Slot.Head }
+	// "Leather Gloves"     | ItemType { Item.Type.Armor, Item.Type.Cosmetic }                     Tags { Tag.Equippable, Tag.Slot.Hands }
+	// "9mm Magazine"       | ItemType { Item.Type.Ammo, Item.Type.Consumable }                    Tags { Tag.Ammo.Caliber.9mm, Tag.Stackable, Tag.FitsWeapon.Pistol }
+	// "Cooked Meat"        | ItemType { Item.Type.Consumable, Item.Type.Food }                    Tags { Tag.HealsHP, Tag.Cooked, Tag.CanSpoil }
+	// "Scroll of Fireball" | ItemType { Item.Type.Consumable, Item.Type.Magic, Item.Type.Scroll } Tags { Tag.Property.SingleUse, Tag.Effect.Damage.Fire.AreaOfEffect, Tag.Character.Class.CanBeUsedBy.Mage }
 
 	// Vendor: I only sell Item.Type.Weapon, I only Buy Item.Type.Food
 	// AI looting: Prioritize Ammo and Weapons
@@ -135,22 +133,26 @@ public:
 
 	// The user facing final value will likely be derived from a combination.
 	// A lightweight item likely stacks and is multiplied by its stack count and may show decimals or not as see fit.
-	// It is assumed weight is something like centigrams.
+	// It is assumed weight is something like centigrams. Though you could always go 'grams' and have some items weigh 0
 	// All of these fit well within the upper limit of int32 and int math is friendlier than float math.
-	// Unloaded M16      7.18 lbs	 3.26 kg	 32,600 cg
-	// Steel Longsword    2.5 lbs	  1.4 kg	 14,000 cg
-	// 1 Feather		.0002 lbs	.0001 kg	      1 cg
-	// 1000 Feather		   .2 lbs	  0.1 kg	    100 cg
-	// 1 worm			 .002 lbs	 .001 kg	     10 cg
-	// 1 flower petal	.0002 lbs	.0001 kg	     10 cg
-	// 100 kg dumbbell                100 kg 10,000,000 cg
+	// Unloaded M16     7.18 lbs  3.26 kg    326,000 cg
+	// Steel Longsword   2.5 lbs   1.4 kg    140,000 cg
+	// 1 Feather       .0002 lbs .0001 kg         10 cg
+	// apple seed                                  1 cg
+	// a single ant                                1 cg
+	// 1000 Feather       .2 lbs   0.1 kg        100 cg
+	// 1 worm           .002 lbs  .001 kg         10 cg
+	// 1 flower petal  .0002 lbs .0001 kg         10 cg
+	// 100 kg dumbbell             100 kg 10,000,000 cg
+	// mech suit                   500 kg 50,000,000 cg
+	// which while items weight this much.  You can have your total weight of your inventory in any measurement you want
+	// But even if you had MaxWeight of int32, that's still 21,470 kg represented in cg
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	int32 Weight = 1;
 
 	// Not necessarily a 'price', but perhaps some internal value for sorting, crafting, or other purposes.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
 	int32 ItemValue = 0;
-
 private:
 	// Note: These are for unchanging values. If you need dynamic values use the StatTags in RuntimeItemInstance.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Stats", meta = (TitleProperty = "Tag", DisplayName = "Stat Tags"))
@@ -159,7 +161,6 @@ private:
 	// A cache of ItemType, Tags, Subtype
 	UPROPERTY(Transient) // not EditAnywhere, derived
 	FGameplayTagContainer CachedAllTags;
-
 public:
 	// The main StatTags that should be queried. Readonly
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Stats", meta = (DisplayName = "Stat Tags (Runtime)"))
@@ -221,7 +222,6 @@ public:
 	// If creating a 'runtime instance definition', we'd need to manually register it with the asset manager e.g. Experimental 
 	void RegisterItemDefinition(const URockItemDefinition* NewItem);
 	virtual UClass* GetWorldItemClass();
-
 private:
 	virtual void PostLoad() override;
 
