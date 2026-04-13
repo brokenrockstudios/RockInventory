@@ -119,12 +119,12 @@ public:
 
 	// An item can be 'multiple types' (e.g. a 'battery' can be a 'tool' and a 'battery')
 	// Item.Type.Weapon, Item.Type.Tool, Item.Type.Consumable
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(Categories="Item.Type,Item.Subtype"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(GameplayTagFilter="ItemType"))
 	FGameplayTagContainer ItemType;
 
 	// General purpose tags that can be used for filtering, sorting, or categorization.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(GameplayTagFilter = "ItemTags"))
 	// Item.Tag.Quality.Premium, Item.Tag.Elemental.Fire, Item.Tag.Slot.Face, Item.Tag.DestroyOnDeath, Item.Tag.Material.Steel
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(Categories="Resource,Item.Tag"))
 	FGameplayTagContainer ItemTags;
 
 	// Item rarity, e.g. Item.Rarity.Common, Item.Rarity.Uncommon, Item.Rarity.Rare, Item.Rarity.Epic, Item.Rarity.Legendary
@@ -133,22 +133,19 @@ public:
 
 	// The user facing final value will likely be derived from a combination.
 	// A lightweight item likely stacks and is multiplied by its stack count and may show decimals or not as see fit.
-	// It is assumed weight is something like centigrams. Though you could always go 'grams' and have some items weigh 0
-	// All of these fit well within the upper limit of int32 and int math is friendlier than float math.
-	// Unloaded M16     7.18 lbs  3.26 kg    326,000 cg
-	// Steel Longsword   2.5 lbs   1.4 kg    140,000 cg
-	// 1 Feather       .0002 lbs .0001 kg         10 cg
-	// apple seed                                  1 cg
-	// a single ant                                1 cg
-	// 1000 Feather       .2 lbs   0.1 kg        100 cg
-	// 1 worm           .002 lbs  .001 kg         10 cg
-	// 1 flower petal  .0002 lbs .0001 kg         10 cg
-	// 100 kg dumbbell             100 kg 10,000,000 cg
-	// mech suit                   500 kg 50,000,000 cg
-	// which while items weight this much.  You can have your total weight of your inventory in any measurement you want
-	// But even if you had MaxWeight of int32, that's still 21,470 kg represented in cg
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
-	int32 Weight = 1;
+	// Int math > float math.
+	// Unloaded M16     7.18 lbs  3.26 kg   3,260,000 mg
+	// Steel Longsword   2.5 lbs   1.4 kg   1,400,000 mg
+	// 1 Feather       .0002 lbs .0001 kg         100 mg
+	// apple seed                                  10 mg
+	// a single ant                                 2 mg
+	// 1000 Feather       .2 lbs   0.1 kg       1,000 mg
+	// 1 worm           .002 lbs  .001 kg         100 mg
+	// 1 flower petal  .0002 lbs .0001 kg         100 mg
+	// 100 kg dumbbell             100 kg 100,000,000 mg
+	// mech suit                   500 kg 500,000,000 mg
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(ToolTip="Weight in milligrams. 1g = 1000, 1kg = 1,000,000, 1kg ~ 2.2lbs"))
+	int64 Weight = 1000;
 
 	// Not necessarily a 'price', but perhaps some internal value for sorting, crafting, or other purposes.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
