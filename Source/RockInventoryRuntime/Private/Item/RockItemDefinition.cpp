@@ -98,15 +98,36 @@ void URockItemDefinition::GetAssetRegistryTags(FAssetRegistryTagsContext Context
 
 	Context.AddTag(FAssetRegistryTag(FPrimaryAssetId::PrimaryAssetDisplayNameTag, ItemId.ToString(), FAssetRegistryTag::TT_Alphabetical));
 
+	Context.AddTag(FAssetRegistryTag("FragmentCount", FString::FromInt(Fragments.Num()), FAssetRegistryTag::TT_Numerical));
+
 	// The following code is still experimental and heavily WIP
-	TSet<FName> Tokens;
+	int32 UnderscoreIdx;
+	TStringBuilder<256> FragmentTypes;
 	for (const FInstancedStruct& FragmentInstance : GetAllFragments())
 	{
+		FString FragmentName = FragmentInstance.GetScriptStruct()->GetName();
+		if (FragmentName.FindChar(TEXT('_'), UnderscoreIdx))
+		{
+			FragmentName = FragmentName.RightChop(UnderscoreIdx + 1);
+		}
+		FragmentTypes.Append(FragmentName);
+		FragmentTypes.Append(TEXT(","));
 		if (const FRockItemFragment* Fragment = FragmentInstance.GetPtr<FRockItemFragment>())
 		{
 			Fragment->GetAssetRegistryTags(Context);
 		}
 	}
+	if (FragmentTypes.Len() > 0)
+	{
+		// Remove trailing comma
+		FragmentTypes.RemoveSuffix(1);
+	}
+	Context.AddTag(
+		FAssetRegistryTag(
+			TEXT("ItemFragment"),
+			FragmentTypes.ToString(),
+			FAssetRegistryTag::TT_Alphabetical
+		));
 }
 
 
