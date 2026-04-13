@@ -92,28 +92,42 @@ void URockItemDefinition::RebuildCachedTags()
 	CachedAllTags.AppendTags(ItemTags);
 }
 
+void URockItemDefinition::SortFragments()
+{
+	Fragments.Sort(
+		[](const FInstancedStruct& A, const FInstancedStruct& B)
+		{
+			const FRockItemFragment* FragA = A.GetPtr<FRockItemFragment>();
+			const FRockItemFragment* FragB = B.GetPtr<FRockItemFragment>();
+			const int32 PriorityA = FragA ? FragA->GetSortOrder() : 0;
+			const int32 PriorityB = FragB ? FragB->GetSortOrder() : 0;
+			return PriorityA < PriorityB;
+		});
+}
+
+static FString StripBeforeFirstUnderscore(FString FragmentName)
+{
+	int32 UnderscoreIdx;
+	if (FragmentName.FindChar(TEXT('_'), UnderscoreIdx))
+	{
+		FragmentName = FragmentName.RightChop(UnderscoreIdx + 1);
+	}
+	return FragmentName;
+}
+
 void URockItemDefinition::GetAssetRegistryTags(FAssetRegistryTagsContext Context) const
 {
 	Super::GetAssetRegistryTags(Context);
 
 	Context.AddTag(FAssetRegistryTag(FPrimaryAssetId::PrimaryAssetDisplayNameTag, ItemId.ToString(), FAssetRegistryTag::TT_Alphabetical));
-
 	Context.AddTag(FAssetRegistryTag("FragmentCount", FString::FromInt(Fragments.Num()), FAssetRegistryTag::TT_Numerical));
-
-	// The following code is still experimental and heavily WIP
-	int32 UnderscoreIdx;
 	TStringBuilder<256> FragmentTypes;
 	for (const FInstancedStruct& FragmentInstance : GetAllFragments())
 	{
-		FString FragmentName = FragmentInstance.GetScriptStruct()->GetName();
-		if (FragmentName.FindChar(TEXT('_'), UnderscoreIdx))
-		{
-			FragmentName = FragmentName.RightChop(UnderscoreIdx + 1);
-		}
-		FragmentTypes.Append(FragmentName);
-		FragmentTypes.Append(TEXT(","));
 		if (const FRockItemFragment* Fragment = FragmentInstance.GetPtr<FRockItemFragment>())
 		{
+			FragmentTypes.Append(StripBeforeFirstUnderscore(FragmentInstance.GetScriptStruct()->GetName()));
+			FragmentTypes.Append(TEXT(","));
 			Fragment->GetAssetRegistryTags(Context);
 		}
 	}
@@ -150,10 +164,10 @@ void URockItemDefinition::PostLoad()
 			FragmentPtr->OnPostLoad(this);
 		}
 	}
-
 	SetDefaultItemId();
 	RebuildStatTags();
 	RebuildCachedTags();
+	SortFragments();
 }
 
 #if WITH_EDITOR
@@ -187,6 +201,7 @@ void URockItemDefinition::PostEditChangeProperty(struct FPropertyChangedEvent& P
 				Data->OnPostEditChangeProperty(this);
 			}
 		}
+		SortFragments();
 	}
 
 	static const FName StatTagDefaultsName = GET_MEMBER_NAME_CHECKED(URockItemDefinition, StatTagDefaults);

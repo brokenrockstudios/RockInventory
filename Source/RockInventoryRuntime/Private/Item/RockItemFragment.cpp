@@ -4,6 +4,14 @@
 
 #include "UObject/AssetRegistryTagsContext.h"
 
+void FRockItemFragment::OnPostLoad(const URockItemDefinition* OwnerDef)
+{
+}
+
+void FRockItemFragment::OnPostEditChangeProperty(const URockItemDefinition* OwnerDef)
+{
+}
+
 void FRockItemFragment::OnItemCreated(FRockItemStack& ItemStack) const
 {
 }
@@ -16,7 +24,6 @@ bool FRockItemFragment::CanCombineItemStack(const FRockItemStack& ItemStack, con
 void FRockItemFragment::GetAssetRegistryTags(FAssetRegistryTagsContext Context) const
 {
 }
-
 
 #if WITH_EDITOR
 inline EDataValidationResult FRockItemFragment::IsDataValid(FDataValidationContext& Context, const URockItemDefinition* OwnerDef) const

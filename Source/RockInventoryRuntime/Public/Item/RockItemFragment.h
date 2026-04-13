@@ -20,9 +20,12 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment
 	GENERATED_BODY()
 	FRockItemFragment() = default;
 
-	virtual void OnPostLoad(const URockItemDefinition* OwnerDef) {}
-	virtual void OnPostEditChangeProperty(const URockItemDefinition* OwnerDef) {}
-	// Rule of five: Because the presence of a user defined destructor should declare all five special member functions
+	// ~Begin Lifecycle events for the fragment. These are called by the owning ItemDefinition or ItemInstance at appropriate times.
+	virtual void OnPostLoad(const URockItemDefinition* OwnerDef);
+	virtual void OnPostEditChangeProperty(const URockItemDefinition* OwnerDef);
+	// ~End Lifecycle event
+
+	// Rule of five: Because the presence of a user-defined destructor should declare all five special member functions
 	virtual ~FRockItemFragment() = default;
 	// Copy
 	FRockItemFragment(const FRockItemFragment&) = default;
@@ -44,6 +47,12 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment
 	// TODO: Add if/when actually have a good use case for this. Such as differentiating the duplicate fragments?
 	// UPROPERTY(EditAnywhere, Category = "Inventory", meta = (Categories="FragmentTags"))
 	// FGameplayTag FragmentTag = FGameplayTag::EmptyTag;
+
+	// Fragments will auto-sort themselves in the ItemDefinition and/or Instance based upon this value.
+	// This enables putting more frequently queried fragments earlier in the TArray to offer slight optimization.
+	// COLD PATH: _SetStats that only happens once on item initialization should have a very high positive number.
+	// HOT PATH: _Resource, or _Usable likely gets queried a lot more, should have a negative number
+	virtual int32 GetSortOrder() const { return 0; }
 
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context, const URockItemDefinition* OwnerDef) const;
