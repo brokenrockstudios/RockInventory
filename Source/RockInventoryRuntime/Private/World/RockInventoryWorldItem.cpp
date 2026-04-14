@@ -35,9 +35,25 @@ ARockInventoryWorldItemBase::ARockInventoryWorldItemBase(const FObjectInitialize
 void ARockInventoryWorldItemBase::BeginPlay()
 {
 	Super::BeginPlay();
-	// Is this redundant if PostEditChangeProperty already did it?
+	// TODO: Is this redundant if PostEditChangeProperty already did it?
 	// What if it was stale, then we would. Need more testing.
 	SetItemStack(ItemStack);
+
+
+	if (HasAuthority() && ItemSeed == 0 && !ItemStack.bInitialized)
+	{
+		ItemSeed = FMath::Rand();
+		// random for runtime spawned
+		//? GetTypeHash(GetFName())  // stable for placed items
+		//:
+
+		// If the ItemDef wants some randomness,  
+		// e.g. is the gun blue or red painted.  Use the above seed and do the appropriate things
+
+		// Can the gun spawn with an optic or laser or muzzle?
+		// Perhaps we'd need to ask the Settings what the 'rules' are regarding items.
+		// This is the place to leverage that
+	}
 }
 
 void ARockInventoryWorldItemBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

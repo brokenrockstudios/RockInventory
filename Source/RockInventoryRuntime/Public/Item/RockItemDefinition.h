@@ -144,7 +144,7 @@ public:
 	// 1 flower petal  .0002 lbs .0001 kg         100 mg
 	// 100 kg dumbbell             100 kg 100,000,000 mg
 	// mech suit                   500 kg 500,000,000 mg
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(ToolTip="Weight in milligrams. 1g = 1000, 1kg = 1,000,000, 1kg ~ 2.2lbs"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information", meta=(ToolTip="Weight in milligrams. 1g = 1,000 mg, 1kg = 1,000,000 mg, 1kg ~ 2.2lbs"))
 	int64 Weight = 1000;
 
 	// Not necessarily a 'price', but perhaps some internal value for sorting, crafting, or other purposes.

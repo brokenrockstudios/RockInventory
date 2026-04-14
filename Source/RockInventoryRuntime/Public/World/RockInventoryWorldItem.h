@@ -35,6 +35,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory")
+	int32 ItemSeed = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_ItemStack, Category = "RockInventory")
 	FRockItemStack ItemStack;
 	UFUNCTION()
