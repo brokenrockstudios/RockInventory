@@ -68,10 +68,10 @@ bool FRockItemStack::IsValid() const
 void FRockItemStack::Reset()
 {
 	Definition = nullptr;
+	RuntimeInstance = nullptr;
 	StackCount = 0;
 	CustomValue1 = 0;
 	CustomValue2 = 0;
-	RuntimeInstance = nullptr;
 	bInitialized = 0;
 }
 
