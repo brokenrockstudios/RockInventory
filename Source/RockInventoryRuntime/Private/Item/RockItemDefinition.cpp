@@ -94,7 +94,7 @@ void URockItemDefinition::RebuildCachedTags()
 
 void URockItemDefinition::SortFragments()
 {
-	Fragments.Sort(
+	Fragments.StableSort(
 		[](const FInstancedStruct& A, const FInstancedStruct& B)
 		{
 			const FRockItemFragment* FragA = A.GetPtr<FRockItemFragment>();

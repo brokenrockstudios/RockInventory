@@ -2,6 +2,7 @@
 
 #include "RockInventoryEditor.h"
 
+
 #define LOCTEXT_NAMESPACE "FRockInventoryEditorModule"
 
 void FRockInventoryEditorModule::StartupModule()
