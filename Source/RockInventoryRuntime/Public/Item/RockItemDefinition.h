@@ -232,9 +232,8 @@ private:
 	// If it did, we could simply set the StatTags and avoid all of this. But since it doesn't, we need to manually copy the values over.
 	void RebuildStatTags();
 	void RebuildCachedTags();
-	void SortFragments();
-	
 public:
+	void SortFragments();
 	virtual void GetAssetRegistryTags(FAssetRegistryTagsContext Context) const override;
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

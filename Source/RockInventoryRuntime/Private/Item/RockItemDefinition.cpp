@@ -167,7 +167,6 @@ void URockItemDefinition::PostLoad()
 	SetDefaultItemId();
 	RebuildStatTags();
 	RebuildCachedTags();
-	SortFragments();
 }
 
 #if WITH_EDITOR
@@ -201,7 +200,6 @@ void URockItemDefinition::PostEditChangeProperty(struct FPropertyChangedEvent& P
 				Data->OnPostEditChangeProperty(this);
 			}
 		}
-		SortFragments();
 	}
 
 	static const FName StatTagDefaultsName = GET_MEMBER_NAME_CHECKED(URockItemDefinition, StatTagDefaults);
