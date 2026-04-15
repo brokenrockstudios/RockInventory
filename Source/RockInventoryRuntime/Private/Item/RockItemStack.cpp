@@ -72,6 +72,7 @@ void FRockItemStack::Reset()
 	CustomValue1 = 0;
 	CustomValue2 = 0;
 	RuntimeInstance = nullptr;
+	bInitialized = 0;
 }
 
 bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
