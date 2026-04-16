@@ -62,7 +62,7 @@ void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewI
 	UE_LOG(LogRockInventory, Warning, TEXT("Registered item %s with ID %s"), *NewItem->GetName(), *AssetId.ToString());
 }
 
-UClass* URockItemDefinition::GetWorldItemClass()
+UClass* URockItemDefinition::GetWorldItemClass() const
 {
 	// If you need different behavior, make a subclass of URockItemDefinition and override this function.
 	// Such as adding a fragment lookup or having the data be part of ItemDefinition.

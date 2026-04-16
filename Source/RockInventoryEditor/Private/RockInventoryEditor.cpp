@@ -2,11 +2,16 @@
 
 #include "RockInventoryEditor.h"
 
+#include "RockItemThumbnailRenderer.h"
+#include "Item/RockItemDefinition.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+
 
 #define LOCTEXT_NAMESPACE "FRockInventoryEditorModule"
 
 void FRockInventoryEditorModule::StartupModule()
 {
+	UThumbnailManager::Get().RegisterCustomRenderer(URockItemDefinition::StaticClass(), URockItemThumbnailRenderer::StaticClass());
 }
 
 void FRockInventoryEditorModule::ShutdownModule()

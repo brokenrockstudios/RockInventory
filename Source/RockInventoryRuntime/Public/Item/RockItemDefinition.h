@@ -218,7 +218,7 @@ public:
 
 	// If creating a 'runtime instance definition', we'd need to manually register it with the asset manager e.g. Experimental 
 	void RegisterItemDefinition(const URockItemDefinition* NewItem);
-	virtual UClass* GetWorldItemClass();
+	virtual UClass* GetWorldItemClass() const;
 private:
 	virtual void PostLoad() override;
 
