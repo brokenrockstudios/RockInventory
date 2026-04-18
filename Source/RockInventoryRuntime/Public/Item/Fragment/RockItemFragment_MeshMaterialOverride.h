@@ -24,7 +24,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment_MeshMaterialOverride : public 
 {
 	GENERATED_BODY()
 public:
-	// Sparse — null entries mean "leave slot alone"
+	// Sparse - null entries mean "leave slot alone"
 	UPROPERTY(EditAnywhere)
 	TArray<FRockMaterialSlotOverride> SlotOverrides;
 

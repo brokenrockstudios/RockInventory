@@ -48,7 +48,7 @@ namespace MenuExtension_RockItemDefinition
 			FDataValidationContext ValidationContext;
 			EDataValidationResult Result = ItemDef->IsDataValid(ValidationContext);
 
-			// Surface results however you like — Message Log is the idiomatic path
+			// Surface results however you like - Message Log is the idiomatic path
 			TArray<FText> Warnings;
 			TArray<FText> Errors;
 			ValidationContext.SplitIssues(Warnings, Errors);
