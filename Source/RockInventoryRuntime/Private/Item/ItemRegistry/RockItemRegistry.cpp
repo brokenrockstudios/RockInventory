@@ -34,6 +34,10 @@ URockItemRegistrySubsystem* URockItemRegistrySubsystem::GetInstance()
 void URockItemRegistrySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	if (!GetWorld()->IsGameWorld())
+	{
+		return;
+	}
 	
 	UE_LOG(LogRockItemRegistry, Log, TEXT("Initializing RockItemRegistry..."));
 	BuildRegistry();

@@ -153,6 +153,10 @@ void URockItemDragDropOperation::PlayFeedbackForOutcome_Implementation(const FRo
 					// Play a different sound if dropped on ground instead of into another inventory?
 				}
 			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("URockItemDragDropOperation::PlayFeedbackForOutcome_Implementation: Unhandled success reason '%s'. Consider implementing feedback for this case."), *Outcome.Reason.ToString());
+			}
 			break;
 		}
 	case ERockDropResult::Rejected:
