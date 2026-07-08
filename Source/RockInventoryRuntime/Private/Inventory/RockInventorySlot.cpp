@@ -12,7 +12,7 @@ FRockInventorySlotEntry::FRockInventorySlotEntry() :
 {
 }
 
-FRockInventorySlotEntry& FRockInventorySlotEntry::Invalid()
+const FRockInventorySlotEntry& FRockInventorySlotEntry::Invalid()
 {
 	static FRockInventorySlotEntry InvalidSlot;
 	return InvalidSlot;

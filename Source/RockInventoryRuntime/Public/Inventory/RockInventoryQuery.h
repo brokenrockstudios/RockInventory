@@ -27,7 +27,7 @@ class URockItemDefinition;
  * Usage: combined queries via And* chaining:
  * All unlocked slots in equipment sections that contain a weapon
  * FRockInventoryQuery Q = FRockInventoryQuery::ForSectionWithTag(Tag::Section::Equipment)
- * 	.AndSlot([](const FRockInventorySlot& Slot)	{ return !Slot.bIsLocked; })
+ * 	.AndSlot([](const FRockInventorySlotEntry& Slot)	{ return !Slot.bIsLocked; })
  * 	.AndItem([](const FRockItemStack& Stack) { return Stack.ItemDef && Stack.ItemDef->ItemType.HasTag(Tag::Item::Weapon); });
  * 	
 * 	Usage - fully custom:

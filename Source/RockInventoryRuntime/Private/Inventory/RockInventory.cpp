@@ -196,7 +196,7 @@ const FRockItemStack* URockInventory::GetItemByHandlePtr(const FRockItemStackHan
 	}
 
 	const FRockItemStack& Item = ItemData[Index];
-	if (Item.Generation != InItemHandle.GetGeneration()) { return nullptr; }
+	if (Item.GetGeneration() != InItemHandle.GetGeneration()) { return nullptr; }
 
 	return &Item;
 }
@@ -218,7 +218,7 @@ const FRockInventorySlotEntry* URockInventory::GetSlotByItemHandlePtr(const FRoc
 		return nullptr;
 	}
 	const FRockItemStack& Item = ItemData[index];
-	if (Item.Generation != InItemHandle.GetGeneration()) { return nullptr; }
+	if (Item.GetGeneration() != InItemHandle.GetGeneration()) { return nullptr; }
 
 	for (const FRockInventorySlotEntry& SlotEntry : SlotData)
 	{
@@ -380,9 +380,9 @@ void URockInventory::RegisterReplicationWithOwner()
 	// Iterate over any existing items and register them.
 	for (const FRockItemStack& Item : ItemData)
 	{
-		if (Item.RuntimeInstance)
+		if (Item.GetRuntimeInstance())
 		{
-			Item.RuntimeInstance->RegisterReplicationWithOwner();
+			Item.GetRuntimeInstance()->RegisterReplicationWithOwner();
 		}
 	}
 }
@@ -402,9 +402,9 @@ void URockInventory::UnregisterReplicationWithOwner()
 	// Iterate over items and unregister them?
 	for (const FRockItemStack& Item : ItemData)
 	{
-		if (Item.RuntimeInstance)
+		if (Item.GetRuntimeInstance())
 		{
-			Item.RuntimeInstance->UnregisterReplicationWithOwner();
+			Item.GetRuntimeInstance()->UnregisterReplicationWithOwner();
 		}
 	}
 }
@@ -675,7 +675,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 {
 	// We shouldn't have items without a definition
 	checkf(InItemStack.IsValid(), TEXT("AddItemToInventory - Invalid item stack"));
-	checkf(InItemStack.Definition, TEXT("AddItemToInventory - Invalid item definition"));
+	checkf(InItemStack.GetDefinition(), TEXT("AddItemToInventory - Invalid item definition"));
 
 	// Let's make sure we are owned by an actor with authority
 	AActor* OwningActor = GetOwningActor();

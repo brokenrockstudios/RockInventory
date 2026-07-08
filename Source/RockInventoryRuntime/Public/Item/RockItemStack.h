@@ -4,12 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "RockItemStackHandle.h"
+#include "RockItemStackMutationKey.h"
 #include "Iris/ReplicationState/IrisFastArraySerializer.h"
 #include "Library/RockInventoryHelpers.h"
 #include "Net/Serialization/FastArraySerializer.h"
 
 #include "RockItemStack.generated.h"
 
+class URockInventory;
 struct FGameplayTag;
 class URockItemInstance;
 class URockItemDefinition;
@@ -30,15 +32,11 @@ public:
 	FRockItemStackHandle ItemHandle;
 	
 private:
-	// Generally this item stack is read only.
+	// Generally, this item stack is read-only.
 	// Because to modify it, requires special attention to marking the containing array dirty for replication.
-	// Which should be exclusively handled by this plugin and minimal amount of other classes
+	// Which should be exclusively handled by this plugin and minimal number of other classes
 	friend class URockInventory;
-	friend class URockItemStackLibrary;
 	friend class URockInventoryLibrary;
-	friend class ARockInventoryWorldItemBase; // I don't like this being here, redesign to not need?
-	friend struct FRockItemFragment_SetStats;
-	friend struct FRockInventoryItemContainer;
 	
 	/** Unique identifier for the item */
 	UPROPERTY(EditAnywhere)
@@ -65,7 +63,7 @@ private:
 	/** This is used to detect stale item handles that may have pointed to previous items.
 	 * Since we don't 'shrink' the inventory array, we need to have a way to indicate that this item stack is stale. Thus the Generation */
 	UPROPERTY(VisibleAnywhere)
-	uint8 Generation = 0;
+	uint16 Generation  = 0;
 
 	// If we are going to call create RuntimeInstance or other options that
 	// may modify the item only on first creation.
@@ -83,6 +81,11 @@ public:
 	int32 GetMaxStackCount() const;
 	URockItemInstance* GetRuntimeInstance() const;
 	bool CanStackWith(const FRockItemStack& Other) const;
+	
+	// Special: Requires Special Key. Do not attempt to use it unless you understand what you are doing.
+	void SetStackCount(int32 NewStackCount, const FRockItemStackMutationKey& MutationKey);
+	void SetCustomValue1(int32 NewCustomValue1, const FRockItemStackMutationKey& MutationKey);
+	void SetCustomValue2(int32 NewCustomValue2, const FRockItemStackMutationKey& MutationKey);
 
 	// Custom
 	int32 GetCustomValue1() const;
@@ -93,6 +96,9 @@ public:
 	// Util
 	FString GetDebugString() const;
 	bool IsValid() const;
+	bool IsInitialized() const;
+	int32 GetGeneration() const;
+	
 	void Reset();
 	void TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory);
 
@@ -103,6 +109,11 @@ public:
 
 	// create invalid stack
 	static const FRockItemStack& Invalid();
+	
+	// Do they need to match exactly? Or can generation bits be lower than the item stack generation
+	// FRockItemStack::Generation is bounded to uint8 or uint16. But generation bits can be anything. So realistically
+	// we could have a uint16 here, but have generation bits be 12 bits. Which would free up more 'index' range
+	static_assert(FRockItemStackHandle::GENERATION_BITS <= sizeof(decltype(FRockItemStack::Generation)) * 8, "Handle widths can be lower than and item's storage generation");
 };
 
 template <>

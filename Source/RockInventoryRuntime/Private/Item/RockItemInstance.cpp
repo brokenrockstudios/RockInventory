@@ -3,6 +3,7 @@
 #include "Item/RockItemInstance.h"
 
 #include "RockInventoryLogging.h"
+#include "Inventory/RockInventory.h"
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
 #include "Library/RockInventoryLibrary.h"

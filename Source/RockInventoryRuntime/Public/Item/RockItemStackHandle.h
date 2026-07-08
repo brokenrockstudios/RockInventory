@@ -8,8 +8,8 @@
 /**
  * Unique handle to a stack of items in the inventory system.
  * Provides a stable reference that can be used to locate and manipulate item stacks.
- * The handle combines an index (lower 24 bits) (16 million slots) and a generation ID (upper 8 bits) (255 slots)
- * to allow for stable references even when slots are reused.
+ * The handle combines an index and a generation ID to ensure uniqueness and validity.
+ * To allow for stable references even when slots are reused.
  */
 USTRUCT(BlueprintType)
 struct alignas(4) ROCKINVENTORYRUNTIME_API FRockItemStackHandle
@@ -23,15 +23,16 @@ private:
 
 public:
 	/** Bit counts for index and generation components */
-	static constexpr uint32 INDEX_BITS = 20; // 20 bits ~ 1 million unique items in a single array
-	static constexpr uint32 GENERATION_BITS = 12; // 12 bits = 4096 generations
+	static constexpr uint32 INDEX_BITS = 16;
+	static constexpr uint32 GENERATION_BITS = 16;
 
 	/** Bit masks and shifts based on bit counts */
-	static constexpr uint32 INDEX_MASK = (1 << INDEX_BITS) - 1; // Masks the lower 24 bits
+	static constexpr uint32 INDEX_MASK = (1 << INDEX_BITS) - 1; // Masks the lower bits
 	static constexpr uint32 GENERATION_SHIFT = INDEX_BITS; // Bits to shift for generation
-	static constexpr uint32 GENERATION_MASK = ((1 << GENERATION_BITS) - 1); // Maximum generation count (8 bits, 0-255)
-	static constexpr uint32 GENERATION_HANDLE_MASK = GENERATION_MASK << GENERATION_SHIFT; // Masks the upper 8 bits in complete handle
-
+	static constexpr uint32 GENERATION_MASK = ((1 << GENERATION_BITS) - 1); // Maximum generation count
+	static constexpr uint32 GENERATION_HANDLE_MASK = GENERATION_MASK << GENERATION_SHIFT; // Masks the upper bits in complete handle
+	
+	
 	// Compile-time check to ensure we don't exceed 32 bits
 	static_assert(INDEX_BITS + GENERATION_BITS == 32, "Bit allocation exceeds 32 bits");
 
@@ -40,8 +41,8 @@ public:
 
 	/**
 	 * Creates a handle with specific index and generation values
-	 * @param InIndex - The index component. 20 bits (0-1048576)
-	 * @param InGeneration - The generation component. 12 bits (0-4096)
+	 * @param InIndex - The index component.
+	 * @param InGeneration - The generation component.
 	 */
 	static FRockItemStackHandle Create(uint32 InIndex, uint32 InGeneration);
 
@@ -51,10 +52,10 @@ public:
 	/** Returns true if this handle refers to a valid item stack */
 	bool IsValid() const;
 
-	/** Gets the index portion of the handle (lower 24 bits) */
+	/** Gets the index portion of the handle (lower bits) */
 	int32 GetIndex() const;
 
-	/** Gets the generation portion of the handle (upper 8 bits) */
+	/** Gets the generation portion of the handle (upper bits) */
 	int32 GetGeneration() const;
 
 	/** Converts the handle to a human-readable string representation */

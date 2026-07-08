@@ -29,7 +29,7 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySlotEntry : public FFastArraySeria
 
 public:
 	FRockInventorySlotEntry();
-	static FRockInventorySlotEntry& Invalid();
+	static const FRockInventorySlotEntry& Invalid();
 
 	/** The actual item in this slot */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

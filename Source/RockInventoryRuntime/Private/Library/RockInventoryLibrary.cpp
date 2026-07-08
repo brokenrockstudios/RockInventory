@@ -86,7 +86,7 @@ bool URockInventoryLibrary::LootItemToInventory(
 	}
 	// What should we do if we were only able to partially place the item?
 	// Update remaining OutExcess
-	if (ItemStackCopy.StackCount <= 0)
+	if (ItemStackCopy.GetStackCount() <= 0)
 	{
 		OutExcess = 0;
 		return true;
@@ -149,7 +149,7 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 	{
 		// Partial removal - just update the stack size
 		Item.StackCount = CurrentStackSize - Quantity;
-		checkf(Item.StackCount > 0, TEXT("ItemStack size is 0 or negative. Should have used full stack move path"));
+		checkf(Item.GetStackCount() > 0, TEXT("ItemStack size is 0 or negative. Should have used full stack move path"));
 		Inventory->SetItemByHandle(CachedItemHandle, Item);
 	}
 	Inventory->SetSlotByHandle(SlotHandle, SourceSlot);
@@ -323,18 +323,18 @@ bool URockInventoryLibrary::MoveItem(
 		// Update target item with new stack size
 		FRockItemStack UpdatedTargetItem = TargetItem;
 		UpdatedTargetItem.StackCount = targetCurrentStack + amountToMove;
-		checkf(UpdatedTargetItem.StackCount <= targetMaxStack,
+		checkf(UpdatedTargetItem.GetStackCount() <= targetMaxStack,
 		       TEXT("Updated target item stack size exceeds max: %d > %d"),
-		       UpdatedTargetItem.StackCount,
+		       UpdatedTargetItem.GetStackCount(),
 		       targetMaxStack);
 		TargetInventory->SetItemByHandle(ValidatedTargetSlot.ItemHandle, UpdatedTargetItem);
 
 		// Update source item with remaining stack size
 		FRockItemStack UpdatedSourceItem = ValidatedSourceItem;
 		UpdatedSourceItem.StackCount = sourceCurrentStack - amountToMove;
-		checkf(UpdatedSourceItem.StackCount >= 0,
+		checkf(UpdatedSourceItem.GetStackCount() >= 0,
 		       TEXT("Updated source item stack size is negative: %d"),
-		       UpdatedSourceItem.StackCount);
+		       UpdatedSourceItem.GetStackCount());
 
 		const bool isSourceEmptied = (UpdatedSourceItem.GetStackCount() <= 0);
 

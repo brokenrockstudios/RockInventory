@@ -3,13 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RockItemStack.h"
-#include "Inventory/RockInventory.h"
-#include "Inventory/RockInventorySlot.h"
-#include "Inventory/RockSlotHandle.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagStack.h"
 #include "GameplayTagStackListenerInterface.h"
+#include "RockItemStack.h"
 #include "UObject/Object.h"
 #include "RockItemInstance.generated.h"
 
@@ -40,11 +37,6 @@ public:
 	TObjectPtr<URockInventory> OwningInventory = nullptr;
 	// TODO: Replicated Owner since UObject's Owner doesn't replicate 
 
-	/** Handle to the slot in the inventory where this item instance is located */
-	// Not currently functional. Might end up removing it? Unless we have a super compelling reason to keep it
-	// UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
-	//FRockInventorySlotHandle SlotHandle;
-
 	// --- Replicated ---
 	/** Item Handle */
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
@@ -58,7 +50,7 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	FGameplayTagStackContainer StatTags;
 
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "RockInventory|Stats")
 	TObjectPtr<URockInventory> NestedInventory = nullptr;
 
 	// --- Not Replicated ---

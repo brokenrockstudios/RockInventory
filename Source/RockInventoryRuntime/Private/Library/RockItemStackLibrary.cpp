@@ -32,7 +32,7 @@ URockItemInstance* URockItemStackLibrary::GetRuntimeInstance(const FRockItemStac
 
 int32 URockItemStackLibrary::GetStackSize(const FRockItemStack& ItemStack)
 {
-	return ItemStack.StackCount;
+	return ItemStack.GetStackCount();
 }
 
 FIntPoint URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
@@ -119,5 +119,5 @@ bool URockItemStackLibrary::IsValid(const FRockItemStack& ItemStack)
 
 FName URockItemStackLibrary::GetDefinitionMemberName()
 {
-	return GET_MEMBER_NAME_CHECKED(FRockItemStack, Definition);
+	return GET_MEMBER_NAME_CHECKED(FRockItemStack, GetDefinition());
 }

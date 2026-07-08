@@ -5,10 +5,7 @@
 #include "RockAssetLibrary.h"
 #include "RockInventoryLogging.h"
 #include "Components/RockInventoryComponent.h"
-#include "Engine/AssetManager.h"
-#include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
-#include "Item/RockItemInstance.h"
 #include "Item/Fragment/RockItemFragment_MeshMaterialOverride.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Misc/RockInventoryDeveloperSettings.h"
@@ -28,8 +25,8 @@ ARockInventoryWorldItemBase::ARockInventoryWorldItemBase(const FObjectInitialize
 
 	RootComponent = StaticMeshComponent; // Set the root component to the static mesh component
 
-	ItemStack = FRockItemStack();
-	ItemStack.StackCount = 1;
+	// ItemStack = FRockItemStack();
+	// ItemStack.StackCount = 1;
 }
 
 void ARockInventoryWorldItemBase::BeginPlay()
@@ -40,7 +37,7 @@ void ARockInventoryWorldItemBase::BeginPlay()
 	SetItemStack(ItemStack);
 
 
-	if (HasAuthority() && ItemSeed == 0 && !ItemStack.bInitialized)
+	if (HasAuthority() && ItemSeed == 0 && !ItemStack.IsInitialized())
 	{
 		ItemSeed = FMath::Rand();
 		// random for runtime spawned
@@ -86,7 +83,7 @@ void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)
 	URockInventoryComponent* InventoryComp = InInstigator->GetComponentByClass<URockInventoryComponent>();
 	if (InventoryComp)
 	{
-		int32 outExcess = ItemStack.StackCount;
+		int32 outExcess = ItemStack.GetStackCount();
 		FRockInventorySlotHandle outHandle;
 
 		if (URockInventoryLibrary::LootItemToInventory(InventoryComp->Inventory, ItemStack, outHandle, outExcess))
@@ -107,8 +104,8 @@ void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)
 
 void ARockInventoryWorldItemBase::OnLooted(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 Excess)
 {
-	ItemStack.StackCount = Excess;
-	if (ItemStack.StackCount <= 0)
+	ItemStack.SetStackCount(Excess, {});
+	if (ItemStack.GetStackCount() <= 0)
 	{
 		this->Destroy();
 	}

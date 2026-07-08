@@ -2,7 +2,7 @@
 
 #include "Item/RockItemStack.h"
 
-#include "RockInventoryLogging.h"
+#include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
 
@@ -65,6 +65,16 @@ bool FRockItemStack::IsValid() const
 	return (StackCount > 0) && Definition;
 }
 
+bool FRockItemStack::IsInitialized() const
+{
+	return bInitialized;
+}
+
+int32 FRockItemStack::GetGeneration() const
+{
+	return Generation;
+}
+
 void FRockItemStack::Reset()
 {
 	Definition = nullptr;
@@ -102,6 +112,21 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 	// Check runtime instance's fragments?
 
 	return true;
+}
+
+void FRockItemStack::SetStackCount(int32 NewStackCount, const FRockItemStackMutationKey& MutationKey)
+{ 
+	StackCount = NewStackCount;
+}
+
+void FRockItemStack::SetCustomValue1(int32 NewCustomValue1, const FRockItemStackMutationKey& MutationKey)
+{
+	CustomValue1 = NewCustomValue1;
+}
+
+void FRockItemStack::SetCustomValue2(int32 NewCustomValue2, const FRockItemStackMutationKey& MutationKey)
+{
+	CustomValue2 = NewCustomValue2;
 }
 
 int32 FRockItemStack::GetCustomValue1() const
@@ -231,7 +256,7 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 			// Refresh the Cached Definition on the instance if it exists.
 			if (CurrentItem.GetRuntimeInstance())
 			{
-				CurrentItem.RuntimeInstance->CachedDefinition = CurrentItem.GetDefinition();
+				CurrentItem.GetRuntimeInstance()->CachedDefinition = CurrentItem.GetDefinition();
 			}
 
 			if (!bWasPreviouslyValid)
