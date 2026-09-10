@@ -6,6 +6,8 @@
 #include "Inventory/RockInventory.h"
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
+#include "Item/State/RockItemState_Metadata.h"
+#include "Item/State/RockItemState_NestedInventory.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
 
@@ -15,29 +17,30 @@ void URockItemInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(URockItemInstance, OwningInventory);
 	DOREPLIFETIME(URockItemInstance, ItemHandle);
-	DOREPLIFETIME(URockItemInstance, StatTags);
-	DOREPLIFETIME(URockItemInstance, NestedInventory);
-	
-	// Do we want to replicate the CachedDefinition?
-	// When the ItemInstance is replicated on ItemStack, we can probably set it locally there?
-	
-	// DOREPLIFETIME(URockItemInstance, SlotHandle);
-	// DOREPLIFETIME(URockItemInstance, CachedDefinition);
+	DOREPLIFETIME(URockItemInstance, States);
 }
-
 
 void URockItemInstance::SetDefinition(const TObjectPtr<URockItemDefinition>& object)
 {
 	CachedDefinition = object;
 
-	if (!CachedDefinition->InventoryConfig.IsNull())
+	// Give every fragment a chance to add whatever runtime state(s) it requires (e.g. nested inventory, durability).
+	for (const FInstancedStruct& Fragment : CachedDefinition->GetAllFragments())
 	{
-		if (!NestedInventory)
+		if (const FRockItemFragment* FragmentPtr = Fragment.GetPtr<FRockItemFragment>())
 		{
-			NestedInventory = NewObject<URockInventory>(this);
-			NestedInventory->Init(CachedDefinition->InventoryConfig.LoadSynchronous());
+			FragmentPtr->OnInstanceCreated(this);
 		}
 	}
+}
+
+URockInventory* URockItemInstance::GetNestedInventory() const
+{
+	if (const FRockItemState_NestedInventory* State = FindState<FRockItemState_NestedInventory>())
+	{
+		return State->NestedInventory;
+	}
+	return nullptr;
 }
 
 const URockItemDefinition* URockItemInstance::GetItemDefinition() const
@@ -53,12 +56,31 @@ bool URockItemInstance::IsSupportedForNetworking() const
 void URockItemInstance::PostInitProperties()
 {
 	Super::PostInitProperties();
-	StatTags.SetListenerObject(this);
+	RegisterStatTagsListener();
+}
+
+void URockItemInstance::OnRep_States()
+{
+	RegisterStatTagsListener();
+
+	// States without their own per-element replication callback (e.g. plain FGameplayTagContainer
+	// Tags, unlike the FastArraySerializer-backed StatTags) rely on this whole-array OnRep to notify
+	// that something changed. StatTags will end up notifying twice (once here, once via its own
+	// FastArraySerializer callback), which is harmless since BroadcastItemChanged is idempotent-ish UI refresh.
+	NotifyStateChanged();
+}
+
+void URockItemInstance::RegisterStatTagsListener()
+{
+	// TODO: This should happen somewhere else.
+	if (FRockItemState_Metadata* itemMetadata = FindMutableState<FRockItemState_Metadata>())
+	{
+		itemMetadata->OnStateAdded(this);
+	}
 }
 
 void URockItemInstance::BeginDestroy()
 {
-	// Clean up any resources or references
 	if (OwningInventory)
 	{
 		OwningInventory->GetOwningActor()->RemoveReplicatedSubObject(this);
@@ -69,46 +91,12 @@ void URockItemInstance::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-int32 URockItemInstance::GetStatTagCount(FGameplayTag Tag) const
-{
-	return StatTags.GetStackCount(Tag);
-}
-
-void URockItemInstance::AddStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks)
-{
-	int32 oldCount = StatTags.GetStackCount(Tag);
-	StatTags.AddStack(Tag, StackCount, bKeepZeroStacks);
-	int32 newCount = StatTags.GetStackCount(Tag);
-	OnTagStackChanged_Internal(Tag, oldCount + StackCount, oldCount);
-}
-
-void URockItemInstance::RemoveStatTagStack(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks)
-{
-	int32 oldCount = StatTags.GetStackCount(Tag);
-	StatTags.RemoveStack(Tag, StackCount, bKeepZeroStacks);
-	int32 newCount = StatTags.GetStackCount(Tag);
-	OnTagStackChanged_Internal(Tag, newCount, oldCount);
-}
-
-
-void URockItemInstance::SetStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks)
-{
-	int32 oldCount = StatTags.GetStackCount(Tag);
-	StatTags.SetStack(Tag, StackCount, bKeepZeroStacks);
-	
-	OnTagStackChanged_Internal(Tag, StackCount, oldCount);
-}
-
-void URockItemInstance::OnTagStackChanged_Internal(const FGameplayTag& Tag, int32 NewCount, int32 OldCount)
+void URockItemInstance::NotifyStateChanged()
 {
 	if (IsValid(OwningInventory))
 	{
-		// Broadcast the item changed event if the count actually changed. This prevents unnecessary broadcasts when tags are added/removed but the stack count doesn't change (e.g., when bKeepZeroStacks is true).
-		if (NewCount != OldCount)
-		{
-			// Notify the owning inventory that this item instance has changed, so it can update any relevant UI or gameplay logic.
-			OwningInventory->BroadcastItemChanged(ItemHandle, ERockItemChangeType::Changed);
-		}
+		// Notify the owning inventory that this item instance has changed, so it can update any relevant UI or gameplay logic.
+		OwningInventory->BroadcastItemChanged(ItemHandle, ERockItemChangeType::Changed);
 	}
 }
 
@@ -145,9 +133,9 @@ void URockItemInstance::RegisterReplicationWithOwner()
 		UE_LOG(LogRockInventory, Warning, TEXT("URockItemInstance::RegisterReplicationWithOwner: OwningActor is null"));
 		return;
 	}
-	if (NestedInventory)
+	if (URockInventory* Nested = GetNestedInventory())
 	{
-		NestedInventory->RegisterReplicationWithOwner();
+		Nested->RegisterReplicationWithOwner();
 	}
 }
 
@@ -162,9 +150,9 @@ void URockItemInstance::UnregisterReplicationWithOwner()
 	{
 		actor->RemoveReplicatedSubObject(this);
 	}
-	if (NestedInventory)
+	if (URockInventory* Nested = GetNestedInventory())
 	{
-		NestedInventory->UnregisterReplicationWithOwner();
+		Nested->UnregisterReplicationWithOwner();
 	}
 }
 
@@ -173,25 +161,10 @@ URockInventory* URockItemInstance::GetOwningInventory() const
 	return OwningInventory.Get();
 }
 
-// void URockItemInstance::SetSlotHandle(FRockInventorySlotHandle InSlotHandle)
-// {
-// 	SlotHandle = InSlotHandle;
-// }
-
-// FRockInventorySlotEntry URockItemInstance::GetItemSlot() const
-// {
-// 	if (const URockInventory* Inventory = GetOwningInventory())
-// 	{
-// 		return Inventory->GetSlotByHandle(GetSlotHandle());
-// 	}
-// 	return FRockInventorySlotEntry();
-// }
-
 FRockItemStack URockItemInstance::GetItemStack() const
 {
 	return GetOwningInventory()->GetItemByHandle(ItemHandle);
 }
-
 
 #if UE_WITH_IRIS
 void URockItemInstance::RegisterReplicationFragments(

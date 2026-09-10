@@ -1,7 +1,17 @@
 #include "Item/Fragment/RockItemFragment_SetStats.h"
 
+#include "RockInventoryLogging.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
+#include "Item/State/RockItemState_Metadata.h"
+
+void FRockItemFragment_SetStats::OnInstanceCreated(URockItemInstance* ItemInstance) const
+{
+	if (IsValid(ItemInstance) && !InitialItemStats.IsEmpty())
+	{
+		ItemInstance->FindOrAddState<FRockItemState_Metadata>();
+	}
+}
 
 void FRockItemFragment_SetStats::OnItemCreated(FRockItemStack& ItemStack) const
 {
@@ -15,12 +25,18 @@ void FRockItemFragment_SetStats::OnItemCreated(FRockItemStack& ItemStack) const
 		ItemStack.SetCustomValue2(CustomValue2, {});
 	}
 
-	URockItemInstance* ItemInstance = ItemStack.GetRuntimeInstance();
-	if (IsValid(ItemInstance))
+	if (!InitialItemStats.IsEmpty())
 	{
-		for (const auto& KVP : InitialItemStats)
+		URockItemInstance* ItemInstance = ItemStack.GetRuntimeInstance();
+		if (IsValid(ItemInstance))
 		{
-			ItemInstance->StatTags.AddStack(KVP.Key, KVP.Value);
+			FRockItemState_Metadata* metadata = ItemInstance->FindMutableState<FRockItemState_Metadata>();
+			checkf(metadata, TEXT("SetStats: ItemInstance has no metadata state on %s"), *Def->GetName());
+			
+			for (const auto& KVP : InitialItemStats)
+			{
+				metadata->AddStatTagCount(KVP.Key, KVP.Value);
+			}
 		}
 	}
 }

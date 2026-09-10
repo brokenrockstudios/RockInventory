@@ -137,7 +137,7 @@ Key members:
 | `CachedDefinition`          | Quick access to the definition without going through the stack                             |
 | `Tags`                      | Per-instance `FGameplayTagContainer`                                                       |
 | `StatTags`                  | Per-instance `FGameplayTagStackContainer`. Mutable, unlike the definition's read-only copy |
-| `NestedInventory`           | Optional child `URockInventory` (replicated); populated from `Definition->InventoryConfig` |
+| `NestedInventory`           | Optional child `URockInventory` (replicated); populated by `FRockItemFragment_NestedInventory` |
 
 `URockItemInstance` is intentionally kept as a **base class**. You might subclass it (pointed to by
 `RuntimeInstanceClass` on

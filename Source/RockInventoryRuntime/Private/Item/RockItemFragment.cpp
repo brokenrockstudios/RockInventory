@@ -16,6 +16,10 @@ void FRockItemFragment::OnItemCreated(FRockItemStack& ItemStack) const
 {
 }
 
+void FRockItemFragment::OnInstanceCreated(URockItemInstance* ItemInstance) const
+{
+}
+
 bool FRockItemFragment::CanCombineItemStack(const FRockItemStack& ItemStack, const FRockItemStack& OtherItemStack) const
 {
 	return true;

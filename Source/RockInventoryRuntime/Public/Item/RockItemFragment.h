@@ -9,6 +9,7 @@
 #include "RockItemFragment.generated.h"
 
 class URockItemDefinition;
+class URockItemInstance;
 
 /**
  * Base struct for item fragment data types used by the Rock Inventory system.
@@ -36,6 +37,9 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment
 
 	// Fragment configures the item it's on.  This is what sets any modifiers on the item itself.
 	virtual void OnItemCreated(FRockItemStack& ItemStack) const;
+
+	// Gives the fragment a chance to add any runtime FRockItemState(s) it requires to the item instance (e.g. nested inventory, durability).
+	virtual void OnInstanceCreated(URockItemInstance* ItemInstance) const;
 
 	// The fragment might have an opinion about combining stacks.
 	virtual bool CanCombineItemStack(const FRockItemStack& ItemStack, const FRockItemStack& OtherItemStack) const;

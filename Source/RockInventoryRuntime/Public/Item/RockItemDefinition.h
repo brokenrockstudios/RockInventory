@@ -11,7 +11,6 @@
 #include "RockItemDefinition.generated.h"
 
 class UGameplayAbility;
-class URockInventoryConfig;
 
 USTRUCT(BlueprintType)
 struct FRockItemUIData
@@ -191,11 +190,6 @@ public:
 	// If this item requires a runtime instance, this is the class that will be used to create it.
 	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
 	TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass;
-
-	// Runtime Instances nested inventory.
-	// e.g., If this Item was a Backpack, this should be set to the Backpack's InventoryConfig.
-	UPROPERTY(EditDefaultsOnly, Category = "Item|Advanced")
-	TSoftObjectPtr<URockInventoryConfig> InventoryConfig = nullptr;
 
 	///////////////////////////////////////////////////////////////////////////
 	/// Fragments

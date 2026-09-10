@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "GameplayTagStack.h"
-#include "GameplayTagStackListenerInterface.h"
 #include "RockItemStack.h"
+#include "RockItemState.h"
+#include "StructUtils/InstancedStruct.h"
 #include "UObject/Object.h"
 #include "RockItemInstance.generated.h"
 
 class URockInventory;
+struct FRockItemState_Metadata;
 
 /**
  * Base class for all item instances in the Rock Inventory system.
@@ -21,10 +22,9 @@ class URockInventory;
  * and modify their associated item stack data.
  */
 UCLASS(BlueprintType)
-class ROCKINVENTORYRUNTIME_API URockItemInstance : public UObject, public IGameplayTagStackListenerInterface
+class ROCKINVENTORYRUNTIME_API URockItemInstance : public UObject
 {
 	GENERATED_BODY()
-
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetDefinition(const TObjectPtr<URockItemDefinition>& object);
@@ -42,25 +42,15 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
 	FRockItemStackHandle ItemHandle;
 
-	/** Gameplay tags associated with this item instance */
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
-	FGameplayTagContainer Tags;
-
-	/** Stat tags associated with this item instance */
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
-	FGameplayTagStackContainer StatTags;
-
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "RockInventory|Stats")
-	TObjectPtr<URockInventory> NestedInventory = nullptr;
+	// TODO: Consider swapping to FastArraySerializer later.
+	/** Replicated runtime state fragments (e.g. metadata tags, nested inventory, durability) */
+	UPROPERTY(ReplicatedUsing = OnRep_States, EditAnywhere, BlueprintReadOnly, Category = "RockInventory|State", meta = (BaseStruct = "/Script/RockInventoryRuntime.RockItemState"))
+	TArray<FInstancedStruct> States;
 
 	// --- Not Replicated ---
 	/** Cached reference to the item definition for quick access */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RockInventory|Core")
 	TObjectPtr<URockItemDefinition> CachedDefinition = nullptr;
-
-	// TODO: Add mutable fragments. 
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
-	// TArray<FRockItemMutableFragments> Fragments;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Core Functions
@@ -73,15 +63,6 @@ public:
 	/** Gets the owning inventory for this item instance */
 	URockInventory* GetOwningInventory() const;
 
-	/** Sets the slot handle for this item instance */
-	// void SetSlotHandle(FRockInventorySlotHandle InSlotHandle);
-
-	/** Gets the slot handle for this item instance */
-	// FRockInventorySlotHandle GetSlotHandle() const { return SlotHandle; }
-
-	/** Gets the inventory slot associated with this item instance */
-	// FRockInventorySlotEntry GetItemSlot() const;
-
 	/** Gets the item stack associated with this item instance */
 	FRockItemStack GetItemStack() const;
 
@@ -89,21 +70,34 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|Core")
 	const URockItemDefinition* GetItemDefinition() const;
 
-	UFUNCTION(BlueprintCallable)
-	int32 GetStatTagCount(FGameplayTag Tag) const;
+	/** Gets a nested inventory for this item instance, if any (e.g. backpacks, containers) */
+	UFUNCTION(BlueprintCallable, Category = "RockInventory|Core")
+	URockInventory* GetNestedInventory() const;
 
-	UFUNCTION(BlueprintCallable)
-	void AddStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks = false);
+	///////////////////////////////////////////////////////////////////////////
+	// State Access
 
-	UFUNCTION(BlueprintCallable)
-	void RemoveStatTagStack(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks = false);
+	/** Finds a runtime state of the given type, or nullptr if not present */
+	template <typename T> requires std::derived_from<T, FRockItemState>
+	const T* FindState() const;
 
-	UFUNCTION(BlueprintCallable)
-	void SetStatTagCount(FGameplayTag Tag, int32 StackCount, bool bKeepZeroStacks = false);
+	/** Finds a mutable runtime state of the given type, or nullptr if not present */
+	template <typename T> requires std::derived_from<T, FRockItemState>
+	T* FindMutableState();
 
+	/** Finds a runtime state of the given type, adding it if not already present */
+	template <typename T> requires std::derived_from<T, FRockItemState>
+	T& FindOrAddState();
 
-	virtual void OnTagStackChanged_Internal(const FGameplayTag& Tag, int32 NewCount, int32 OldCount) override;
+	/** Returns true if a runtime state of the given type is present */
+	template <typename T> requires std::derived_from<T, FRockItemState>
+	bool HasState() const;
 
+	/** Notifies that a runtime state has changed */
+	void NotifyStateChanged();
+
+	UFUNCTION()
+	void OnRep_States();
 protected:
 	///////////////////////////////////////////////////////////////////////////
 	// UObject Interface
@@ -114,4 +108,52 @@ protected:
 #if UE_WITH_IRIS
 	virtual void RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags) override;
 #endif // UE_WITH_IRIS
+private:
+	/** Registers this instance as the listener on the Metadata state's stat tags, if present */
+	void RegisterStatTagsListener();
 };
+
+template <typename T> requires std::derived_from<T, FRockItemState>
+const T* URockItemInstance::FindState() const
+{
+	for (const FInstancedStruct& State : States)
+	{
+		if (const T* StatePtr = State.GetPtr<T>())
+		{
+			return StatePtr;
+		}
+	}
+	return nullptr;
+}
+
+template <typename T> requires std::derived_from<T, FRockItemState>
+T* URockItemInstance::FindMutableState()
+{
+	for (FInstancedStruct& State : States)
+	{
+		if (T* StatePtr = State.GetMutablePtr<T>())
+		{
+			return StatePtr;
+		}
+	}
+	return nullptr;
+}
+
+template <typename T> requires std::derived_from<T, FRockItemState>
+T& URockItemInstance::FindOrAddState()
+{
+	if (T* Existing = FindMutableState<T>())
+	{
+		return *Existing;
+	}
+	FInstancedStruct& NewState = States.Add_GetRef(FInstancedStruct::Make<T>());
+	T* NewStatePtr = NewState.GetMutablePtr<T>();
+	NewStatePtr->OnStateAdded(this);
+	return *NewStatePtr;
+}
+
+template <typename T> requires std::derived_from<T, FRockItemState>
+bool URockItemInstance::HasState() const
+{
+	return FindState<T>() != nullptr;
+}

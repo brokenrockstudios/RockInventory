@@ -679,8 +679,9 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 
 	// Let's make sure we are owned by an actor with authority
 	AActor* OwningActor = GetOwningActor();
-	checkf(OwningActor && OwningActor->HasAuthority(),
-	       TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
+	checkf(
+		OwningActor && OwningActor->HasAuthority(),
+		TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
 
 	const int32 PreviousItemDataNum = ItemData.Num();
 	const uint32 Index = AcquireAvailableItemIndex();
@@ -713,11 +714,13 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 
 		// TODO: Would we want to do this for 'splits' and not necessarily only once?
 		// Right now I think we might disable splits for anything with a RuntimeInstanceClass
-		
+
 		TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass = NewItemStack.GetDefinition()->RuntimeInstanceClass;
 		if (RuntimeInstanceClass.IsValid())
 		{
-			// TODO: This will synchronously load the class if it isn't already, which could cause hitches. 
+			// TODO: This will synchronously load the class if it isn't already, which could cause hitches.
+
+
 			// We should consider preloading or some other strategy if that becomes an issue.
 			// At the moment we have no BP RuntimeInstances so this is purely theoretical.
 			// As there is nothing to load for C++ defined RuntimeInstances, this is purely a BP concern.
@@ -728,7 +731,6 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 			// Anytime the item moves, we'd need to optionally update this?
 			// Or should we just not maintain it?
 			//NewItemStack.RuntimeInstance->SlotHandle = 
-			
 		}
 		for (const FInstancedStruct& fragment : NewItemStack.GetDefinition()->GetAllFragments())
 		{
@@ -872,43 +874,46 @@ void URockInventory::ForEachSlot(const FRockInventoryQuery& Query, const TFuncti
 TArray<FRockItemStackHandle> URockInventory::FindAllItemHandles(const FRockInventoryQuery& Query)
 {
 	TArray<FRockItemStackHandle> ResultArr;
-	ForEachSlot(Query,
-	            [&ResultArr](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
-	            {
-		            ResultArr.Add(Slot->ItemHandle);
-		            // Continue iterating through all slots
-		            return true;
-	            });
+	ForEachSlot(
+		Query,
+		[&ResultArr](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
+		{
+			ResultArr.Add(Slot->ItemHandle);
+			// Continue iterating through all slots
+			return true;
+		});
 	return ResultArr;
 }
 
 const FRockInventorySlotEntry* URockInventory::FindFirstSlot(const FRockInventoryQuery& Query)
 {
 	const FRockInventorySlotEntry* Found = nullptr;
-	ForEachSlot(Query,
-	            [&](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
-	            {
-		            if (!Found)
-		            {
-			            // Note: We need a non-const pointer if we want to modify the slot
-			            Found = Slot;
-			            return false;
-		            }
-		            return true;
-	            });
+	ForEachSlot(
+		Query,
+		[&](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
+		{
+			if (!Found)
+			{
+				// Note: We need a non-const pointer if we want to modify the slot
+				Found = Slot;
+				return false;
+			}
+			return true;
+		});
 	return Found;
 }
 
 TArray<FRockInventorySlotEntry> URockInventory::FindAllSlots(const FRockInventoryQuery& Query)
 {
 	TArray<FRockInventorySlotEntry> ResultArr;
-	ForEachSlot(Query,
-	            [&ResultArr](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
-	            {
-		            ResultArr.Add(*Slot);
+	ForEachSlot(
+		Query,
+		[&ResultArr](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
+		{
+			ResultArr.Add(*Slot);
 
-		            // Continue iterating through all slots
-		            return true;
-	            });
+			// Continue iterating through all slots
+			return true;
+		});
 	return ResultArr;
 }

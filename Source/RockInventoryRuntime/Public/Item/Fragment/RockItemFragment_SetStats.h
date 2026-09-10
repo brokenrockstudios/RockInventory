@@ -16,6 +16,7 @@ struct ROCKINVENTORYRUNTIME_API FRockItemFragment_SetStats : public FRockItemFra
 {
 	GENERATED_BODY()
 
+	virtual void OnInstanceCreated(URockItemInstance* ItemInstance) const override;
 	virtual void OnItemCreated(FRockItemStack& ItemStack) const override;
 
 	UPROPERTY(EditDefaultsOnly, Category=Equipment, meta=(Tooltip="This is used to set initial stats on an item's instance if there is one when it's created."))
