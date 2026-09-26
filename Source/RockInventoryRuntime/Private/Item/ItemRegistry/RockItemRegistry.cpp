@@ -100,8 +100,7 @@ void URockItemRegistrySubsystem::BuildRegistry()
 						{
 							// Add the valid definition to the map
 							ItemDefinitionMap.Add(ItemDef->ItemId, ItemDef);
-							UE_LOG(LogRockItemRegistry, Display, TEXT("Added Item Definition: ID '%s', Asset '%s'"), *ItemDef->ItemId.ToString(),
-								*GetPathNameSafe(ItemDef));
+							// UE_LOG(LogRockItemRegistry, Display, TEXT("Added Item Definition: ID '%s', Asset '%s'"), *ItemDef->ItemId.ToString(), *GetPathNameSafe(ItemDef));
 						}
 					}
 					else
@@ -125,7 +124,7 @@ void URockItemRegistrySubsystem::BuildRegistry()
 		}
 	}
 
-	UE_LOG(LogRockItemRegistry, Warning, TEXT("BuildRegistry() took %.3f seconds to load %d assets."), TimeBuildingRegistry, NumAssetsLoaded);
+	UE_LOG(LogRockItemRegistry, Display, TEXT("BuildRegistry() took %.3f seconds to load %d assets."), TimeBuildingRegistry, NumAssetsLoaded);
 }
 
 URockItemDefinition* URockItemRegistrySubsystem::FindDefinition(FName ItemID) const
