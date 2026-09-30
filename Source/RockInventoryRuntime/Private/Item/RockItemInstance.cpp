@@ -83,7 +83,11 @@ void URockItemInstance::BeginDestroy()
 {
 	if (OwningInventory)
 	{
-		OwningInventory->GetOwningActor()->RemoveReplicatedSubObject(this);
+		// The owning actor may already be gone (or unresolvable) by the time we're destroyed
+		if (AActor* OwningActor = OwningInventory->GetOwningActor())
+		{
+			OwningActor->RemoveReplicatedSubObject(this);
+		}
 		OwningInventory = nullptr;
 	}
 	CachedDefinition = nullptr;
@@ -163,7 +167,9 @@ URockInventory* URockItemInstance::GetOwningInventory() const
 
 FRockItemStack URockItemInstance::GetItemStack() const
 {
-	return GetOwningInventory()->GetItemByHandle(ItemHandle);
+	// No owning inventory when the item lives on a world item
+	const URockInventory* Inventory = GetOwningInventory();
+	return Inventory ? Inventory->GetItemByHandle(ItemHandle) : FRockItemStack::Invalid();
 }
 
 #if UE_WITH_IRIS

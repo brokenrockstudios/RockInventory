@@ -48,7 +48,7 @@ bool URockInventoryLibrary::LootItemToInventory(
 		const FRockInventorySectionInfo& SectionInfo = Inventory->GetSectionInfoBySlotHandle(SlotHandle);
 		const int32 LocalSlotIndex = SectionInfo.GetLocalIndex(SlotHandle.GetAbsoluteIndex());
 		const int32 Column = LocalSlotIndex % SectionInfo.GetColumns();
-		const int32 Row = LocalSlotIndex / SectionInfo.GetRows();
+		const int32 Row = LocalSlotIndex / SectionInfo.GetColumns();
 
 		// First check if the item can be placed in this section based on type restrictions
 		if (!CanItemBePlacedInSection(ItemStackCopy, SectionInfo))
@@ -252,10 +252,11 @@ bool URockInventoryLibrary::MoveItem(
 			else
 			{
 				// Different inventory.
+				// Release from source first. RemoveItemFromInventory unregisters the RuntimeInstance from its current
+				// replication owner, so doing it after the add would unregister it from the target's owner instead.
+				SourceInventory->RemoveItemFromInventory(ValidatedSourceItem);
 				// Add to target
 				targetSlot.ItemHandle = TargetInventory->AddItemToInventory(ValidatedSourceItem);
-				// Release from source
-				SourceInventory->RemoveItemFromInventory(ValidatedSourceItem);
 			}
 
 			// Set up target slot with existing item handle
@@ -366,7 +367,7 @@ bool URockInventoryLibrary::MoveItem(
 	// The fact that some items can be placed 'into' other items makes this more complex.
 	// We might not ever support this scenario.
 	UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be moved to target location"));
-	return true;
+	return false;
 }
 
 bool URockInventoryLibrary::CanMergeItemAtGridPosition(

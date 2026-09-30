@@ -25,20 +25,13 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 	}
 
 
-	const FRockItemStack Item = URockInventoryLibrary::SplitItemStackAtLocation(SourceInventory, SourceSlotHandle);
-	if (!Item.IsValid())
-	{
-		return UndoTransaction;
-	}
-
+	// Do all validation before splitting the item out of the inventory, otherwise an early return would destroy it.
 	const FRockPendingSlotOperation TargetPendingSlot = SourceInventory->GetPendingSlotState(SourceSlotHandle);
 	if (TargetPendingSlot.IsClaimedByOther(Instigator.Get()))
 	{
 		// We can't drop here, someone else is using this slot
 		return UndoTransaction;
 	}
-
-	UndoTransaction.ExistingOrientation = SourceInventory->GetSlotByHandle(SourceSlotHandle).Orientation;
 
 	// Prefer the instigator's transform if available
 	const AController* DropInstigator = Instigator.Get();
@@ -49,6 +42,15 @@ FRockDropItemUndoTransaction FRockDropItemTransaction::Execute() const
 	}
 	const auto pawn = DropInstigator->GetPawn();
 	if (!pawn)
+	{
+		return UndoTransaction;
+	}
+
+	// Capture before the split, which resets the slot's orientation
+	UndoTransaction.ExistingOrientation = SourceInventory->GetSlotByHandle(SourceSlotHandle).Orientation;
+
+	const FRockItemStack Item = URockInventoryLibrary::SplitItemStackAtLocation(SourceInventory, SourceSlotHandle);
+	if (!Item.IsValid())
 	{
 		return UndoTransaction;
 	}
