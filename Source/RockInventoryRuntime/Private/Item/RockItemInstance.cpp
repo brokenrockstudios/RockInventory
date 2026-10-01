@@ -167,9 +167,14 @@ URockInventory* URockItemInstance::GetOwningInventory() const
 
 FRockItemStack URockItemInstance::GetItemStack() const
 {
-	// No owning inventory when the item lives on a world item
 	const URockInventory* Inventory = GetOwningInventory();
-	return Inventory ? Inventory->GetItemByHandle(ItemHandle) : FRockItemStack::Invalid();
+	// TODO: An instance on a world item has no owning inventory, so we can't resolve its stack this way yet.
+	// Surface it loudly in dev builds until that case is handled, but fail safe with an invalid stack.
+	if (!ensureMsgf(Inventory, TEXT("URockItemInstance::GetItemStack - %s has no owning inventory (possibly on a world item). Returning an invalid stack."), *GetName()))
+	{
+		return FRockItemStack::Invalid();
+	}
+	return Inventory->GetItemByHandle(ItemHandle);
 }
 
 #if UE_WITH_IRIS
