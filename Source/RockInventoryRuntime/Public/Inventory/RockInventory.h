@@ -89,10 +89,10 @@ public:
 	/** Walks the ownership chain until it finds an Actor */
 	AActor* GetOwningActor();
 
-	/** Iterates slots; return true from Func to break early. */
+	/** Iterates slots; return false from Func to break early. */
 	void ForEachSlotInSection(const TFunctionRef<bool(const FRockInventorySectionInfo&, const FRockInventorySlotEntry&)>& Func) const;
 
-	/** Iterates item stacks; return true from Func to break early. */
+	/** Iterates item stacks; return false from Func to break early. */
 	void ForEachItemStack(const TFunctionRef<bool(const FRockItemStack&)>& Func) const;
 
 

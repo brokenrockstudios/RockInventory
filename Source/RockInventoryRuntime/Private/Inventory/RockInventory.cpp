@@ -232,16 +232,16 @@ const FRockInventorySlotEntry* URockInventory::GetSlotByItemHandlePtr(const FRoc
 
 void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, const FRockItemStack& InItemStack)
 {
-	const int32 slotIndex = InSlotHandle.GetIndex();
-	if (!ItemData.ContainsIndex(slotIndex))
+	// Also rejects stale handles, so we don't overwrite whatever item has since reused this index
+	if (!IsHandleValid(InSlotHandle))
 	{
-		UE_LOG(LogRockInventory, Warning, TEXT("SetItemByHandle - Invalid item index"));
+		UE_LOG(LogRockInventory, Warning, TEXT("SetItemByHandle - Invalid or stale item handle %s"), *InSlotHandle.ToString());
 		return;
 	}
-	FRockItemStack& ChangedItem = ItemData[slotIndex];
+	FRockItemStack& ChangedItem = ItemData[InSlotHandle.GetIndex()];
 	ChangedItem.CopyDataFrom(InItemStack);
 	ItemData.MarkItemDirty(ChangedItem);
-	BroadcastItemChanged(InSlotHandle, ERockItemChangeType::Removed);
+	BroadcastItemChanged(InSlotHandle, ERockItemChangeType::Changed);
 }
 
 void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle, const FRockInventorySlotEntry& InSlotEntry)
@@ -416,7 +416,11 @@ void URockInventory::BroadcastSlotChanged(const FRockSlotDelta& SlotDelta)
 
 void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle, ERockItemChangeType ChangeType)
 {
-	OnItemChanged.Broadcast(FRockItemDelta(this, ItemStackHandle));
+	FRockItemDelta ItemDelta;
+	ItemDelta.Inventory = this;
+	ItemDelta.ItemHandle = ItemStackHandle;
+	ItemDelta.ChangeType = ChangeType;
+	OnItemChanged.Broadcast(ItemDelta);
 }
 
 void URockInventory::RegisterSlotStatus(AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus)
@@ -695,6 +699,9 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	NewItemStack.StackCount = InItemStack.StackCount;
 	NewItemStack.CustomValue1 = InItemStack.CustomValue1;
 	NewItemStack.CustomValue2 = InItemStack.CustomValue2;
+	// Carry over init state so items moving between inventories (or looted back from the world) don't
+	// re-run OnItemCreated or get their existing RuntimeInstance replaced with a fresh one.
+	NewItemStack.bInitialized = InItemStack.bInitialized;
 
 	// Initialize the item stack
 	if (NewItemStack.RuntimeInstance != nullptr)
@@ -707,6 +714,8 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	if (NewItemStack.RuntimeInstance)
 	{
 		NewItemStack.RuntimeInstance->SetOwningInventory(this);
+		// A transferred instance still points at its previous handle
+		NewItemStack.RuntimeInstance->ItemHandle = NewItemStack.ItemHandle;
 	}
 	if (!NewItemStack.bInitialized)
 	{
@@ -716,7 +725,9 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		// Right now I think we might disable splits for anything with a RuntimeInstanceClass
 
 		TSoftClassPtr<class URockItemInstance> RuntimeInstanceClass = NewItemStack.GetDefinition()->RuntimeInstanceClass;
-		if (RuntimeInstanceClass.IsValid())
+		// Note: IsValid() on a soft pointer is only true if the class is already loaded, so check IsNull() and load instead.
+		UClass* LoadedRuntimeInstanceClass = RuntimeInstanceClass.IsNull() ? nullptr : RuntimeInstanceClass.LoadSynchronous();
+		if (LoadedRuntimeInstanceClass)
 		{
 			// TODO: This will synchronously load the class if it isn't already, which could cause hitches.
 
@@ -724,10 +735,12 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 			// We should consider preloading or some other strategy if that becomes an issue.
 			// At the moment we have no BP RuntimeInstances so this is purely theoretical.
 			// As there is nothing to load for C++ defined RuntimeInstances, this is purely a BP concern.
-			NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this, RuntimeInstanceClass.Get());
-			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
+			NewItemStack.RuntimeInstance = NewObject<URockItemInstance>(this, LoadedRuntimeInstanceClass);
 			NewItemStack.RuntimeInstance->ItemHandle = NewItemStack.ItemHandle;
-			NewItemStack.RuntimeInstance->OwningInventory = this;
+			// Set the owner before SetDefinition so fragment-created state (e.g. nested inventories) can see it,
+			// and go through SetOwningInventory so the new instance is registered for replication.
+			NewItemStack.RuntimeInstance->SetOwningInventory(this);
+			NewItemStack.RuntimeInstance->SetDefinition(NewItemStack.Definition);
 			// Anytime the item moves, we'd need to optionally update this?
 			// Or should we just not maintain it?
 			//NewItemStack.RuntimeInstance->SlotHandle = 
@@ -820,6 +833,10 @@ void URockInventory::SetItemStackCount(const FRockItemStackHandle& Handle, int32
 bool URockInventory::SetItemCustomValueByTag(const FRockItemStackHandle& Handle, FGameplayTag tag, int32 NewCount)
 {
 	FRockItemStack Stack = GetItemByHandle(Handle);
+	if (!Stack.GetDefinition())
+	{
+		return false;
+	}
 	if (tag == Stack.GetDefinition()->CustomValue1Tag)
 	{
 		Stack.CustomValue1 = NewCount;

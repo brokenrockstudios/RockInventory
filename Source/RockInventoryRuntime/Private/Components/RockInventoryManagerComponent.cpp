@@ -266,13 +266,22 @@ void URockInventoryManagerComponent::Server_RegisterSlotStatus_Implementation(
 	URockInventory* Inventory, AController* Instigator,
 	const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus)
 {
-	ensureMsgf(Inventory, TEXT("Server_RegisterSlotStatus_Implementation: Inventory is null"));
+	// Client-supplied parameter; don't let a null crash the server
+	if (!ensureMsgf(Inventory, TEXT("Server_RegisterSlotStatus_Implementation: Inventory is null")))
+	{
+		return;
+	}
 	Inventory->RegisterSlotStatus(Instigator, InSlotHandle, InStatus);
 }
 
 void URockInventoryManagerComponent::Server_ReleaseSlotStatus_Implementation(
 	URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle)
 {
+	// Client-supplied parameter; don't let a null crash the server
+	if (!ensureMsgf(Inventory, TEXT("Server_ReleaseSlotStatus_Implementation: Inventory is null")))
+	{
+		return;
+	}
 	Inventory->ReleaseSlotStatus(Instigator, InSlotHandle);
 }
 

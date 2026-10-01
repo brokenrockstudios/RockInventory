@@ -83,7 +83,11 @@ void URockItemInstance::BeginDestroy()
 {
 	if (OwningInventory)
 	{
-		OwningInventory->GetOwningActor()->RemoveReplicatedSubObject(this);
+		// The owning actor may already be gone (or unresolvable) by the time we're destroyed
+		if (AActor* OwningActor = OwningInventory->GetOwningActor())
+		{
+			OwningActor->RemoveReplicatedSubObject(this);
+		}
 		OwningInventory = nullptr;
 	}
 	CachedDefinition = nullptr;
@@ -163,7 +167,14 @@ URockInventory* URockItemInstance::GetOwningInventory() const
 
 FRockItemStack URockItemInstance::GetItemStack() const
 {
-	return GetOwningInventory()->GetItemByHandle(ItemHandle);
+	const URockInventory* Inventory = GetOwningInventory();
+	// TODO: An instance on a world item has no owning inventory, so we can't resolve its stack this way yet.
+	// Surface it loudly in dev builds until that case is handled, but fail safe with an invalid stack.
+	if (!ensureMsgf(Inventory, TEXT("URockItemInstance::GetItemStack - %s has no owning inventory (possibly on a world item). Returning an invalid stack."), *GetName()))
+	{
+		return FRockItemStack::Invalid();
+	}
+	return Inventory->GetItemByHandle(ItemHandle);
 }
 
 #if UE_WITH_IRIS

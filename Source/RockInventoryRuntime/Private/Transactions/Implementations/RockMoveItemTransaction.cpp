@@ -40,7 +40,7 @@ bool FRockMoveItemUndoTransaction::Undo() const
 	// Skip undo if execute didn't succeed
 
 	// CanUndo should have been called first. Don't need to check again.
-	checkf(!bSuccess, TEXT("MoveItemTransaction::Undo - Original move failed, nothing to undo"));
+	checkf(bSuccess, TEXT("MoveItemTransaction::Undo - Original move failed, nothing to undo"));
 	checkf(SourceInventory && TargetInventory, TEXT("MoveItemTransaction::Undo - Source or Target inventory is null"));
 
 	// Only try to undo if we can verify the state is still valid
@@ -150,7 +150,7 @@ FRockMoveItemUndoTransaction FRockMoveItemTransaction::Execute() const
 	UndoTransaction.OriginalTargetItem = TargetInventory->GetItemBySlotHandle(TargetSlotHandle);
 
 	// Execute the move operation
-	UndoTransaction.bSuccess = URockInventoryLibrary::MoveItem(SourceInventory, SourceSlotHandle, TargetInventory, TargetSlotHandle);
+	UndoTransaction.bSuccess = URockInventoryLibrary::MoveItem(SourceInventory, SourceSlotHandle, TargetInventory, TargetSlotHandle, MoveParams);
 
 	// Store the post-move states for future validation
 	UndoTransaction.PostMoveSourceItem = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
