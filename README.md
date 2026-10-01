@@ -25,6 +25,7 @@ Feel free to use, learn from, reference, enjoy, or contribute!
     - [URockInventory: The Container](#urockinventory--the-container)
     - [Data Flow](#data-flow)
 - [Other Great Inventory Systems](#other-great-inventory-systems)
+- [Development with agents](#development-with-agents)
 - [Credit](#credit)
 
 ---
@@ -256,6 +257,19 @@ There are many other great inventory systems out there.
 
 Heavily influenced designs by games like Diablo, Path of Exile, Escape from Tarkov, Subnautica, Minecraft, Dyson Sphere
 Program, and many more.
+
+## Development with agents
+
+This repo is developed through collaboration between people and AI coding agents, using modern tools and workflows.
+Agents help with code, reviews, and bug fixes, and maintainers guide the direction and own the result. Maintainers read
+every diff before it merges.
+
+Anyone, human or agent, is welcome to contribute. Contributors are responsible for what they submit, so please avoid
+low-effort or drive-by changes. Make sure that a change has been thought through and fits the project's design, and
+consider everyone who might use or maintain it, not just the one case in front of you.
+
+We acknowledge this collaboration here, at the project level, rather than stamping it on individual commits or PRs.
+See [AGENTS.md](AGENTS.md) for the guidelines agents follow when contributing.
 
 ## Credit
 
