@@ -124,6 +124,48 @@ TEST_CLASS(RockInventoryLifecycleTests, "BRS.RockInventory.Lifecycle")
 		ASSERT_THAT(AreEqual(2, Fixture.Inventory->GetItemByHandle(Current).GetStackCount()));
 	}
 
+	TEST_METHOD(CopyDataFrom_KeepsTheDestinationsInitializedFlag)
+	{
+		// The init flag is not part of the copied data. Overwriting a stored item must not reset it.
+		Fixture.InitGrid(1, 1);
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple", 10);
+		const FRockItemStackHandle Handle = Fixture.PlaceAt(Apple, 1, Fixture.SlotAt(0, 0));
+		FRockItemStack Stored = Fixture.Inventory->GetItemByHandle(Handle);
+		ASSERT_THAT(IsTrue(Stored.IsInitialized()));
+
+		const FRockItemStack Fresh(Apple, 9);
+		ASSERT_THAT(IsFalse(Fresh.IsInitialized()));
+		Stored.CopyDataFrom(Fresh);
+
+		ASSERT_THAT(AreEqual(9, Stored.GetStackCount()));
+		ASSERT_THAT(IsTrue(Stored.IsInitialized()));
+	}
+
+	TEST_METHOD(CopyDataFrom_DoesNotMarkAnUninitializedDestinationInitialized)
+	{
+		Fixture.InitGrid(1, 1);
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple", 10);
+		const FRockItemStackHandle Handle = Fixture.PlaceAt(Apple, 1, Fixture.SlotAt(0, 0));
+		const FRockItemStack Stored = Fixture.Inventory->GetItemByHandle(Handle);
+
+		FRockItemStack Fresh(Apple, 1);
+		Fresh.CopyDataFrom(Stored);
+
+		ASSERT_THAT(IsFalse(Fresh.IsInitialized()));
+	}
+
+	TEST_METHOD(SetItemByHandle_KeepsTheItemInitialized)
+	{
+		Fixture.InitGrid(1, 1);
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple", 10);
+		const FRockItemStackHandle Handle = Fixture.PlaceAt(Apple, 1, Fixture.SlotAt(0, 0));
+
+		Fixture.Inventory->SetItemStackCount(Handle, 5);
+		URockInventoryLibrary::SetCustomValue1(Fixture.Inventory, Handle, 3);
+
+		ASSERT_THAT(IsTrue(Fixture.Inventory->GetItemByHandle(Handle).IsInitialized()));
+	}
+
 	TEST_METHOD(SetItemCustomValueByTag_WritesTheValueSlotTheDefinitionDeclares)
 	{
 		Fixture.InitGrid(1, 1);

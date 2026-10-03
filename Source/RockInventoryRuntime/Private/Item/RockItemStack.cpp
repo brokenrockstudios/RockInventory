@@ -183,6 +183,9 @@ bool FRockItemStack::IsEmpty() const
 
 void FRockItemStack::CopyDataFrom(const FRockItemStack& InItemStack)
 {
+	// bInitialized is deliberately not copied. This overwrites an item already stored in an inventory, so a
+	// caller passing a fresh stack must not reset the init state and make AddItemToInventory re-run
+	// OnItemCreated or replace the RuntimeInstance.
 	ItemHandle = InItemStack.ItemHandle;
 	Definition = InItemStack.Definition;
 	StackCount = InItemStack.StackCount;

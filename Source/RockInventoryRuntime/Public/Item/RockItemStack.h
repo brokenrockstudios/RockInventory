@@ -105,6 +105,12 @@ public:
 	bool operator==(const FRockItemStack& Other) const;
 	bool operator!=(const FRockItemStack& Other) const;
 	bool IsEmpty() const;
+	/**
+	 * For in-place edits of an item already stored in an inventory (see URockInventory::SetItemByHandle).
+	 * Pass a copy of the stored stack with the changes applied, not a freshly built one.
+	 * - bInitialized is intentionally not copied, so the first-creation work (OnItemCreated, RuntimeInstance creation) never re-runs.
+	 * - RuntimeInstance is copied as-is, with no Rename or SetOwningInventory. Use AddItemToInventory to bring in a different instance.
+	 */
 	void CopyDataFrom(const FRockItemStack& InItemStack);
 
 	// create invalid stack
