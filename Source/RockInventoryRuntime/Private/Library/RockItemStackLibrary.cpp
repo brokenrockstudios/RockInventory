@@ -51,6 +51,12 @@ FIntPoint URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 	return FIntPoint(1, 1);
 }
 
+FIntPoint URockItemStackLibrary::GetItemSizeForOrientation(const FRockItemStack& ItemStack, ERockItemOrientation Orientation)
+{
+	const FIntPoint Size = GetItemSize(ItemStack);
+	return Orientation == ERockItemOrientation::Vertical ? FIntPoint(Size.Y, Size.X) : Size;
+}
+
 bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const FRockItemStack& SecondItem)
 {
 	if (!FirstItem.IsValid() || !SecondItem.IsValid())

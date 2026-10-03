@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Library/RockInventoryManagerLibrary.h"
 #include "Transactions/Implementations/RockDropItemTransaction.h"
+#include "UI/RockInventory_HoverItem.h"
 
 void URockItemDragDropOperation::OnBeginCarry_Implementation()
 {
@@ -107,6 +108,18 @@ FRockDropOutcome URockItemDragDropOperation::OnUnhandledDrop_Implementation()
 		Outcome.Reason = "item_dropped_world";
 	}
 	return Outcome;
+}
+
+void URockItemDragDropOperation::OnRotateRequested_Implementation()
+{
+	MoveItemParams.DesiredOrientation = MoveItemParams.DesiredOrientation == ERockItemOrientation::Horizontal
+		? ERockItemOrientation::Vertical
+		: ERockItemOrientation::Horizontal;
+
+	if (URockInventory_HoverItem* HoverItem = Cast<URockInventory_HoverItem>(HoverDragVisual))
+	{
+		HoverItem->SetOrientation(MoveItemParams.DesiredOrientation);
+	}
 }
 
 void URockItemDragDropOperation::PlayFeedbackForOutcome_Implementation(const FRockDropOutcome& Outcome)

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "RockInventory_ContainerBase.h"
 #include "Blueprint/UserWidget.h"
+#include "Enums/RockItemOrientation.h"
 #include "Item/RockItemStack.h"
 #include "RockInventory_HoverItem.generated.h"
 
@@ -34,6 +35,9 @@ public:
 
 	void SetItemSource(URockInventory* Inventory, const FRockInventorySlotHandle& ItemHandle);
 	void SetTargetSize(int32 InTileSize, ERockItemSizePolicy InSizePolicy);
+	// Rotates the icon about its center. The layout box keeps the unrotated size, so the rotated icon
+	// covers the swapped footprint around the (center-aligned) cursor.
+	void SetOrientation(ERockItemOrientation InOrientation);
 
 	virtual void NativeOnInitialized() override;
 	virtual void NativePreConstruct() override;

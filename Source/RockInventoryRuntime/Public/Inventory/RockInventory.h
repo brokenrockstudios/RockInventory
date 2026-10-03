@@ -186,8 +186,10 @@ private:
 	// Internal use only
 	uint32 AcquireAvailableItemIndex();
 public:
-	int32 GetItemStackCount();
-	int32 GetItemTotalCount();
+	/** Total units summed across all stacks. */
+	int32 GetTotalItemQuantity() const;
+	/** Number of occupied stacks (not units). */
+	int32 GetNumItemStacks() const;
 
 	/** Does this handle point to a valid item stack in the inventory */
 	bool IsHandleValid(FRockItemStackHandle ItemHandle) const;

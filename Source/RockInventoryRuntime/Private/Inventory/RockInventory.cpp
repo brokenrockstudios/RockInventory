@@ -625,7 +625,7 @@ uint32 URockInventory::AcquireAvailableItemIndex()
 	return INDEX_NONE;
 }
 
-int32 URockInventory::GetItemStackCount()
+int32 URockInventory::GetTotalItemQuantity() const
 {
 	int32 Count = 0;
 	for (const FRockItemStack& Item : ItemData)
@@ -638,7 +638,7 @@ int32 URockInventory::GetItemStackCount()
 	return Count;
 }
 
-int32 URockInventory::GetItemTotalCount()
+int32 URockInventory::GetNumItemStacks() const
 {
 	int32 Count = 0;
 	for (const FRockItemStack& Item : ItemData)
@@ -791,7 +791,7 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStackHandle& InItemS
 	const FRockItemStackHandle OldHandle = ItemData[InIndex].ItemHandle;
 	FreeIndices.Add(InIndex);
 	// Update the ItemHandle with new Generation
-	ItemData[InIndex].Generation++;
+	ItemData[InIndex].Generation = static_cast<uint16>(FRockItemStackHandle::NextGeneration(ItemData[InIndex].Generation));
 	ItemData[InIndex].ItemHandle = FRockItemStackHandle::Create(InIndex, ItemData[InIndex].Generation);
 	ItemData[InIndex].Reset();
 
@@ -895,7 +895,11 @@ TArray<FRockItemStackHandle> URockInventory::FindAllItemHandles(const FRockInven
 		Query,
 		[&ResultArr](const FRockInventorySectionInfo* Section, const FRockInventorySlotEntry* Slot)
 		{
-			ResultArr.Add(Slot->ItemHandle);
+			// Empty slots have no item; only report slots that hold one.
+			if (Slot->ItemHandle.IsValid())
+			{
+				ResultArr.Add(Slot->ItemHandle);
+			}
 			// Continue iterating through all slots
 			return true;
 		});

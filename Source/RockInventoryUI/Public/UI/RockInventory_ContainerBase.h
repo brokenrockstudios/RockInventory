@@ -49,6 +49,9 @@ class ROCKINVENTORYUI_API URockInventory_ContainerBase : public UCommonUserWidge
 public:
 	UFUNCTION()
 	void OnCarryEnded(const URockDragCarryOperation* Operation);
+	// Re-evaluates the drop highlight after the carried item's orientation changed.
+	UFUNCTION()
+	void OnCarryRotated(const URockDragCarryOperation* Operation);
 
 	URockInventory_Slot_ItemBase* FindItemSlotWidgetBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 	URockInventory_Slot_ItemBase* FindItemSlotWidgetByItemHandle(const FRockItemStackHandle& InItemHandle) const;
@@ -223,6 +226,8 @@ private:
 	void ScheduleDeferredDestroy(const FRockItemStackHandle& ItemHandle);
 	void DestroyWidgetForItem(const FRockItemStackHandle& ItemHandle);
 
+	/** Footprint in tiles of the item at this slot, honoring the section's size policy and the slot's orientation. */
+	FIntPoint GetDisplaySize(const FRockItemStack& ItemStack, FRockInventorySlotHandle SlotHandle) const;
 	void UpdateWidgetForItem(URockInventory_Slot_ItemBase* WidgetItem, const FRockItemStack& ItemStack, FRockInventorySlotHandle SlotHandle);
 	void EnsureWidgetForItem(const FRockItemStack& ItemStack, FRockInventorySlotHandle SlotHandle);
 

@@ -46,6 +46,13 @@ public:
 	 */
 	static FRockItemStackHandle Create(uint32 InIndex, uint32 InGeneration);
 
+	/**
+	 * Returns the generation that follows InGeneration, wrapping within GENERATION_BITS.
+	 * The all-ones generation is never issued: combined with the all-ones index it would
+	 * pack to INDEX_NONE and read as an invalid handle.
+	 */
+	static uint32 NextGeneration(uint32 InGeneration);
+
 	/**	Creates an invalid handle */
 	static FRockItemStackHandle Invalid();
 

@@ -100,8 +100,6 @@ public:
 	FRockMoveItemParams MoveItemParams;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
-	ERockItemOrientation Orientation = ERockItemOrientation::Horizontal;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	ERockItemMoveMode MoveMode = ERockItemMoveMode::SingleItem;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DragDrop", meta = (ExposeOnSpawn = true))
 	int32 MoveCount = 1;
@@ -112,6 +110,8 @@ public:
 	virtual void OnCancelCarry_Implementation() override;
 	virtual void OnFinishedCarry_Implementation() override;
 	virtual FRockDropOutcome OnUnhandledDrop_Implementation() override;
+	// Toggles MoveItemParams.DesiredOrientation and updates the carried visual.
+	virtual void OnRotateRequested_Implementation() override;
 	virtual void PlayFeedbackForOutcome_Implementation(const FRockDropOutcome& Outcome);
 	
 	// Set this in the blueprint parent

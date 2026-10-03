@@ -30,9 +30,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
 	static int32 GetStackSize(const FRockItemStack& ItemStack);
 
-	/** Returns the size of the item stack in slots */
+	/** Returns the size of the item stack in slots in its default orientation */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
 	static FIntPoint GetItemSize(const FRockItemStack& ItemStack);
+
+	/** Returns the size of the item stack in slots for a given orientation. Vertical swaps the definition's X and Y. */
+	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")
+	static FIntPoint GetItemSizeForOrientation(const FRockItemStack& ItemStack, ERockItemOrientation Orientation);
 
 	/** Returns true if this stack can be combined with another stack */
 	UFUNCTION(BlueprintCallable, Category = "RockInventory|ItemStack")

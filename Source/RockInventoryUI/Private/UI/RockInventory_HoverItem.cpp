@@ -86,6 +86,12 @@ void URockInventory_HoverItem::SetTargetSize(int32 InTileSize, ERockItemSizePoli
 	SizeBox->SetHeightOverride(GridSize.Y * TileSize);
 }
 
+void URockInventory_HoverItem::SetOrientation(const ERockItemOrientation InOrientation)
+{
+	IconImage->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+	IconImage->SetRenderTransformAngle(InOrientation == ERockItemOrientation::Vertical ? 90.f : 0.f);
+}
+
 void URockInventory_HoverItem::SetItemStack(const FRockItemStack& ItemStack)
 {
 	CopyItemStack = ItemStack;

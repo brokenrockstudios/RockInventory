@@ -34,7 +34,7 @@ bool URockInventoryLibrary::LootItemToInventory(
 	PrecomputeOccupancyGrids(Inventory, OccupancyGrids);
 
 	TArray<FRockInventorySectionInfo> SlotSections = Inventory->SlotSections;
-	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
+	const FIntPoint ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
 	FRockItemStack ItemStackCopy = ItemStack;
 
 	for (const FRockInventorySlotEntry Slot : Inventory->SlotData)
@@ -71,14 +71,21 @@ bool URockInventoryLibrary::LootItemToInventory(
 			continue;
 		}
 
-		// Finally check if it fits spatially
-		if (CanItemFitInGridPosition(OccupancyGrids, SectionInfo, Column, Row, ItemSize))
+		// Finally check if it fits spatially. Prefer the default orientation, then fall back to rotated for non-square items.
+		ERockItemOrientation FitOrientation = ERockItemOrientation::Horizontal;
+		bool bFits = CanItemFitInGridPosition(OccupancyGrids, SectionInfo, Column, Row, FVector2D(ItemSize));
+		if (!bFits && ItemSize.X != ItemSize.Y)
+		{
+			FitOrientation = ERockItemOrientation::Vertical;
+			bFits = CanItemFitInGridPosition(OccupancyGrids, SectionInfo, Column, Row, FVector2D(ItemSize.Y, ItemSize.X));
+		}
+		if (bFits)
 		{
 			const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(ItemStackCopy);
 			OutExcess = 0;
 			FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(SlotHandle);
 			SlotEntry.ItemHandle = ItemHandle;
-			SlotEntry.Orientation = ERockItemOrientation::Horizontal;
+			SlotEntry.Orientation = FitOrientation;
 			Inventory->SetSlotByHandle(SlotHandle, SlotEntry);
 			OutHandle = SlotHandle;
 			return true;
@@ -164,9 +171,33 @@ bool URockInventoryLibrary::MoveItem(
 	URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
 	const FRockMoveItemParams& InMoveParams)
 {
-	if (SourceInventory == TargetInventory && SourceSlotHandle == TargetSlotHandle)
+	if (SourceInventory && SourceInventory == TargetInventory && SourceSlotHandle == TargetSlotHandle)
 	{
-		// Nothing to do, item is already in the target location
+		const FRockInventorySlotEntry& CurrentSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+		if (!CurrentSlot.IsValid() || !CurrentSlot.ItemHandle.IsValid() || CurrentSlot.Orientation == InMoveParams.DesiredOrientation)
+		{
+			// Nothing to do, item is already in the target location
+			return true;
+		}
+
+		// Same slot, different orientation: rotate in place if the rotated footprint fits.
+		const FRockItemStack& RotatingItem = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
+		if (!RotatingItem.IsValid())
+		{
+			return true;
+		}
+		const FRockInventorySectionInfo& RotatingSection = SourceInventory->GetSectionInfoBySlotHandle(SourceSlotHandle);
+		const int32 RotatingLocalIndex = RotatingSection.GetLocalIndex(SourceSlotHandle.GetAbsoluteIndex());
+		TArray<bool> RotatingGrid;
+		PrecomputeOccupancyGrids(SourceInventory, RotatingGrid, CurrentSlot.ItemHandle);
+		const FVector2D RotatedSize = FVector2D(URockItemStackLibrary::GetItemSizeForOrientation(RotatingItem, InMoveParams.DesiredOrientation));
+		if (!CanItemFitInGridPosition(RotatingGrid, RotatingSection, RotatingLocalIndex % RotatingSection.GetColumns(), RotatingLocalIndex / RotatingSection.GetColumns(), RotatedSize))
+		{
+			return false;
+		}
+		FRockInventorySlotEntry RotatedSlot = CurrentSlot;
+		RotatedSlot.Orientation = InMoveParams.DesiredOrientation;
+		SourceInventory->SetSlotByHandle(SourceSlotHandle, RotatedSlot);
 		return true;
 	}
 
@@ -228,7 +259,7 @@ bool URockInventoryLibrary::MoveItem(
 	const int32 localIndex = targetSection.GetLocalIndex(TargetSlotHandle.GetAbsoluteIndex());
 	const int32 Column = localIndex % targetSection.GetColumns();
 	const int32 Row = localIndex / targetSection.GetColumns();
-	const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ValidatedSourceItem);
+	const FVector2D ItemSize = FVector2D(URockItemStackLibrary::GetItemSizeForOrientation(ValidatedSourceItem, InMoveParams.DesiredOrientation));
 
 	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize))
 	{
@@ -555,7 +586,7 @@ void URockInventoryLibrary::PrecomputeOccupancyGrids(
 
 			if (ExistingItemStack.IsValid())
 			{
-				const FVector2D ItemSize = URockItemStackLibrary::GetItemSize(ExistingItemStack);
+				const FVector2D ItemSize = FVector2D(URockItemStackLibrary::GetItemSizeForOrientation(ExistingItemStack, ExistingItemSlot.Orientation));
 				auto SizePolicy = SectionInfo.GetSlotSizePolicy();
 
 				// If size policy is IgnoreSize, only mark the single slot as occupied
@@ -598,6 +629,11 @@ bool URockInventoryLibrary::CanItemFitInGridPosition(
 	// Item size is irrelevant.
 	if (TabInfo.GetSlotSizePolicy() == ERockItemSizePolicy::IgnoreSize)
 	{
+		// Without this, an out-of-range X would wrap into the next row (or another section).
+		if (X < 0 || Y < 0 || X >= TabInfo.GetColumns() || Y >= TabInfo.GetRows())
+		{
+			return false;
+		}
 		const int32 GridIndex = TabInfo.GetFirstSlotIndex() + (Y * TabInfo.GetColumns() + X);
 		if (GridIndex < 0 || GridIndex >= OccupancyGrid.Num())
 		{

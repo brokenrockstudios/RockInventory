@@ -27,11 +27,11 @@ enum class ERockInventoryChangeType : uint8
 UENUM(BlueprintType)
 enum class ERockItemStackMergeCondition : uint8
 {
-	// Will only return if it can be fully merged  
+	// Returns true only if the entire incoming stack fits in the existing stack
 	Full = 0,
-	// Will only return true if it can only be partially merged
+	// Returns true if at least some of the incoming stack fits (includes the full-fit case)
 	Partial = 1,
-	// will return false if it cannot be merged at all
+	// Returns true if the stacks are compatible but the existing stack has no room (nothing can be merged)
 	None = 2,
 };
 

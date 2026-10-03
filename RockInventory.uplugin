@@ -28,6 +28,11 @@
 			"Name": "RockInventoryUI",
 			"Type": "ClientOnly",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "RockInventoryTests",
+			"Type": "Developer",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [

@@ -40,6 +40,14 @@ void URockInventory_ContainerBase::OnCarryEnded(const URockDragCarryOperation* O
 	// Some code to go SetEmptyTexture/OccupiedTexture?
 }
 
+void URockInventory_ContainerBase::OnCarryRotated(const URockDragCarryOperation* Operation)
+{
+	if (bMouseWithinCanvas && TileParameters.SlotHandle.IsValid())
+	{
+		OnTileParametersUpdated(TileParameters);
+	}
+}
+
 URockInventory_Slot_ItemBase* URockInventory_ContainerBase::FindItemSlotWidgetBySlotHandle(const FRockInventorySlotHandle& InSlotHandle) const
 {
 	// TODO Replace this whole function with a TMap or TArray in the container that maps slot handles to widgets
@@ -106,6 +114,7 @@ void URockInventory_ContainerBase::NativeConstruct()
 	if (URockItemDragCarrySubsystem* subsystem = URockItemDragCarrySubsystem::Get(GetWorld()))
 	{
 		subsystem->OnCarryEnded.AddDynamic(this, &ThisClass::OnCarryEnded);
+		subsystem->OnCarryRotated.AddDynamic(this, &ThisClass::OnCarryRotated);
 	}
 }
 
@@ -119,6 +128,7 @@ void URockInventory_ContainerBase::NativeDestruct()
 	if (URockItemDragCarrySubsystem* subsystem = URockItemDragCarrySubsystem::Get(GetWorld()))
 	{
 		subsystem->OnCarryEnded.RemoveDynamic(this, &ThisClass::OnCarryEnded);
+		subsystem->OnCarryRotated.RemoveDynamic(this, &ThisClass::OnCarryRotated);
 		if (const URockItemDragDropOperation* drag = Cast<URockItemDragDropOperation>(subsystem->GetDragOperation()))
 		{
 			if (drag->SourceInventory == Inventory)
@@ -387,7 +397,7 @@ void URockInventory_ContainerBase::OnTileParametersUpdated(const FRockInventory_
 	FIntPoint dimensions = FIntPoint(1, 1);
 	if (copyOfItem.IsValid())
 	{
-		dimensions = copyOfItem.GetDefinition()->GridSize;
+		dimensions = URockItemStackLibrary::GetItemSizeForOrientation(copyOfItem, dragDrop->MoveItemParams.DesiredOrientation);
 	}
 
 	// Calculate the starting coordinate (Top Left) for highlighting.
@@ -510,8 +520,9 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 	rockDragDrop->Instigator = GetOwningPlayer();
 	rockDragDrop->SourceInventory = InInventory;
 	rockDragDrop->SourceSlotHandle = InSlotHandle;
+	// Keep the item's current orientation so moving a rotated item doesn't silently un-rotate it.
 	rockDragDrop->MoveItemParams = FRockMoveItemParams();
-	rockDragDrop->Orientation = ERockItemOrientation::Horizontal;
+	rockDragDrop->MoveItemParams.DesiredOrientation = InInventory->GetSlotByHandle(InSlotHandle).Orientation;
 	rockDragDrop->MoveMode = ERockItemMoveMode::FullStack;
 
 	const FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(InSlotHandle);
@@ -522,6 +533,7 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 	URockInventory_HoverItem* HoverItemWidget = CreateWidget<URockInventory_HoverItem>(GetWorld(), HoverItemClass);
 	HoverItemWidget->SetItemSource(Inventory, InSlotHandle);
 	HoverItemWidget->SetTargetSize(TileSize, TabInfo.GetSlotSizePolicy());
+	HoverItemWidget->SetOrientation(rockDragDrop->MoveItemParams.DesiredOrientation);
 
 	rockDragDrop->HoverDragVisual = HoverItemWidget;
 
@@ -1155,6 +1167,16 @@ void URockInventory_ContainerBase::ClearItems()
 	}
 }
 
+FIntPoint URockInventory_ContainerBase::GetDisplaySize(const FRockItemStack& ItemStack, FRockInventorySlotHandle SlotHandle) const
+{
+	if (SizePolicy == ERockItemSizePolicy::IgnoreSize)
+	{
+		return FIntPoint(1);
+	}
+	const ERockItemOrientation Orientation = Inventory ? Inventory->GetSlotByHandle(SlotHandle).Orientation : ERockItemOrientation::Horizontal;
+	return URockItemStackLibrary::GetItemSizeForOrientation(ItemStack, Orientation);
+}
+
 void URockInventory_ContainerBase::UpdateWidgetForItem(
 	URockInventory_Slot_ItemBase* WidgetItem, const FRockItemStack& ItemStack, FRockInventorySlotHandle SlotHandle)
 {
@@ -1169,9 +1191,7 @@ void URockInventory_ContainerBase::UpdateWidgetForItem(
 	const FIntPoint tilePosition = GetCoordinatesFromIndex(localIndex);
 
 	// Size in tiles
-	const FIntPoint itemGridSize = (SizePolicy == ERockItemSizePolicy::IgnoreSize)
-		                               ? FIntPoint(1)
-		                               : URockItemStackLibrary::GetItemSize(ItemStack);
+	const FIntPoint itemGridSize = GetDisplaySize(ItemStack, SlotHandle);
 
 	// Pixels/Layout
 	const FVector2D pixelPosition = FVector2D(tilePosition.X * TileSize, tilePosition.Y * TileSize);
@@ -1344,7 +1364,7 @@ void URockInventory_ContainerBase::EnsureWidgetForItem(const FRockItemStack& Ite
 	// Update IndexMaps
 	itemView.AnchorSlot = SlotHandle;
 	itemView.Widget = widgetItem;
-	itemView.Size = URockItemStackLibrary::GetItemSize(ItemStack);
+	itemView.Size = GetDisplaySize(ItemStack, SlotHandle);
 	SlotToItem.FindOrAdd(SlotHandle) = ItemStack.ItemHandle;
 	return;
 }

@@ -14,18 +14,27 @@ void FRockItemStackHandle::Reset()
 
 FRockItemStackHandle FRockItemStackHandle::Create(uint32 InIndex, uint32 InGeneration)
 {
+	// An index that does not fit would alias another slot, so it yields an invalid handle instead.
+	if (InIndex > INDEX_MASK)
+	{
+		return Invalid();
+	}
+
 	FRockItemStackHandle Result;
 
-	// Ensure the index is within valid range
-	InIndex = InIndex & INDEX_MASK;
-
-	// Ensure generation is within valid range
+	// Generation is expected to wrap, so extra bits are dropped. Ensure generation is within valid range
 	InGeneration = InGeneration & GENERATION_MASK;
 
 	// Combine the index and generation
 	Result.Handle = InIndex | (InGeneration << GENERATION_SHIFT);
 
 	return Result;
+}
+
+uint32 FRockItemStackHandle::NextGeneration(uint32 InGeneration)
+{
+	const uint32 Next = (InGeneration + 1) & GENERATION_MASK;
+	return Next == GENERATION_MASK ? 0 : Next;
 }
 
 FRockItemStackHandle FRockItemStackHandle::Invalid()
