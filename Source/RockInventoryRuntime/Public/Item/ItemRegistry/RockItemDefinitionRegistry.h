@@ -3,7 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Subsystems/GameInstanceSubsystem.h"
+#include "Subsystems/EngineSubsystem.h"
+#include "UObject/PrimaryAssetId.h"
 #include "RockItemDefinitionRegistry.generated.h"
 
 class URockItemDefinition;
@@ -11,14 +12,24 @@ class URockItemDefinition;
  * A central registry system that manages all available item definitions in the game.
  * This subsystem loads and provides access to all URockItemDefinition assets,
  * allowing for efficient lookup by ItemID throughout the game.
+ *
+ * It is an engine subsystem: the data is global and read-only, so one copy serves every game instance
+ * (PIE clients, test worlds) and it works without a world (editor tools, validators, commandlets).
+ *
+ * The registry is built lazily on the first lookup. After that, MarkDirty() makes the next lookup do an
+ * additive refresh: definitions that are already loaded are kept, only new asset ids are loaded and
+ * removed ones are dropped. In the editor the RockInventoryEditor module calls MarkDirty() on PIE start
+ * and when item definition assets are added, removed or renamed.
  */
 UCLASS()
-class ROCKINVENTORYRUNTIME_API URockItemRegistrySubsystem : public UGameInstanceSubsystem
+class ROCKINVENTORYRUNTIME_API URockItemRegistrySubsystem : public UEngineSubsystem
 {
 	GENERATED_BODY()
 
 public:
+	/** The registry, or nullptr when the engine is not available (shutting down). Needs no world. */
 	static URockItemRegistrySubsystem* GetInstance();
+
 	//~ Begin USubsystem Interface
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
@@ -42,18 +53,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Item Registry") // Expose to Blueprint if needed
 	void GetAllDefinitions(TArray<URockItemDefinition*>& OutDefinitions) const;
 
+	/** The next lookup refreshes the registry against the Asset Manager. Cheap; safe to call from anywhere. */
+	void MarkDirty();
+
 private:
-	/** Map storing ItemId -> ItemDefinition associations for quick lookup. */
-	UPROPERTY(Transient) // Transient as it's populated at runtime
+	/** The loaded definition for every item definition primary asset, kept alive by this map. */
+	UPROPERTY(Transient)
+	TMap<FPrimaryAssetId, TObjectPtr<URockItemDefinition>> LoadedById;
+
+	/** ItemId -> ItemDefinition associations for quick lookup. Derived from LoadedById on every refresh. */
+	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<URockItemDefinition>> ItemDefinitionMap;
 
 	/** Primary Asset Type for URockItemDefinition as configured in Project Settings. */
-	UPROPERTY() // Allow configuration via DefaultGame.ini if needed
-	FPrimaryAssetType ItemDefinitionAssetType = FPrimaryAssetType(TEXT("RockItemDefinition")); // Default to "RockItemDefinition", matches step 1
+	UPROPERTY()
+	FPrimaryAssetType ItemDefinitionAssetType = FPrimaryAssetType(TEXT("RockItemDefinition"));
 
-	/** Flag to track if the registry has been successfully initialized. */
-	bool bIsInitialized = false;
+	/** True until a refresh has completed against an initialized Asset Manager. */
+	bool bDirty = true;
 
-	/** Internal function to scan and load item definitions using the Asset Manager. */
-	void BuildRegistry();
+	/** Refreshes if dirty. Returns false when the Asset Manager is not ready yet (the registry stays dirty). */
+	bool EnsureUpToDate() const;
+
+	/** Diffs the Asset Manager's item definition ids against LoadedById: loads new ones, drops removed ones, rebuilds the lookup map. */
+	void Refresh();
 };

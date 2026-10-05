@@ -225,8 +225,9 @@ private:
 	// up to date with the StatTagDefaults. All of this is simply because FGameplayTagStackContainer doesn't allow setting default values in the constructor.
 	// If it did, we could simply set the StatTags and avoid all of this. But since it doesn't, we need to manually copy the values over.
 	void RebuildStatTags();
-	void RebuildCachedTags();
 public:
+	/** Refreshes GetAllTags() from ItemType and ItemTags. Runs on PostLoad and on editing those properties; call it after setting them in code (tests). */
+	void RebuildCachedTags();
 	void SortFragments();
 	virtual void GetAssetRegistryTags(FAssetRegistryTagsContext Context) const override;
 #if WITH_EDITOR

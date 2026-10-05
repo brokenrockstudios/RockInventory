@@ -2,6 +2,7 @@
 
 
 #include "Engine/AssetManager.h"
+#include "Engine/Engine.h"
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
@@ -12,137 +13,155 @@ DEFINE_LOG_CATEGORY_STATIC(LogRockItemRegistry, Log, All);
 
 URockItemRegistrySubsystem* URockItemRegistrySubsystem::GetInstance()
 {
-	checkf(GEngine && GEngine->GetWorldContexts().Num() > 0, TEXT("Expected at least one world context"));
-	for (const FWorldContext& Context : GEngine->GetWorldContexts())
-	{
-		const UWorld* World = Context.World();
-		if (World && World->IsGameWorld())
-		{
-			if (const UGameInstance* GI = World->GetGameInstance())
-			{
-				if (URockItemRegistrySubsystem* Subsystem = GI->GetSubsystem<URockItemRegistrySubsystem>())
-				{
-					return Subsystem;
-				}
-			}
-		}
-	}
-	checkf(false, TEXT("URockItemRegistrySubsystem::GetInstance() called but no instance found."));
-	return nullptr;
+	return GEngine ? GEngine->GetEngineSubsystem<URockItemRegistrySubsystem>() : nullptr;
 }
 
 void URockItemRegistrySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	if (!GetWorld()->IsGameWorld())
-	{
-		return;
-	}
-	
-	UE_LOG(LogRockItemRegistry, Log, TEXT("Initializing RockItemRegistry..."));
-	BuildRegistry();
-	bIsInitialized = true;
-	UE_LOG(LogRockItemRegistry, Log, TEXT("RockItemRegistry Initialized. Found %d item definitions."), ItemDefinitionMap.Num());
+	// Nothing is loaded here: the registry builds on the first lookup (see EnsureUpToDate).
+	bDirty = true;
 }
 
 void URockItemRegistrySubsystem::Deinitialize()
 {
-	UE_LOG(LogRockItemRegistry, Log, TEXT("Deinitializing RockItemRegistry..."));
+	LoadedById.Empty();
 	ItemDefinitionMap.Empty();
-	bIsInitialized = false;
+	bDirty = true;
 	Super::Deinitialize();
 }
 
-void URockItemRegistrySubsystem::BuildRegistry()
+void URockItemRegistrySubsystem::MarkDirty()
 {
-	int32 NumAssetsLoaded = 0;
-	double TimeBuildingRegistry = 0.0;
+	bDirty = true;
+}
+
+bool URockItemRegistrySubsystem::EnsureUpToDate() const
+{
+	if (!bDirty)
 	{
-		FScopedDurationTimer Timer(TimeBuildingRegistry);
-		// Get all Primary Asset IDs for our item type
-		TArray<FPrimaryAssetId> PrimaryAssetIds;
-		UAssetManager::Get().GetPrimaryAssetIdList(ItemDefinitionAssetType, PrimaryAssetIds);
-		NumAssetsLoaded = PrimaryAssetIds.Num();
-		UE_LOG(LogRockItemRegistry, Display, TEXT("Scanning for Primary Assets of type '%s'. Found %d potential assets."),
-			*ItemDefinitionAssetType.ToString(), PrimaryAssetIds.Num());
+		return true;
+	}
+	if (!UAssetManager::IsInitialized())
+	{
+		UE_LOG(LogRockItemRegistry, Warning, TEXT("Item registry used before the Asset Manager was initialized."));
+		return false;
+	}
+	// Lookups are logically const; the refresh only fills a cache.
+	const_cast<URockItemRegistrySubsystem*>(this)->Refresh();
+	return true;
+}
 
-		for (const FPrimaryAssetId& AssetId : PrimaryAssetIds)
+void URockItemRegistrySubsystem::Refresh()
+{
+	double TimeRefreshing = 0.0;
+	int32 NumLoaded = 0;
+	int32 NumRemoved = 0;
+	{
+		FScopedDurationTimer Timer(TimeRefreshing);
+		UAssetManager& AssetManager = UAssetManager::Get();
+
+		TArray<FPrimaryAssetId> CurrentIds;
+		AssetManager.GetPrimaryAssetIdList(ItemDefinitionAssetType, CurrentIds);
+		// A stable order makes "first one wins" on a duplicate ItemId deterministic.
+		CurrentIds.Sort([](const FPrimaryAssetId& A, const FPrimaryAssetId& B) { return A.ToString() < B.ToString(); });
+
+		// Drop assets that are gone. Everything already loaded stays as it is.
+		for (auto It = LoadedById.CreateIterator(); It; ++It)
 		{
-			// Attempt to synchronously load the asset (since this is initialization)
-			// Note: For very large registries, consider asynchronous loading later if startup time becomes an issue.
-			TSharedPtr<FStreamableHandle> Handle = UAssetManager::Get().LoadPrimaryAsset(AssetId, TArray<FName>(), FStreamableDelegate());
-			//, FStreamableManager::DefaultAsyncLoadPriority);
-
-			if (Handle.IsValid())
+			if (!CurrentIds.Contains(It.Key()))
 			{
-				// Block until loading is complete for initialization.
-				// Handle->WaitUntilComplete(); // Alternatively, just get the object directly if already loaded or load sync
+				It.RemoveCurrent();
+				++NumRemoved;
+			}
+		}
 
-				// Get the loaded asset object
-				// Using GetPrimaryAssetObject is safer as it handles assets potentially not loaded yet.
-				UObject* LoadedAsset = UAssetManager::Get().GetPrimaryAssetObject(AssetId);
+		// Load only the ids we do not hold yet.
+		TArray<FPrimaryAssetId> NewIds;
+		for (const FPrimaryAssetId& AssetId : CurrentIds)
+		{
+			if (!LoadedById.Contains(AssetId))
+			{
+				NewIds.Add(AssetId);
+			}
+		}
 
+		if (NewIds.Num() > 0)
+		{
+			// A null handle is not a failure: the Asset Manager returns null when everything is already in the requested state.
+			if (const TSharedPtr<FStreamableHandle> Handle = AssetManager.LoadPrimaryAssets(NewIds))
+			{
+				Handle->WaitUntilComplete();
+			}
+
+			for (const FPrimaryAssetId& AssetId : NewIds)
+			{
+				UObject* LoadedAsset = AssetManager.GetPrimaryAssetObject(AssetId);
 				if (URockItemDefinition* ItemDef = Cast<URockItemDefinition>(LoadedAsset))
 				{
-					if (!ItemDef->ItemId.IsNone())
-					{
-						if (ItemDefinitionMap.Contains(ItemDef->ItemId))
-						{
-							// Duplicate ItemId found! This is usually an error in data setup.
-							URockItemDefinition* ExistingDef = ItemDefinitionMap[ItemDef->ItemId];
-							UE_LOG(LogRockItemRegistry, Error,
-								TEXT("Duplicate ItemId '%s' found! Asset '%s' conflicts with existing asset '%s'. Ignoring the new one."),
-								*ItemDef->ItemId.ToString(),
-								*GetPathNameSafe(ItemDef),
-								*GetPathNameSafe(ExistingDef));
-						}
-						else
-						{
-							// Add the valid definition to the map
-							ItemDefinitionMap.Add(ItemDef->ItemId, ItemDef);
-							// UE_LOG(LogRockItemRegistry, Display, TEXT("Added Item Definition: ID '%s', Asset '%s'"), *ItemDef->ItemId.ToString(), *GetPathNameSafe(ItemDef));
-						}
-					}
-					else
-					{
-						UE_LOG(LogRockItemRegistry, Warning, TEXT("Item Definition asset '%s' has a None ItemId. Skipping."),
-							*GetPathNameSafe(ItemDef));
-					}
+					LoadedById.Add(AssetId, ItemDef);
+					++NumLoaded;
 				}
-				else if (LoadedAsset) // Asset loaded but failed to cast
+				else if (LoadedAsset)
 				{
 					UE_LOG(LogRockItemRegistry, Warning,
 						TEXT("Asset '%s' associated with PrimaryAssetId '%s' is not a URockItemDefinition. Skipping."),
 						*GetPathNameSafe(LoadedAsset), *AssetId.ToString());
 				}
-				// else: AssetManager->GetPrimaryAssetObject(AssetId) returned null, might indicate loading failed or asset doesn't exist (Asset Manager should handle internal errors)
+				else
+				{
+					UE_LOG(LogRockItemRegistry, Warning, TEXT("Failed to load item definition PrimaryAssetId '%s'."), *AssetId.ToString());
+				}
+			}
+		}
+
+		// Rebuild the lookup. This also picks up an ItemId that was changed on an already loaded definition.
+		ItemDefinitionMap.Reset();
+		for (const FPrimaryAssetId& AssetId : CurrentIds)
+		{
+			const TObjectPtr<URockItemDefinition>* Found = LoadedById.Find(AssetId);
+			URockItemDefinition* ItemDef = Found ? Found->Get() : nullptr;
+			if (!ItemDef)
+			{
+				continue;
+			}
+			if (ItemDef->ItemId.IsNone())
+			{
+				UE_LOG(LogRockItemRegistry, Warning, TEXT("Item Definition asset '%s' has a None ItemId. Skipping."), *GetPathNameSafe(ItemDef));
+			}
+			else if (const TObjectPtr<URockItemDefinition>* Existing = ItemDefinitionMap.Find(ItemDef->ItemId))
+			{
+				// Duplicate ItemId found! This is usually an error in data setup.
+				UE_LOG(LogRockItemRegistry, Error,
+					TEXT("Duplicate ItemId '%s' found! Asset '%s' conflicts with existing asset '%s'. Ignoring the new one."),
+					*ItemDef->ItemId.ToString(), *GetPathNameSafe(ItemDef), *GetPathNameSafe(Existing->Get()));
 			}
 			else
 			{
-				UE_LOG(LogRockItemRegistry, Warning, TEXT("Failed to initiate load for PrimaryAssetId '%s'."), *AssetId.ToString());
+				ItemDefinitionMap.Add(ItemDef->ItemId, ItemDef);
 			}
 		}
 	}
 
-	UE_LOG(LogRockItemRegistry, Display, TEXT("BuildRegistry() took %.3f seconds to load %d assets."), TimeBuildingRegistry, NumAssetsLoaded);
+	bDirty = false;
+	UE_LOG(LogRockItemRegistry, Display, TEXT("Item registry refreshed in %.3f seconds: %d loaded, %d removed, %d definitions in total."),
+		TimeRefreshing, NumLoaded, NumRemoved, ItemDefinitionMap.Num());
 }
 
 URockItemDefinition* URockItemRegistrySubsystem::FindDefinition(FName ItemID) const
 {
-	if (!bIsInitialized)
-	{
-		UE_LOG(LogRockItemRegistry, Warning, TEXT("Attempted to FindDefinition before registry was initialized."));
-		return nullptr;
-	}
 	if (ItemID.IsNone())
 	{
 		UE_LOG(LogRockItemRegistry, Warning, TEXT("Attempted to FindDefinition with None ItemID."));
 		return nullptr;
 	}
-	const TObjectPtr<URockItemDefinition>* FoundDefPtr = ItemDefinitionMap.Find(ItemID);
-	if (FoundDefPtr)
+	if (!EnsureUpToDate())
 	{
-		return *FoundDefPtr; // Dereference the TObjectPtr pointer to get the URockItemDefinition*
+		return nullptr;
+	}
+	if (const TObjectPtr<URockItemDefinition>* FoundDefPtr = ItemDefinitionMap.Find(ItemID))
+	{
+		return *FoundDefPtr;
 	}
 
 	UE_LOG(LogRockItemRegistry, Warning, TEXT("Could not find Item Definition with ID '%s'."), *ItemID.ToString());
@@ -151,11 +170,13 @@ URockItemDefinition* URockItemRegistrySubsystem::FindDefinition(FName ItemID) co
 
 void URockItemRegistrySubsystem::GetAllDefinitions(TArray<URockItemDefinition*>& OutDefinitions) const
 {
-	if (!bIsInitialized)
+	OutDefinitions.Reset();
+	if (!EnsureUpToDate())
 	{
-		UE_LOG(LogRockItemRegistry, Warning, TEXT("Attempted to GetAllDefinitions before registry was initialized."));
-		OutDefinitions.Empty();
 		return;
 	}
-	// ItemDefinitionMap.GenerateValueArray(OutDefinitions); // Efficiently get all values from the map
+	for (const TPair<FName, TObjectPtr<URockItemDefinition>>& Pair : ItemDefinitionMap)
+	{
+		OutDefinitions.Add(Pair.Value);
+	}
 }

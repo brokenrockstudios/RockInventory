@@ -36,6 +36,28 @@ URockItemDefinition* FRockInventoryFixture::MakeDefinition(FName ItemId, int32 M
 	return Definition;
 }
 
+URockItemDefinition* FRockInventoryFixture::MakeTaggedDefinition(
+	FName ItemId, const FGameplayTagContainer& ItemTags, int32 MaxStack, FIntPoint GridSize)
+{
+	URockItemDefinition* Definition = MakeDefinition(ItemId, MaxStack, GridSize);
+	Definition->ItemTags = ItemTags;
+	Definition->RebuildCachedTags();
+	return Definition;
+}
+
+FRockInventorySectionInfo FRockInventoryFixture::MakeSection(
+	const FGameplayTag& SectionTag, int32 Columns, int32 Rows,
+	const FGameplayTagContainer& RequiredTags, const FGameplayTagContainer& MetaTags)
+{
+	FRockInventorySectionInfo Section(SectionTag, 0, Columns, Rows);
+	if (!RequiredTags.IsEmpty())
+	{
+		Section.SetSectionFilter(FGameplayTagQuery::MakeQuery_MatchAnyTags(RequiredTags));
+	}
+	Section.SetMetaTags(MetaTags);
+	return Section;
+}
+
 FRockInventorySlotHandle FRockInventoryFixture::SlotAt(const FGameplayTag& Section, int32 Column, int32 Row) const
 {
 	const FRockInventorySectionInfo& Info = Inventory->GetSectionInfo(Section);

@@ -1,6 +1,7 @@
 // Copyright Broken Rock Studios LLC. All Rights Reserved.
 
 #include "RockInventoryTestFixture.h"
+#include "RockInventoryTestTags.h"
 
 #include "Library/RockInventoryLibrary.h"
 
@@ -216,6 +217,263 @@ TEST_CLASS(RockInventoryLootTests, "BRS.RockInventory.Loot")
 		int32 Excess = -1;
 		ASSERT_THAT(IsFalse(URockInventoryLibrary::LootItemToInventory(nullptr, FRockItemStack(Apple, 2), Slot, Excess)));
 		ASSERT_THAT(AreEqual(2, Excess));
+	}
+};
+
+// LootItemToInventory across several sections: which section wins, what the section filter gates, merge versus empty slot.
+// These pin the CURRENT behavior (T-33) so the section-major refactor (T-34) and the priority feature (T-36) have a baseline.
+// A test marked "CurrentBehavior" documents a rule T-36 deliberately changes; update it there, do not weaken it elsewhere.
+TEST_CLASS(RockInventoryLootSectionTests, "BRS.RockInventory.Loot.Sections")
+{
+	FRockInventoryFixture Fixture;
+
+	FGameplayTagContainer Tags(const FGameplayTag& A) const { return FGameplayTagContainer(A); }
+
+	TEST_METHOD(Placement_FollowsConfigOrder_FirstSectionFillsFirst)
+	{
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 2, 1),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 3, 1)});
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple");
+
+		const FRockInventorySlotHandle Expected[] = {
+			Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0),
+			Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 1, 0),
+			Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0)};
+		for (const FRockInventorySlotHandle& ExpectedSlot : Expected)
+		{
+			FRockInventorySlotHandle Slot;
+			int32 Excess = -1;
+			ASSERT_THAT(IsTrue(Fixture.Loot(Apple, 1, Slot, Excess)));
+			ASSERT_THAT(AreEqual(ExpectedSlot, Slot));
+		}
+	}
+
+	TEST_METHOD(Placement_ConfigOrderIsThePriority_NotTheSectionTag)
+	{
+		// Same sections as above in the opposite order: Backpack is now first and wins.
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 1, 1)});
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple");
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Apple, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+		ASSERT_THAT(IsTrue(Fixture.Loot(Apple, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0), Slot));
+	}
+
+	TEST_METHOD(Placement_FullFirstSection_SpillsIntoTheNext)
+	{
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 1, 1),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1)});
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple");
+		Fixture.PlaceAt(Apple, 1, Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0));
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Apple, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+	}
+
+	TEST_METHOD(Placement_PendingSlotInFirstSection_FallsToTheNextSection)
+	{
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 1, 1),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1)});
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple");
+		Fixture.Inventory->RegisterSlotStatus(nullptr, Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0), ERockSlotStatus::Pending);
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Apple, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+	}
+
+	TEST_METHOD(Placement_SizePolicyIsPerSection)
+	{
+		// An IgnoreSize section takes the oversized rifle in one cell; once it is taken the second rifle needs the real footprint in the next section.
+		FRockInventorySectionInfo Equipment(RockInventoryTags::Inventory_Section_Pockets, 0, 1, 1, ERockItemSizePolicy::IgnoreSize);
+		Fixture.Init({Equipment, FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 5, 2)});
+		URockItemDefinition* Rifle = Fixture.MakeDefinition("Rifle", 1, FIntPoint(5, 2));
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Rifle, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0), Slot));
+		ASSERT_THAT(IsTrue(Fixture.Loot(Rifle, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+		ASSERT_THAT(IsFalse(Fixture.Loot(Rifle, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(1, Excess));
+	}
+
+	TEST_METHOD(Filter_SectionNotAcceptingTheItem_IsSkipped)
+	{
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 1, 1, Tags(RockInventoryTestTags::Weapon)),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 2, 1)});
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple");
+		URockItemDefinition* Sword = Fixture.MakeTaggedDefinition("Sword", Tags(RockInventoryTestTags::Weapon));
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		// The filtered section is first in config order, but the apple does not carry the tag.
+		ASSERT_THAT(IsTrue(Fixture.Loot(Apple, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+		ASSERT_THAT(IsTrue(Fixture.Loot(Sword, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0), Slot));
+	}
+
+	TEST_METHOD(Filter_MatchesAnyOfTheRequiredTags)
+	{
+		FGameplayTagContainer WeaponOrFood;
+		WeaponOrFood.AddTag(RockInventoryTestTags::Weapon);
+		WeaponOrFood.AddTag(RockInventoryTestTags::Food);
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 2, 1, WeaponOrFood),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1)});
+		URockItemDefinition* Sword = Fixture.MakeTaggedDefinition("Sword", Tags(RockInventoryTestTags::Weapon));
+		URockItemDefinition* Apple = Fixture.MakeTaggedDefinition("Apple", Tags(RockInventoryTestTags::Food));
+		URockItemDefinition* Rock = Fixture.MakeDefinition("Rock");
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		// The untagged rock goes first, while both Pockets slots are still free, so only the filter keeps it out.
+		ASSERT_THAT(IsTrue(Fixture.Loot(Rock, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+		ASSERT_THAT(IsTrue(Fixture.Loot(Sword, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0), Slot));
+		ASSERT_THAT(IsTrue(Fixture.Loot(Apple, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 1, 0), Slot));
+	}
+
+	TEST_METHOD(Filter_ExcludeQuery_RejectsOnlyTheExcludedTag)
+	{
+		FRockInventorySectionInfo NoWeapons(RockInventoryTags::Inventory_Section_Pockets, 0, 2, 1);
+		NoWeapons.SetSectionFilter(FGameplayTagQuery::MakeQuery_MatchNoTags(Tags(RockInventoryTestTags::Weapon)));
+		Fixture.Init({NoWeapons, FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1)});
+		URockItemDefinition* Sword = Fixture.MakeTaggedDefinition("Sword", Tags(RockInventoryTestTags::Weapon));
+		URockItemDefinition* Rock = Fixture.MakeDefinition("Rock");
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Sword, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+		ASSERT_THAT(IsTrue(Fixture.Loot(Rock, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0), Slot));
+	}
+
+	TEST_METHOD(Filter_NoSectionAccepts_FailsWithFullExcessAndStoresNothing)
+	{
+		Fixture.Init({FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 2, 1, Tags(RockInventoryTestTags::Weapon))});
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 10);
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsFalse(Fixture.Loot(Arrow, 4, Slot, Excess)));
+		ASSERT_THAT(AreEqual(4, Excess));
+		ASSERT_THAT(AreEqual(0, Fixture.Inventory->GetNumItemStacks()));
+	}
+
+	TEST_METHOD(Filter_EmptyFilter_AcceptsTaggedAndUntaggedItems)
+	{
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 2, 1),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1)});
+		URockItemDefinition* Sword = Fixture.MakeTaggedDefinition("Sword", Tags(RockInventoryTestTags::Weapon));
+		URockItemDefinition* Rock = Fixture.MakeDefinition("Rock");
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Sword, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0), Slot));
+		ASSERT_THAT(IsTrue(Fixture.Loot(Rock, 1, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 1, 0), Slot));
+	}
+
+	TEST_METHOD(Filter_AlsoGatesMerging_ASectionThatRejectsTheItemIsNotToppedUp)
+	{
+		// The partial stack of untagged arrows sits in a Weapon-only section (arranged with PlaceAt, which bypasses the filter).
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 1, 1, Tags(RockInventoryTestTags::Weapon)),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1)});
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 10);
+		const FRockInventorySlotHandle PocketSlot = Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0);
+		Fixture.PlaceAt(Arrow, 5, PocketSlot);
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Arrow, 3, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+		ASSERT_THAT(AreEqual(5, Fixture.Inventory->GetItemBySlotHandle(PocketSlot).GetStackCount()));
+		ASSERT_THAT(AreEqual(3, Fixture.Inventory->GetItemBySlotHandle(Slot).GetStackCount()));
+	}
+
+	TEST_METHOD(Merge_EarlierPartialStack_IsToppedUpBeforeAnyEmptySlot)
+	{
+		Fixture.InitGrid(3, 1);
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 10);
+		Fixture.PlaceAt(Arrow, 5, Fixture.SlotAt(0, 0));
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Arrow, 3, Slot, Excess)));
+		ASSERT_THAT(AreEqual(8, Fixture.Inventory->GetItemBySlotHandle(Fixture.SlotAt(0, 0)).GetStackCount()));
+		ASSERT_THAT(AreEqual(1, Fixture.Inventory->GetNumItemStacks()));
+	}
+
+	TEST_METHOD(Merge_CurrentBehavior_NewStackTakesAnEarlierEmptySlotInsteadOfALaterPartialStack)
+	{
+		// Merge and fill are interleaved per slot, so the empty slot 0 is used before the partial stack in slot 2 is seen.
+		// T-36 makes this merge first; this test then changes on purpose.
+		Fixture.InitGrid(3, 1);
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 10);
+		Fixture.PlaceAt(Arrow, 5, Fixture.SlotAt(2, 0));
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Arrow, 3, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(0, 0), Slot));
+		ASSERT_THAT(AreEqual(3, Fixture.Inventory->GetItemBySlotHandle(Fixture.SlotAt(0, 0)).GetStackCount()));
+		ASSERT_THAT(AreEqual(5, Fixture.Inventory->GetItemBySlotHandle(Fixture.SlotAt(2, 0)).GetStackCount()));
+		ASSERT_THAT(AreEqual(2, Fixture.Inventory->GetNumItemStacks()));
+	}
+
+	TEST_METHOD(Merge_CurrentBehavior_NewStackTakesAnEarlierSectionInsteadOfALaterSectionsPartialStack)
+	{
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 1, 1),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1)});
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 10);
+		const FRockInventorySlotHandle BackpackSlot = Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0);
+		Fixture.PlaceAt(Arrow, 5, BackpackSlot);
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Arrow, 3, Slot, Excess)));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0), Slot));
+		ASSERT_THAT(AreEqual(5, Fixture.Inventory->GetItemBySlotHandle(BackpackSlot).GetStackCount()));
+	}
+
+	TEST_METHOD(Merge_OverflowOfAFullerSection_SpillsIntoTheNextSection)
+	{
+		Fixture.Init({
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Pockets, 1, 1),
+			FRockInventoryFixture::MakeSection(RockInventoryTags::Inventory_Section_Backpack, 1, 1)});
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 10);
+		const FRockInventorySlotHandle PocketSlot = Fixture.SlotAt(RockInventoryTags::Inventory_Section_Pockets, 0, 0);
+		Fixture.PlaceAt(Arrow, 8, PocketSlot);
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Arrow, 5, Slot, Excess)));
+		ASSERT_THAT(AreEqual(0, Excess));
+		ASSERT_THAT(AreEqual(10, Fixture.Inventory->GetItemBySlotHandle(PocketSlot).GetStackCount()));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(RockInventoryTags::Inventory_Section_Backpack, 0, 0), Slot));
+		ASSERT_THAT(AreEqual(3, Fixture.Inventory->GetItemBySlotHandle(Slot).GetStackCount()));
 	}
 };
 

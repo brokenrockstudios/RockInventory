@@ -24,6 +24,7 @@ public class RockInventoryEditor : ModuleRules
 				"Slate",
 				"SlateCore",
 				"UnrealEd",
+				"AssetRegistry",
 				"ToolMenus",
 				"ContentBrowser"
 			}

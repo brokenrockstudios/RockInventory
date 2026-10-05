@@ -35,6 +35,14 @@ public:
 
 	URockItemDefinition* MakeDefinition(FName ItemId, int32 MaxStack = 1, FIntPoint GridSize = FIntPoint(1, 1));
 
+	/** Like MakeDefinition, with ItemTags set and GetAllTags() refreshed (section filters match against those). */
+	URockItemDefinition* MakeTaggedDefinition(FName ItemId, const FGameplayTagContainer& ItemTags, int32 MaxStack = 1, FIntPoint GridSize = FIntPoint(1, 1));
+
+	/** A section with the given tag and grid size, a filter that accepts only items carrying at least one of RequiredTags (empty: no filter). */
+	static FRockInventorySectionInfo MakeSection(
+		const FGameplayTag& SectionTag, int32 Columns, int32 Rows,
+		const FGameplayTagContainer& RequiredTags = FGameplayTagContainer(), const FGameplayTagContainer& MetaTags = FGameplayTagContainer());
+
 	/** Absolute slot handle for a cell of the given section. */
 	FRockInventorySlotHandle SlotAt(const FGameplayTag& Section, int32 Column, int32 Row) const;
 	/** Absolute slot handle for a cell of the Backpack section. */
