@@ -31,6 +31,12 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
 
 	bool ContainsSlotHandle(FRockInventorySlotHandle InSlotHandle) const;
 
+	/** Sets the hard item filter (see SectionFilter). Returns *this so a section can be built in one expression, mainly for tests and code-built configs. */
+	FRockInventorySectionInfo& SetSectionFilter(const FGameplayTagQuery& InSectionFilter);
+
+	/** Sets the meta tags (see MetaTags). Returns *this, like SetSectionFilter. */
+	FRockInventorySectionInfo& SetMetaTags(const FGameplayTagContainer& InMetaTags);
+
 private:
 	UPROPERTY(EditAnywhere, meta = (Categories = "Inventory.Section,Inventory.Group"))
 	FGameplayTag SectionTag;

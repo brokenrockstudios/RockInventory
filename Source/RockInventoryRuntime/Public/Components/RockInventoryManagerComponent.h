@@ -14,29 +14,6 @@
 class URockInventory;
 class URockInventoryComponent;
 
-USTRUCT()
-struct FRockInventoryTransactionRecord
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FInstancedStruct Command;
-	// TODO: Rewrite to try and use this?
-	// TInstancedStruct<FRockItemTransactionBase> Command;
-
-	UPROPERTY()
-	FInstancedStruct Undo;
-
-	template <typename CommandT, typename UndoT>
-	void Set(const CommandT& Cmd, const UndoT& UndoData)
-	{
-		Command.InitializeAs<CommandT>(Cmd);
-		Undo.InitializeAs<UndoT>(UndoData);
-	}
-
-	bool ExecuteUndo();
-};
-
 // Should put this on the PlayerController?
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ROCKINVENTORYRUNTIME_API URockInventoryManagerComponent : public UActorComponent
@@ -47,22 +24,30 @@ public:
 
 	// TODO: static URockInventoryManagerComponent* Get(UObject* WorldContextObject);
 
+	/**
+	 * Whether Instigator may touch Inventory through a server command. Every Server_* command checks this for each inventory it names.
+	 * Default: the inventory belongs to the instigator's pawn, controller or player state, or its owning actor is within MaxAccessReach of the instigator's pawn.
+	 * Override for containers with their own rules (shared stashes, team lockers).
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category = "Rock|Inventory")
+	bool CanAccess(const URockInventory* Inventory, const AController* Instigator) const;
+	virtual bool CanAccess_Implementation(const URockInventory* Inventory, const AController* Instigator) const;
+
+	/** The controller that owns this component's connection: the owner itself, its pawn's controller, or its player state's controller. Null if none. */
+	AController* GetOwningController() const;
+
+	/**
+	 * Server-side gate for a client command: replaces the client-supplied Instigator with GetOwningController() and checks CanAccess for each inventory.
+	 * Returns false (and logs) when there is no owning controller, an inventory is null, or access is refused.
+	 */
+	bool AuthorizeServerCommand(FRockItemTransactionBase& Command, TConstArrayView<const URockInventory*> Inventories) const;
+
+	/** How far (cm) the instigator's pawn may be from an inventory's owning actor in the default CanAccess. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rock|Inventory", meta = (ClampMin = "0"))
+	float MaxAccessReach = 500.f;
+
 private:
-	// TODO: Spin into a custom CircularBuffer later...
-	UPROPERTY()
-	TArray<FRockInventoryTransactionRecord> TransactionHistoryData;
-
-	// Current position in the transaction history
-	int32 CurrentTransactionIndex = -1;
-	// Maximum history length
-	int32 MaxHistoryLength = 25;
-
 	bool bAwaitingServerSync = false;
-	bool bHasPendingPredictiveMove = false;
-	bool bEnablePredictiveExecution = false;
-	// This was used to track pending transactions form the client that were sent to the server. Waiting on 'reconcilation'
-	// UPROPERTY()
-	// TMap<int32, FRockInventoryPendingTransaction> PendingServerTransactions;
 
 public:
 	/**
@@ -97,34 +82,11 @@ public:
 	void Server_DropItem(FRockDropItemTransaction ItemTransaction);
 	void Server_DropItem_Implementation(FRockDropItemTransaction ItemTransaction);
 
+	/** The slot is claimed for this component's owning controller; the client cannot name another. */
 	UFUNCTION(BlueprintCallable, Server, Reliable)
-	void Server_RegisterSlotStatus(
-		URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
-	void Server_RegisterSlotStatus_Implementation(
-		URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
+	void Server_RegisterSlotStatus(URockInventory* Inventory, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
+	void Server_RegisterSlotStatus_Implementation(URockInventory* Inventory, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus);
 	UFUNCTION(BlueprintCallable, Server, Reliable)
-	void Server_ReleaseSlotStatus(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
-	void Server_ReleaseSlotStatus_Implementation(URockInventory* Inventory, AController* Instigator, const FRockInventorySlotHandle& InSlotHandle);
-
-	// Clear transaction history
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
-	void ClearHistory();
-
-	// Deprioritizing undo and redo for now.
-	//
-	// // Undo the last transaction
-	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
-	// bool UndoLastTransaction();
-	//
-	// // Redo the last undone transaction
-	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
-	// bool RedoTransaction();
-	//
-	// // Check if can undo
-	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
-	// bool CanUndo() const;
-	//
-	// // Check if can redo
-	// UFUNCTION(BlueprintCallable, Category = "Inventory|Transactions")
-	// bool CanRedo() const;
+	void Server_ReleaseSlotStatus(URockInventory* Inventory, const FRockInventorySlotHandle& InSlotHandle);
+	void Server_ReleaseSlotStatus_Implementation(URockInventory* Inventory, const FRockInventorySlotHandle& InSlotHandle);
 };

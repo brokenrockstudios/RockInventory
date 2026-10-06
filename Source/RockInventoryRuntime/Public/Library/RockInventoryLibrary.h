@@ -24,6 +24,7 @@ class ROCKINVENTORYRUNTIME_API URockInventoryLibrary : public UBlueprintFunction
 
 public:
 	// Core Item
+	// Every mutator in this library runs on the authority only: a call on a client logs a warning, changes nothing and fails.
 	// Add it from anywhere. This will attempt to merge into existing stacks.
 	// In case of multiple stacks being merged, the last one will be assigned the OutHandle
 	// We also will 'fully initialized' any items not initialized (e.g. Create their runtime instances)
@@ -38,7 +39,7 @@ public:
 	 * @param Quantity - The quantity of the item to remove. If -1, remove the entire stack
 	 * @return The item stack that was removed
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	static FRockItemStack SplitItemStackAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, int32 Quantity = -1);
 
 	/**
@@ -50,7 +51,7 @@ public:
 	 * @param InMoveParams - The move parameters
 	 * @return true if the move was successful
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	static bool MoveItem(
 		URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 		URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
@@ -117,9 +118,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory|Components")
 	static int32 GetSlotIndex(const FRockInventorySlotHandle& SlotHandle);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	static void SetCustomValue1(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	static void SetCustomValue2(URockInventory* Inventory, const FRockItemStackHandle& ItemHandle, int32 NewValue);
 
 	// The header section tag
@@ -133,4 +134,12 @@ public:
 	static FRockInventorySlotHandle FindFirstSlotInSectionWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag);
 	UFUNCTION(BlueprintCallable)
 	static TArray<FRockInventorySlotHandle> FindAllSlotsInSectionsWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag);
+
+private:
+	/** What LootItemToInventory decided, defined in the .cpp */
+	struct FLootDecision;
+	/** Works out where the stack goes (merges, then the first slot it fits) without changing the inventory. */
+	static void DecideLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, FLootDecision& OutDecision);
+	/** Applies a decision from DecideLoot. Sets OutHandle only when a new stack was placed. */
+	static void CommitLoot(URockInventory* Inventory, const FRockItemStack& ItemStack, const FLootDecision& Decision, FRockInventorySlotHandle& OutHandle);
 };

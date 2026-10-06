@@ -51,7 +51,7 @@ void URockItemDragDropOperation::OnBeginCarry_Implementation()
 			URockInventoryManagerComponent* manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
 			if (SourceSlot.IsValid() && IsValid(manager))
 			{
-				manager->Server_RegisterSlotStatus(SourceInventory, Instigator, SourceSlotHandle, ERockSlotStatus::Pending);
+				manager->Server_RegisterSlotStatus(SourceInventory, SourceSlotHandle, ERockSlotStatus::Pending);
 			}
 		}
 	}
@@ -66,7 +66,7 @@ void URockItemDragDropOperation::OnCancelCarry_Implementation()
 		URockInventoryManagerComponent* Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
 		if (SourceSlot.IsValid() && Manager)
 		{
-			Manager->Server_ReleaseSlotStatus(SourceInventory, Instigator, SourceSlotHandle);
+			Manager->Server_ReleaseSlotStatus(SourceInventory, SourceSlotHandle);
 		}
 	}
 }
@@ -81,7 +81,7 @@ void URockItemDragDropOperation::OnFinishedCarry_Implementation()
 		URockInventoryManagerComponent* Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
 		if (SourceSlot.IsValid() && Manager)
 		{
-			Manager->Server_ReleaseSlotStatus(SourceInventory, Instigator, SourceSlotHandle);
+			Manager->Server_ReleaseSlotStatus(SourceInventory, SourceSlotHandle);
 		}
 	}
 }

@@ -59,6 +59,18 @@ bool FRockInventorySectionInfo::ContainsSlotHandle(FRockInventorySlotHandle InSl
 	return AbsoluteIndex >= FirstSlotIndex && AbsoluteIndex < FirstSlotIndex + GetNumSlots();
 }
 
+FRockInventorySectionInfo& FRockInventorySectionInfo::SetSectionFilter(const FGameplayTagQuery& InSectionFilter)
+{
+	SectionFilter = InSectionFilter;
+	return *this;
+}
+
+FRockInventorySectionInfo& FRockInventorySectionInfo::SetMetaTags(const FGameplayTagContainer& InMetaTags)
+{
+	MetaTags = InMetaTags;
+	return *this;
+}
+
 void FRockInventorySectionInfo::Initialize(int32 InFirstSlotIndex, int32 InSectionIndex)
 {
 	ensureMsgf(Columns > 0 && Rows > 0, TEXT("SectionInfo '%s' has invalid dimensions (%dx%d)"), *SectionTag.ToString(), Columns, Rows);

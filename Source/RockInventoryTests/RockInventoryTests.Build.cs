@@ -25,5 +25,11 @@ public class RockInventoryTests : ModuleRules
 				"RockInventoryRuntime",
 			}
 		);
+
+		// The PIE network tests (CQTest's FPIENetworkComponent) need the editor.
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("UnrealEd");
+		}
 	}
 }

@@ -682,10 +682,11 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	checkf(InItemStack.GetDefinition(), TEXT("AddItemToInventory - Invalid item definition"));
 
 	// Let's make sure we are owned by an actor with authority
-	AActor* OwningActor = GetOwningActor();
-	checkf(
-		OwningActor && OwningActor->HasAuthority(),
-		TEXT("AddItemToInventory - Inventory must be owned by an actor with authority"));
+	const AActor* OwningActor = GetOwningActor();
+	if (!ensureMsgf(OwningActor && OwningActor->HasAuthority(), TEXT("AddItemToInventory - Inventory must be owned by an actor with authority")))
+	{
+		return FRockItemStackHandle::Invalid();
+	}
 
 	const int32 PreviousItemDataNum = ItemData.Num();
 	const uint32 Index = AcquireAvailableItemIndex();
