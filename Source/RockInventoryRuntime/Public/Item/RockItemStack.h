@@ -37,6 +37,7 @@ private:
 	// Which should be exclusively handled by this plugin and minimal number of other classes
 	friend class URockInventory;
 	friend class URockInventoryLibrary;
+	friend struct FRockInventoryData;
 	
 	/** Unique identifier for the item */
 	UPROPERTY(EditAnywhere)

@@ -219,6 +219,7 @@ public:
 	///////////////////////////////////
 	// Misc
 	friend class URockInventoryLibrary;
+	friend struct FRockInventoryData;
 	friend class URockItemInstanceLibrary;
 	friend class URockInventoryComponent;
 };

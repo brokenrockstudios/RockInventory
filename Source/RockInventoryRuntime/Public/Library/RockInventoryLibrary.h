@@ -15,6 +15,7 @@
 class URockInventoryComponent;
 class URockInventory;
 struct FRockLootScratch;
+struct FRockInventoryChangeSet;
 
 /**
  * 
@@ -188,4 +189,7 @@ private:
 	static void DecideLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootResult& OutResult, FRockLootScratch* Scratch = nullptr);
 	/** Applies a decision from DecideLoot, in placement order. A swap removes the displaced stack first, places the new one, then the displaced one. */
 	static void CommitLoot(URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootResult& Decision);
+
+	/** Writes a Layer 0 change set into the live inventories, in order, so the events fire as they always did. Source and Target may be the same inventory. */
+	static void CommitChangeSet(URockInventory* Source, URockInventory* Target, const FRockInventoryChangeSet& Changes);
 };

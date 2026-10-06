@@ -1,6 +1,7 @@
 // Copyright 2025 Broken Rock Studios LLC. All Rights Reserved.
 
 #include "Library/RockInventoryLibrary.h"
+#include "Inventory/RockInventoryData.h"
 
 #include "RockInventoryLogging.h"
 #include "Components/RockInventoryComponent.h"
@@ -598,6 +599,41 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 	return OutItemStack;
 }
 
+void URockInventoryLibrary::CommitChangeSet(URockInventory* Source, URockInventory* Target, const FRockInventoryChangeSet& Changes)
+{
+	// Stacks created in a plain-data copy get their real handle when the inventory adds them.
+	TMap<FRockItemStackHandle, FRockItemStackHandle> CreatedHandles;
+	for (const FRockInventoryChange& Change : Changes.Changes)
+	{
+		URockInventory* Inventory = Change.Side == ERockInventorySide::Source ? Source : Target;
+		switch (Change.Type)
+		{
+		case ERockDataChangeType::Slot:
+		{
+			FRockInventorySlotEntry Entry = Inventory->GetSlotByHandle(Change.Slot);
+			const FRockItemStackHandle* Created = CreatedHandles.Find(Change.SlotAfter.ItemHandle);
+			Entry.ItemHandle = Created ? *Created : Change.SlotAfter.ItemHandle;
+			Entry.Orientation = Change.SlotAfter.Orientation;
+			Inventory->SetSlotByHandle(Change.Slot, Entry);
+			break;
+		}
+		case ERockDataChangeType::StackCreated:
+			CreatedHandles.Add(Change.Stack, Inventory->AddItemToInventory(Change.StackAfter));
+			break;
+		case ERockDataChangeType::StackRemoved:
+			Inventory->RemoveItemFromInventory(Change.Stack);
+			break;
+		case ERockDataChangeType::StackModified:
+		{
+			FRockItemStack Stack = Inventory->GetItemByHandle(Change.Stack);
+			Stack.StackCount = Change.StackAfter.GetStackCount();
+			Inventory->SetItemByHandle(Change.Stack, Stack);
+			break;
+		}
+		}
+	}
+}
+
 bool URockInventoryLibrary::MoveItem(
 	URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 	URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
@@ -610,232 +646,78 @@ bool URockInventoryLibrary::MoveItem(
 	}
 	if (SourceInventory && SourceInventory == TargetInventory && SourceSlotHandle == TargetSlotHandle)
 	{
-		const FRockInventorySlotEntry& CurrentSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
-		if (!CurrentSlot.IsValid() || !CurrentSlot.ItemHandle.IsValid() || CurrentSlot.Orientation == InMoveParams.DesiredOrientation)
-		{
-			// Nothing to do, item is already in the target location
-			return true;
-		}
-
-		// Same slot, different orientation: rotate in place if the rotated footprint fits.
-		const FRockItemStack& RotatingItem = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
-		if (!RotatingItem.IsValid())
+		// Same slot: nothing to do, or rotate in place (decided by Layer 0). An unknown slot warns here and counts as nothing to do.
+		if (!SourceInventory->GetSlotByHandle(SourceSlotHandle).IsValid())
 		{
 			return true;
 		}
-		const FRockInventorySectionInfo& RotatingSection = SourceInventory->GetSectionInfoBySlotHandle(SourceSlotHandle);
-		const int32 RotatingLocalIndex = RotatingSection.GetLocalIndex(SourceSlotHandle.GetAbsoluteIndex());
-		TArray<bool> RotatingGrid;
-		PrecomputeOccupancyGrids(SourceInventory, RotatingGrid, CurrentSlot.ItemHandle);
-		const FVector2D RotatedSize = FVector2D(URockItemStackLibrary::GetItemSizeForOrientation(RotatingItem, InMoveParams.DesiredOrientation));
-		if (!CanItemFitInGridPosition(RotatingGrid, RotatingSection, RotatingLocalIndex % RotatingSection.GetColumns(), RotatingLocalIndex / RotatingSection.GetColumns(), RotatedSize))
-		{
-			return false;
-		}
-		FRockInventorySlotEntry RotatedSlot = CurrentSlot;
-		RotatedSlot.Orientation = InMoveParams.DesiredOrientation;
-		SourceInventory->SetSlotByHandle(SourceSlotHandle, RotatedSlot);
-		return true;
-	}
-
-	// If the TargetInventory is 'null', should we assume we are trying to 'drop' the item?
-	if (!SourceInventory || !TargetInventory)
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Source or Target Inventory"));
-		return false;
-	}
-	const FRockInventorySlotEntry& ValidatedSourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
-	if (!ValidatedSourceSlot.IsValid())
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Source Slot Handle"));
-		return false;
-	}
-	const FRockItemStack& ValidatedSourceItem = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
-	if (!ValidatedSourceItem.IsValid())
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Source Slot is empty"));
-		return false;
-	}
-	// Check TargetInventory if slot is empty
-	const FRockInventorySlotEntry& ValidatedTargetSlot = TargetInventory->GetSlotByHandle(TargetSlotHandle);
-	if (!ValidatedTargetSlot.IsValid())
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Target Slot Handle"));
-		return false;
-	}
-	// Can CanItemBePlacedInSection of TargetInventory
-	FRockInventorySectionInfo TargetSection = TargetInventory->GetSectionInfoBySlotHandle(TargetSlotHandle);
-	if (!CanItemBePlacedInSection(ValidatedSourceItem, TargetSection))
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be placed in target section"));
-		return false;
-	}
-	int32 MoveAmount = URockItemStackLibrary::CalculateMoveAmount(ValidatedSourceItem, InMoveParams.MoveMode, InMoveParams.MoveCount);
-	if (MoveAmount <= 0)
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("Invalid move amount calculated"));
-		return false;
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	/// Move
-	TArray<bool> OccupancyGrid;
-
-	// If moving between 2 different inventories, the ItemHandle at destination could in theory have the same index as the source
-	// which means we need to only ignore the item if we are moving internal to the same inventory
-	if (SourceInventory == TargetInventory)
-	{
-		PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid, ValidatedSourceSlot.ItemHandle);
 	}
 	else
 	{
-		// Don't ignore any items in the target inventory
-		PrecomputeOccupancyGrids(TargetInventory, OccupancyGrid);
-	}
-	const FRockInventorySectionInfo& targetSection = TargetInventory->GetSectionInfoBySlotHandle(TargetSlotHandle);
-	const int32 localIndex = targetSection.GetLocalIndex(TargetSlotHandle.GetAbsoluteIndex());
-	const int32 Column = localIndex % targetSection.GetColumns();
-	const int32 Row = localIndex / targetSection.GetColumns();
-	const FVector2D ItemSize = FVector2D(URockItemStackLibrary::GetItemSizeForOrientation(ValidatedSourceItem, InMoveParams.DesiredOrientation));
-
-	if (CanItemFitInGridPosition(OccupancyGrid, targetSection, Column, Row, ItemSize))
-	{
-		FRockInventorySlotEntry targetSlot = ValidatedTargetSlot;
-		const bool isFullStackMove = (MoveAmount == ValidatedSourceItem.GetStackCount());
-		const bool isSameInventory = (SourceInventory == TargetInventory);
-
-		if (isFullStackMove)
+		// If the TargetInventory is 'null', should we assume we are trying to 'drop' the item?
+		if (!SourceInventory || !TargetInventory)
 		{
-			FRockInventorySlotEntry sourceSlot = ValidatedSourceSlot;
-			// Invalidate the source slot
-			sourceSlot.ItemHandle = FRockItemStackHandle::Invalid();
-			sourceSlot.Orientation = ERockItemOrientation::Horizontal;
-			SourceInventory->SetSlotByHandle(SourceSlotHandle, sourceSlot);
-
-			if (isSameInventory)
-			{
-				// Same Inventory - just move the handle to the target slot.
-				targetSlot.ItemHandle = ValidatedSourceItem.ItemHandle;
-			}
-			else
-			{
-				// Different inventory.
-				// Release from source first. RemoveItemFromInventory unregisters the RuntimeInstance from its current
-				// replication owner, so doing it after the add would unregister it from the target's owner instead.
-				SourceInventory->RemoveItemFromInventory(ValidatedSourceItem);
-				// Add to target
-				targetSlot.ItemHandle = TargetInventory->AddItemToInventory(ValidatedSourceItem);
-			}
-
-			// Set up target slot with existing item handle
-			targetSlot.Orientation = InMoveParams.DesiredOrientation;
-			TargetInventory->SetSlotByHandle(TargetSlotHandle, targetSlot);
-		}
-		else
-		{
-			// Partial move
-
-			// Split the source item stack based on the move amount
-			auto ItemDef = ValidatedSourceItem.GetDefinition();
-
-			// We currently aren't supporting partial moves of items that require runtime instances.
-			if (!ItemDef->RuntimeInstanceClass.IsNull())
-			{
-				UE_LOG(LogRockInventory, Warning, TEXT("Partial moves of items that require runtime instances are not supported"));
-				return false;
-			}
-
-			const FRockItemStack ItemToMove = SplitItemStackAtLocation(SourceInventory, SourceSlotHandle, MoveAmount);
-			if (!ItemToMove.IsValid())
-			{
-				UE_LOG(LogRockInventory, Warning, TEXT("Failed to split item stack"));
-				return false;
-			}
-
-			// Add split to target inventory.
-			const FRockItemStackHandle& newItemHandle = TargetInventory->AddItemToInventory(ItemToMove);
-
-			// Update target slot with new item
-			targetSlot.ItemHandle = newItemHandle;
-			targetSlot.Orientation = InMoveParams.DesiredOrientation;
-			TargetInventory->SetSlotByHandle(TargetSlotHandle, targetSlot);
-		}
-		return true;
-	}
-
-	//////////////////////////////////////////////////////////////////////
-	/// Merge into an existing item
-	if (CanMergeItemAtGridPosition(TargetInventory, TargetSlotHandle, ValidatedSourceItem, ERockItemStackMergeCondition::Partial))
-	{
-		// Get the target item to calculate how much we can move
-		const FRockItemStack& TargetItem = TargetInventory->GetItemByHandle(ValidatedTargetSlot.ItemHandle);
-		if (!TargetItem.IsValid())
-		{
-			UE_LOG(LogRockInventory, Warning, TEXT("Invalid target item for merging"));
+			UE_LOG(LogRockInventory, Warning, TEXT("Invalid Source or Target Inventory"));
 			return false;
 		}
-
-		const int32 targetCurrentStack = TargetItem.GetStackCount();
-		const int32 targetMaxStack = TargetItem.GetMaxStackCount();
-		const int32 sourceCurrentStack = ValidatedSourceItem.GetStackCount();
-
-		// Calculate how much we can move
-		const int32 availableSpace = targetMaxStack - targetCurrentStack;
-		const int32 amountToMove = FMath::Min3(availableSpace, sourceCurrentStack, MoveAmount);
-
-		if (amountToMove <= 0)
+		if (!SourceInventory->GetSlotByHandle(SourceSlotHandle).IsValid())
 		{
-			UE_LOG(LogRockInventory, Warning, TEXT("No items can be merged"));
+			UE_LOG(LogRockInventory, Warning, TEXT("Invalid Source Slot Handle"));
 			return false;
 		}
-
-		// Update target item with new stack size
-		FRockItemStack UpdatedTargetItem = TargetItem;
-		UpdatedTargetItem.StackCount = targetCurrentStack + amountToMove;
-		checkf(UpdatedTargetItem.GetStackCount() <= targetMaxStack,
-		       TEXT("Updated target item stack size exceeds max: %d > %d"),
-		       UpdatedTargetItem.GetStackCount(),
-		       targetMaxStack);
-		TargetInventory->SetItemByHandle(ValidatedTargetSlot.ItemHandle, UpdatedTargetItem);
-
-		// Update source item with remaining stack size
-		FRockItemStack UpdatedSourceItem = ValidatedSourceItem;
-		UpdatedSourceItem.StackCount = sourceCurrentStack - amountToMove;
-		checkf(UpdatedSourceItem.GetStackCount() >= 0,
-		       TEXT("Updated source item stack size is negative: %d"),
-		       UpdatedSourceItem.GetStackCount());
-
-		const bool isSourceEmptied = (UpdatedSourceItem.GetStackCount() <= 0);
-
-		if (isSourceEmptied)
+		if (!SourceInventory->GetItemBySlotHandle(SourceSlotHandle).IsValid())
 		{
-			FRockInventorySlotEntry sourceSlot = ValidatedSourceSlot;
-
-			// Release the item
-			SourceInventory->RemoveItemFromInventory(ValidatedSourceItem);
-
-			// Clear the slot
-			sourceSlot.ItemHandle = FRockItemStackHandle::Invalid();
-			sourceSlot.Orientation = ERockItemOrientation::Horizontal;
-			SourceInventory->SetSlotByHandle(SourceSlotHandle, sourceSlot);
+			UE_LOG(LogRockInventory, Warning, TEXT("Source Slot is empty"));
+			return false;
 		}
-		else
+		if (!TargetInventory->GetSlotByHandle(TargetSlotHandle).IsValid())
 		{
-			// Source item still has items left, so we need to broadcast that it changed.
-			SourceInventory->SetItemByHandle(ValidatedSourceSlot.ItemHandle, UpdatedSourceItem);
+			UE_LOG(LogRockInventory, Warning, TEXT("Invalid Target Slot Handle"));
+			return false;
 		}
-
-		return true;
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	// NOTE: Only cross this bridge when we get there.
-	// TODO: Swap Item
-	// Some games like Diablo support this but Tarkov does not.
-	// The fact that some items can be placed 'into' other items makes this more complex.
-	// We might not ever support this scenario.
-	UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be moved to target location"));
-	return false;
+	// Decide on a copy of the data, then commit what changed. Copying the whole inventory per move is the price of keeping
+	// URockInventory's replicated containers as they are; T-74's reverse index and owned data remove it.
+	FRockInventoryData SourceData = FRockInventoryData::FromInventory(SourceInventory);
+	FRockInventoryData TargetData;
+	const bool bSameInventory = SourceInventory == TargetInventory;
+	if (!bSameInventory)
+	{
+		TargetData = FRockInventoryData::FromInventory(TargetInventory);
+	}
+	FRockInventoryChangeSet Changes;
+	const ERockMoveRefusal Refusal = FRockInventoryData::ApplyMove(
+		SourceData, SourceSlotHandle, bSameInventory ? SourceData : TargetData, TargetSlotHandle, InMoveParams, Changes);
+	switch (Refusal)
+	{
+	case ERockMoveRefusal::None:
+		CommitChangeSet(SourceInventory, TargetInventory, Changes);
+		return true;
+	case ERockMoveRefusal::SectionRejectsItem:
+		UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be placed in target section"));
+		return false;
+	case ERockMoveRefusal::InvalidAmount:
+		UE_LOG(LogRockInventory, Warning, TEXT("Invalid move amount calculated"));
+		return false;
+	case ERockMoveRefusal::PartialMoveOfInstancedItem:
+		UE_LOG(LogRockInventory, Warning, TEXT("Partial moves of items that require runtime instances are not supported"));
+		return false;
+	case ERockMoveRefusal::NothingToMerge:
+		UE_LOG(LogRockInventory, Warning, TEXT("No items can be merged"));
+		return false;
+	case ERockMoveRefusal::NoRoomToRotate:
+		return false;
+	case ERockMoveRefusal::NoRoom:
+		// NOTE: Only cross this bridge when we get there.
+		// TODO: Swap Item. Some games like Diablo support this but Tarkov does not.
+		// The fact that some items can be placed 'into' other items makes this more complex.
+		UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be moved to target location"));
+		return false;
+	default:
+		UE_LOG(LogRockInventory, Warning, TEXT("Item cannot be moved to target location (%d)"), static_cast<int32>(Refusal));
+		return false;
+	}
 }
 
 bool URockInventoryLibrary::CanMergeItemAtGridPosition(

@@ -236,6 +236,10 @@ FFastArray delta replication    Iris / standard UObject replication
 
 ---
 
+## Plain-data moves
+
+`FRockInventoryData` is the inventory as plain data (sections, slots, stacks) with no world, events or authority. `FRockInventoryData::CanMove` answers whether a move, merge, split, rotation or cross-inventory transfer is allowed, and `ApplyMove` does it and returns an `FRockInventoryChangeSet` of before/after slots and stacks. `URockInventoryLibrary::MoveItem` snapshots the inventories into it, applies the move and commits the change set, so a move behaves the same on the server, in a test and (later) in a client's prediction model.
+
 ## Pickup placement
 
 Where a picked-up item lands is decided by data on the sections of the inventory config, not by code. One planner

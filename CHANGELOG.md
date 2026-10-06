@@ -2,6 +2,13 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.0601
+- Added (T-72): `FRockInventoryData` (Layer 0, plain sections/slots/stacks, no UObject inventory) with side-effect-free `CanMove` and `ApplyMove` (move, merge, split, rotate, cross-inventory transfer) returning an `FRockInventoryChangeSet`; `ERockMoveRefusal` says why a move is refused.
+- Changed: `URockInventoryLibrary::MoveItem` snapshots the inventories into `FRockInventoryData`, applies the move there and commits the change set (same events, same warnings). New `BRS.RockInventory.Data` tests run the Move scenarios on plain data.
+
+## 2610.0512
+- Docs (T-94): nested subobject replication answered in DevNotes (UE 5.8 has no public nested registry; `Owner` link and re-registration stay). No code change.
+
 ## 2610.0511
 - Added (T-37): `URockInventoryConfig::IsDataValid` warns (never fails) about a config with no section that has slots and accepts `Store`, duplicate section tags, and a `LootPreference` no item admitted by the section's `SectionFilter` can match. The checks are the static `URockInventoryConfig::CollectLootIssues` (`FRockConfigIssue`, `ERockConfigIssue`).
 - Added: `BRS.RockInventory.Config` tests, README "Pickup placement" section.
