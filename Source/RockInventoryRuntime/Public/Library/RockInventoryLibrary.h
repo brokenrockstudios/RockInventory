@@ -16,6 +16,7 @@ class URockInventoryComponent;
 class URockInventory;
 struct FRockLootScratch;
 struct FRockInventoryChangeSet;
+enum class ERockAddRefusal : uint8;
 
 /**
  * 
@@ -88,6 +89,29 @@ public:
 		URockInventory* SourceInventory, const FRockInventorySlotHandle& SourceSlotHandle,
 		URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
 		const FRockMoveItemParams& InMoveParams = FRockMoveItemParams());
+
+	/**
+	 * Adds the stack at one slot through the plain-data Add (FRockInventoryData::ApplyAdd) and commits it, so instance creation and OnItemCreated run
+	 * as for any other add. An empty cell takes a new stack when it fits; a stack that stacks with it takes what fits. No placement search: use
+	 * LootItemToInventory for that. OutAdded is how many items went in.
+	 */
+	static ERockAddRefusal AddItemToSlot(
+		URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack,
+		ERockItemOrientation Orientation, int32& OutAdded);
+
+	/** Units across every stack the predicate accepts. */
+	static int32 CountMatching(const URockInventory* Inventory, const TFunctionRef<bool(const FRockItemStack&)>& Matches);
+
+	/**
+	 * Removes up to Count items from the stacks the predicate accepts, lowest slot first, and commits it. With bAllOrNothing nothing changes unless
+	 * Count items exist. Returns how many were removed. Refused on a client (returns 0).
+	 */
+	static int32 RemoveMatching(
+		URockInventory* Inventory, const TFunctionRef<bool(const FRockItemStack&)>& Matches, int32 Count, bool bAllOrNothing = true);
+
+	/** RemoveMatching for one ItemId (crafting, ammo, quest turn-in). Returns how many were removed. */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	static int32 RemoveItemsById(URockInventory* Inventory, FName ItemId, int32 Count, bool bAllOrNothing = true);
 
 	// Misc helpers
 

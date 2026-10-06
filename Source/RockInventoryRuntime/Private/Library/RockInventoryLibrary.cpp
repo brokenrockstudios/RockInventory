@@ -33,14 +33,14 @@ struct FRockLootScratch
 namespace
 {
 	/** Replicated inventory state is written on the authority only. A client call is refused and changes nothing. */
-	bool HasMutationAuthority(URockInventory* Inventory, const TCHAR* Operation)
+	bool HasMutationAuthority(URockInventory* Inventory)
 	{
 		const AActor* OwningActor = Inventory ? Inventory->GetOwningActor() : nullptr;
 		if (OwningActor && OwningActor->HasAuthority())
 		{
 			return true;
 		}
-		UE_LOG(LogRockInventory, Warning, TEXT("%s - refused, %s is not owned by an actor with authority"), Operation, *GetNameSafe(Inventory));
+		UE_LOG(LogRockInventory, Warning, TEXT("Inventory change refused: %s (owner %s) has no authority"), *GetNameSafe(Inventory), *GetNameSafe(OwningActor));
 		return false;
 	}
 
@@ -461,6 +461,8 @@ void URockInventoryLibrary::DecideLoot(
 
 void URockInventoryLibrary::CommitLoot(URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootResult& Decision)
 {
+	// One loot is one change batch, swap included
+	FRockInventoryOperationScope Scope(Inventory);
 	if (!Decision.bSwapped)
 	{
 		ApplyPlacements(Inventory, ItemStack, Decision.Placements);
@@ -492,7 +494,7 @@ bool URockInventoryLibrary::LootItemToInventory(
 		UE_LOG(LogRockInventory, Warning, TEXT("LootItemToInventory::Invalid Parameters. ItemStack"));
 		return false;
 	}
-	if (!HasMutationAuthority(Inventory, TEXT("LootItemToInventory")))
+	if (!HasMutationAuthority(Inventory))
 	{
 		return false;
 	}
@@ -538,7 +540,7 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Inventory"));
 		return FRockItemStack::Invalid();
 	}
-	if (!HasMutationAuthority(Inventory, TEXT("SplitItemStackAtLocation")))
+	if (!HasMutationAuthority(Inventory))
 	{
 		return FRockItemStack::Invalid();
 	}
@@ -548,6 +550,8 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid SlotHandle: %s"), *SlotHandle.ToString());
 		return FRockItemStack::Invalid();
 	}
+
+	FRockInventoryOperationScope Scope(Inventory);
 
 	FRockInventorySlotEntry SourceSlot = Inventory->GetSlotByHandle(SlotHandle);
 	FRockItemStack Item = Inventory->GetItemByHandle(SourceSlot.ItemHandle);
@@ -601,6 +605,9 @@ FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* I
 
 void URockInventoryLibrary::CommitChangeSet(URockInventory* Source, URockInventory* Target, const FRockInventoryChangeSet& Changes)
 {
+	// Each inventory's changes are one batch, delivered after the whole change set is applied (a cross-inventory move is two batches)
+	FRockInventoryOperationScope SourceScope(Source);
+	FRockInventoryOperationScope TargetScope(Target == Source ? nullptr : Target);
 	// Stacks created in a plain-data copy get their real handle when the inventory adds them.
 	TMap<FRockItemStackHandle, FRockItemStackHandle> CreatedHandles;
 	for (const FRockInventoryChange& Change : Changes.Changes)
@@ -639,8 +646,8 @@ bool URockInventoryLibrary::MoveItem(
 	URockInventory* TargetInventory, const FRockInventorySlotHandle& TargetSlotHandle,
 	const FRockMoveItemParams& InMoveParams)
 {
-	if ((SourceInventory && !HasMutationAuthority(SourceInventory, TEXT("MoveItem")))
-		|| (TargetInventory && !HasMutationAuthority(TargetInventory, TEXT("MoveItem"))))
+	if ((SourceInventory && !HasMutationAuthority(SourceInventory))
+		|| (TargetInventory && !HasMutationAuthority(TargetInventory)))
 	{
 		return false;
 	}
@@ -720,6 +727,49 @@ bool URockInventoryLibrary::MoveItem(
 	}
 }
 
+ERockAddRefusal URockInventoryLibrary::AddItemToSlot(
+	URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, const FRockItemStack& ItemStack,
+	ERockItemOrientation Orientation, int32& OutAdded)
+{
+	OutAdded = 0;
+	if (!Inventory || !HasMutationAuthority(Inventory))
+	{
+		return ERockAddRefusal::NotAllowed;
+	}
+	FRockInventoryData Data = FRockInventoryData::FromInventory(Inventory);
+	FRockInventoryChangeSet Changes;
+	const ERockAddRefusal Refusal = Data.ApplyAdd(SlotHandle, ItemStack, Orientation, Changes, OutAdded);
+	if (Refusal == ERockAddRefusal::None)
+	{
+		CommitChangeSet(nullptr, Inventory, Changes);
+	}
+	return Refusal;
+}
+
+int32 URockInventoryLibrary::CountMatching(const URockInventory* Inventory, const TFunctionRef<bool(const FRockItemStack&)>& Matches)
+{
+	return Inventory ? FRockInventoryData::FromInventory(Inventory).CountMatching(Matches) : 0;
+}
+
+int32 URockInventoryLibrary::RemoveMatching(
+	URockInventory* Inventory, const TFunctionRef<bool(const FRockItemStack&)>& Matches, int32 Count, bool bAllOrNothing)
+{
+	if (!Inventory || Count <= 0 || !HasMutationAuthority(Inventory))
+	{
+		return 0;
+	}
+	FRockInventoryData Data = FRockInventoryData::FromInventory(Inventory);
+	FRockInventoryChangeSet Changes;
+	const int32 Removed = Data.RemoveMatching(Matches, Count, bAllOrNothing, Changes);
+	CommitChangeSet(Inventory, nullptr, Changes);
+	return Removed;
+}
+
+int32 URockInventoryLibrary::RemoveItemsById(URockInventory* Inventory, FName ItemId, int32 Count, bool bAllOrNothing)
+{
+	return RemoveMatching(Inventory, [ItemId](const FRockItemStack& Stack) { return Stack.GetItemId() == ItemId; }, Count, bAllOrNothing);
+}
+
 bool URockInventoryLibrary::CanMergeItemAtGridPosition(
 	const URockInventory* Inventory, FRockInventorySlotHandle SlotHandle, const FRockItemStack& ItemStack,
 	ERockItemStackMergeCondition MergeCondition)
@@ -775,7 +825,7 @@ int32 URockInventoryLibrary::MergeItemAtGridPosition(
 		UE_LOG(LogRockInventory, Warning, TEXT("Invalid Inventory"));
 		return stackSize;
 	}
-	if (!HasMutationAuthority(Inventory, TEXT("MergeItemAtGridPosition")))
+	if (!HasMutationAuthority(Inventory))
 	{
 		return stackSize;
 	}
@@ -1117,7 +1167,7 @@ void URockInventoryLibrary::SetCustomValue1(URockInventory* Inventory, const FRo
 		UE_LOG(LogRockInventory, Warning, TEXT("SetCustomValue1: Invalid Inventory"));
 		return;
 	}
-	if (!HasMutationAuthority(Inventory, TEXT("SetCustomValue1")))
+	if (!HasMutationAuthority(Inventory))
 	{
 		return;
 	}
@@ -1138,7 +1188,7 @@ void URockInventoryLibrary::SetCustomValue2(URockInventory* Inventory, const FRo
 		UE_LOG(LogRockInventory, Warning, TEXT("SetCustomValue2: Invalid Inventory"));
 		return;
 	}
-	if (!HasMutationAuthority(Inventory, TEXT("SetCustomValue2")))
+	if (!HasMutationAuthority(Inventory))
 	{
 		return;
 	}

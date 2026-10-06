@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Access/RockInventoryAccessSubsystem.h"
 #include "Inventory/RockPendingSlotOperation.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Transactions/Implementations/RockDropItemTransaction.h"
@@ -22,16 +23,24 @@ class ROCKINVENTORYRUNTIME_API URockInventoryManagerComponent : public UActorCom
 public:
 	URockInventoryManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	// TODO: static URockInventoryManagerComponent* Get(UObject* WorldContextObject);
 
 	/**
-	 * Whether Instigator may touch Inventory through a server command. Every Server_* command checks this for each inventory it names.
-	 * Default: the inventory belongs to the instigator's pawn, controller or player state, or its owning actor is within MaxAccessReach of the instigator's pawn.
-	 * Override for containers with their own rules (shared stashes, team lockers).
+	 * Whether Instigator has at least the Required rights on Inventory. Every Server_* command checks this for each inventory it names.
+	 * Asks URockInventoryAccessSubsystem: the inventory sits on the instigator, or the instigator opened it and is within reach (deny by default).
+	 * Override for rules the registry cannot express.
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category = "Rock|Inventory")
-	bool CanAccess(const URockInventory* Inventory, const AController* Instigator) const;
-	virtual bool CanAccess_Implementation(const URockInventory* Inventory, const AController* Instigator) const;
+	virtual bool CanAccess(const URockInventory* Inventory, const AController* Instigator, ERockInventoryRights Required = ERockInventoryRights::Full) const;
+
+	/** Asks the server to open Inventory for this component's owning controller (a chest, a body, a dropped backpack). Refusals only log. */
+	UFUNCTION(Server, Reliable)
+	void Server_OpenInventory(URockInventory* Inventory);
+	void Server_OpenInventory_Implementation(URockInventory* Inventory);
+	UFUNCTION(Server, Reliable)
+	void Server_CloseInventory(URockInventory* Inventory);
+	void Server_CloseInventory_Implementation(URockInventory* Inventory);
 
 	/** The controller that owns this component's connection: the owner itself, its pawn's controller, or its player state's controller. Null if none. */
 	AController* GetOwningController() const;
@@ -41,10 +50,6 @@ public:
 	 * Returns false (and logs) when there is no owning controller, an inventory is null, or access is refused.
 	 */
 	bool AuthorizeServerCommand(FRockItemTransactionBase& Command, TConstArrayView<const URockInventory*> Inventories) const;
-
-	/** How far (cm) the instigator's pawn may be from an inventory's owning actor in the default CanAccess. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rock|Inventory", meta = (ClampMin = "0"))
-	float MaxAccessReach = 500.f;
 
 private:
 	bool bAwaitingServerSync = false;

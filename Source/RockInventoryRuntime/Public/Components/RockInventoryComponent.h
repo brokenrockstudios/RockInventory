@@ -53,7 +53,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Loot Item"))
 	bool K2_LootItem(const FRockItemStack& InItemStack, const FRockLootParams& Params, FRockLootResult& OutResult);
 	// After calling this, the item will cease to exist in this inventory, do something with it!
-	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Loot Item"))
+	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Drop Item"))
 	FRockItemStack K2_DropItem(const FRockInventorySlotHandle& SlotHandle);
 
 	/**
@@ -65,7 +65,9 @@ public:
 	FRockItemStack K2_RemoveItem(const FRockInventorySlotHandle& InHandle);
 
 	// Misc
+	UFUNCTION(BlueprintPure, Category="RockInventory|Items", Meta=(DisplayName="Has Item"))
 	bool K2_HasItem(FName ItemId, int32 MinQuantity);
+	UFUNCTION(BlueprintPure, Category="RockInventory|Items", Meta=(DisplayName="Get Item Count"))
 	int32 K2_GetItemCount(FName ItemId);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

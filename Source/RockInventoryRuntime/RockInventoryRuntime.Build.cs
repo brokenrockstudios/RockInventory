@@ -14,7 +14,6 @@ public class RockInventoryRuntime : ModuleRules
 				"Core",
 				"GameplayTags",
 				"RockGameplayTags",
-				"UMG",
 				"DeveloperSettings",
 				// ... add public dependencies that you the /public files need
 			}

@@ -4,25 +4,6 @@
 
 // TODO: Split these into their own files
 
-UENUM(BlueprintType)
-enum class ERockInventoryChangeType : uint8
-{
-	None,
-	ItemAdded,
-	ItemRemoved,
-	ItemMoved,
-	ItemUpdated,
-
-	TabAdded,
-	TabRemoved,
-	TabUpdated,
-
-	SlotAdded,
-	SlotRemoved,
-	SlotUpdated
-};
-
-
 // an enum to help determine if the stack can be fully merged, partially, or not at all
 UENUM(BlueprintType)
 enum class ERockItemStackMergeCondition : uint8
@@ -33,25 +14,6 @@ enum class ERockItemStackMergeCondition : uint8
 	Partial = 1,
 	// Returns true if the stacks are compatible but the existing stack has no room (nothing can be merged)
 	None = 2,
-};
-
-// Maybe we want to support asynchronous transactions?
-UENUM(BlueprintType)
-enum class ERockTransactionState : uint8
-{
-	Pending,
-	Executing,
-	Completed,
-	Failed,
-	Undoing
-};
-
-UENUM(BlueprintType)
-enum class ERockTransactionResult : uint8
-{
-	InProgress UMETA(DisplayName = "In Progress", ToolTip = "Transaction is still executing"),
-	Complete UMETA(DisplayName = "Complete", ToolTip = "Transaction has completed successfully"),
-	Failed UMETA(DisplayName = "Failed", ToolTip = "Transaction has failed"),
 };
 
 UENUM(BlueprintType)

@@ -2,6 +2,7 @@
 
 #include "Components/RockInventoryManagerComponent.h"
 
+#include "Access/RockInventoryAccessSubsystem.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
@@ -16,23 +17,46 @@ URockInventoryManagerComponent::URockInventoryManagerComponent(const FObjectInit
 	SetIsReplicatedByDefault(true);
 }
 
-bool URockInventoryManagerComponent::CanAccess_Implementation(const URockInventory* Inventory, const AController* Instigator) const
+bool URockInventoryManagerComponent::CanAccess(const URockInventory* Inventory, const AController* Instigator, ERockInventoryRights Required) const
 {
-	if (!Inventory || !Instigator)
+	const URockInventoryAccessSubsystem* Access = URockInventoryAccessSubsystem::Get(this);
+	return Access && Access->CanAccess(Instigator, Inventory, Required);
+}
+
+void URockInventoryManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (GetOwnerRole() == ROLE_Authority)
 	{
-		return false;
+		if (URockInventoryAccessSubsystem* Access = URockInventoryAccessSubsystem::Get(this))
+		{
+			Access->CloseAll(GetOwningController());
+		}
 	}
-	const AActor* InventoryActor = const_cast<URockInventory*>(Inventory)->GetOwningActor();
-	if (!InventoryActor)
+	Super::EndPlay(EndPlayReason);
+}
+
+void URockInventoryManagerComponent::Server_OpenInventory_Implementation(URockInventory* Inventory)
+{
+	URockInventoryAccessSubsystem* Access = URockInventoryAccessSubsystem::Get(this);
+	AController* Controller = GetOwningController();
+	if (!Access || !Controller || GetOwnerRole() != ROLE_Authority)
 	{
-		return false;
+		UE_LOG(LogRockInventory, Warning, TEXT("Server_OpenInventory - no access registry, owning controller or authority, open refused"));
+		return;
 	}
-	const APawn* Pawn = Instigator->GetPawn();
-	if (InventoryActor == Instigator || InventoryActor == Pawn || InventoryActor == Instigator->PlayerState)
+	const ERockOpenResult Result = Access->Open(Controller, Inventory);
+	if (Result != ERockOpenResult::Opened && Result != ERockOpenResult::AlreadyOpen)
 	{
-		return true;
+		UE_LOG(LogRockInventory, Warning, TEXT("Server_OpenInventory - %s may not open inventory %s (result %d)"), *GetNameSafe(Controller), *GetNameSafe(Inventory), static_cast<int32>(Result));
 	}
-	return Pawn && Pawn->GetDistanceTo(InventoryActor) <= MaxAccessReach;
+}
+
+void URockInventoryManagerComponent::Server_CloseInventory_Implementation(URockInventory* Inventory)
+{
+	if (URockInventoryAccessSubsystem* Access = URockInventoryAccessSubsystem::Get(this))
+	{
+		Access->Close(GetOwningController(), Inventory);
+	}
 }
 
 AController* URockInventoryManagerComponent::GetOwningController() const

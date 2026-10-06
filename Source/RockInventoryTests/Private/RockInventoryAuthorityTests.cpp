@@ -27,15 +27,15 @@ TEST_CLASS(RockInventoryAuthorityTests, "BRS.RockInventory.Authority")
 		ASSERT_THAT(IsFalse(Fixture.Owner->HasAuthority()));
 	}
 
-	void ExpectRefusal(const TCHAR* Operation)
+	void ExpectRefusal(int32 Times = 1)
 	{
-		TestRunner->AddExpectedMessagePlain(FString::Printf(TEXT("%s - refused"), Operation), ELogVerbosity::Warning);
+		TestRunner->AddExpectedMessagePlain(TEXT("Inventory change refused"), ELogVerbosity::Warning, EAutomationExpectedMessageFlags::Contains, Times);
 	}
 
 	TEST_METHOD(Loot_OnAClient_IsRefused)
 	{
 		BecomeClient();
-		ExpectRefusal(TEXT("LootItemToInventory"));
+		ExpectRefusal();
 		FRockLootResult Result;
 
 		const bool bPlaced = URockInventoryLibrary::LootItemToInventory(Fixture.Inventory, FRockItemStack(Apple, 2), FRockLootParams(), Result);
@@ -52,7 +52,7 @@ TEST_CLASS(RockInventoryAuthorityTests, "BRS.RockInventory.Authority")
 		const FRockInventorySlotHandle To = Fixture.SlotAt(1, 0);
 		Fixture.PlaceAt(Apple, 1, From);
 		BecomeClient();
-		ExpectRefusal(TEXT("MoveItem"));
+		ExpectRefusal();
 
 		const bool bMoved = URockInventoryLibrary::MoveItem(Fixture.Inventory, From, Fixture.Inventory, To);
 
@@ -66,7 +66,7 @@ TEST_CLASS(RockInventoryAuthorityTests, "BRS.RockInventory.Authority")
 		const FRockInventorySlotHandle From = Fixture.SlotAt(0, 0);
 		Fixture.PlaceAt(Apple, 4, From);
 		BecomeClient();
-		ExpectRefusal(TEXT("SplitItemStackAtLocation"));
+		ExpectRefusal();
 
 		const FRockItemStack Taken = URockInventoryLibrary::SplitItemStackAtLocation(Fixture.Inventory, From, 1);
 
@@ -79,7 +79,7 @@ TEST_CLASS(RockInventoryAuthorityTests, "BRS.RockInventory.Authority")
 		const FRockInventorySlotHandle Target = Fixture.SlotAt(0, 0);
 		Fixture.PlaceAt(Apple, 2, Target);
 		BecomeClient();
-		ExpectRefusal(TEXT("MergeItemAtGridPosition"));
+		ExpectRefusal();
 
 		const int32 Remaining = URockInventoryLibrary::MergeItemAtGridPosition(Fixture.Inventory, Target, FRockItemStack(Apple, 2));
 
@@ -91,8 +91,7 @@ TEST_CLASS(RockInventoryAuthorityTests, "BRS.RockInventory.Authority")
 	{
 		const FRockItemStackHandle Handle = Fixture.PlaceAt(Apple, 1, Fixture.SlotAt(0, 0));
 		BecomeClient();
-		ExpectRefusal(TEXT("SetCustomValue1"));
-		ExpectRefusal(TEXT("SetCustomValue2"));
+		ExpectRefusal(2);
 
 		URockInventoryLibrary::SetCustomValue1(Fixture.Inventory, Handle, 7);
 		URockInventoryLibrary::SetCustomValue2(Fixture.Inventory, Handle, 9);

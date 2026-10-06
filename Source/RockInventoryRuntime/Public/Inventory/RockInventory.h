@@ -9,6 +9,7 @@
 #include "RockInventorySlot.h"
 #include "RockPendingSlotOperation.h"
 #include "RockSlotHandle.h"
+#include "Events/RockInventoryChangeBatch.h"
 #include "Events/RockItemDelta.h"
 #include "Events/RockSlotChangeType.h"
 #include "Events/RockSlotDelta.h"
@@ -26,7 +27,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySlotChanged, const FRock
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemStackChanged, const FRockItemDelta&, ItemDelta);
 
-// URockInventory*, Inventory, const FRockItemStackHandle&, ItemHandle);
+/** One call per finished operation (server) or per replication update (client). See FRockInventoryChangeBatch. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryChangeBatch, const FRockInventoryChangeBatch&, ChangeBatch);
 
 /**
  * The root class for the Rock Inventory System.
@@ -71,14 +73,62 @@ private:
 	/** Snapshot of the previous replication state; diffed in OnRep to detect added/removed pending operations. */
 	UPROPERTY()
 	TArray<FRockPendingSlotOperation> PreviousPendingSlotOperations;
+	/** Rises by one per server operation that changed anything. Replicated with the data, so it names the state the data is in. */
+	UPROPERTY(Replicated)
+	uint32 Revision = 0;
+
+	/** Changes recorded by the operation in progress (server) or the replication update being applied (client). */
+	FRockInventoryChangeBatch PendingBatch;
+	/** Nesting depth of FRockInventoryOperationScope. The batch is flushed when the outermost scope ends. */
+	int32 OperationDepth = 0;
+	/** Replicated array callbacks recorded changes; PostNetReceive flushes them once every array has been applied. */
+	bool bAwaitingNetReceive = false;
+
+	/** Item index -> absolute index of the slot holding that item (INDEX_NONE when none). Derived from SlotData. */
+	mutable TArray<int32> ItemSlotIndex;
+	mutable bool bItemSlotIndexDirty = true;
+
+	void RebuildItemSlotIndex() const;
+	void UpdateItemSlotIndex(int32 SlotIndex, const FRockItemStackHandle& OldHandle, const FRockItemStackHandle& NewHandle) const;
+	/** Broadcasts the pending batch (Revision rises first when bBumpRevision) and replays it through the legacy delegates. */
+	void FlushPendingChanges(bool bBumpRevision);
+
 public:
-	/** Broadcast when a slot's state changes (item assigned, removed, etc). */
+	/** Broadcast once per finished operation with everything it changed: one move is one batch holding both slots. */
+	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
+	FOnInventoryChangeBatch OnChangeBatch;
+
+	/**
+	 * Legacy per-delta delegates, kept as adapters: they are replayed from the change batch, in the order the changes were made,
+	 * when the operation is complete (server) or the replication update has been applied (client).
+	 * Broadcast when a slot's state changes (item assigned, removed, etc).
+	 */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
 	FOnInventorySlotChanged OnSlotChanged;
 
-	/** Broadcast when an item stack's data changes (count, customValue, etc). */
+	/** Legacy adapter, see OnSlotChanged. Broadcast when an item stack's data changes (count, customValue, etc). */
 	UPROPERTY(BlueprintAssignable, Category = "Rock|Inventory")
 	FOnInventoryItemStackChanged OnItemChanged;
+
+	uint32 GetRevision() const { return Revision; }
+
+	/**
+	 * Groups the changes made until the matching EndOperation into one batch. Nests; only the outermost end flushes.
+	 * Use FRockInventoryOperationScope. Every URockInventory mutator opens one itself, so a call that is not inside a scope is
+	 * its own operation.
+	 */
+	void BeginOperation() { ++OperationDepth; }
+	void EndOperation();
+
+	/** Called by the replicated arrays' callbacks on a client: record the change, flush it in PostNetReceive. */
+	void QueueReplicatedSlotDelta(const FRockSlotDelta& SlotDelta);
+	void QueueReplicatedItemDelta(const FRockItemStackHandle& ItemStackHandle, ERockItemChangeType ChangeType);
+	/** Called by the slot array's callbacks: keeps the item-to-slot index right for a slot that was added or changed. */
+	void OnReplicatedSlotEntry(int32 SlotIndex, const FRockItemStackHandle& PreviousItemHandle);
+	/** Called when the slot array shrinks or is replaced; the index is rebuilt on the next lookup. */
+	void InvalidateItemSlotIndex() { bItemSlotIndexDirty = true; }
+
+	virtual void PostNetReceive() override;
 
 	/* The owner of this inventory, most likely the InventoryComponent */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
@@ -119,9 +169,7 @@ public:
 	FRockInventorySlotEntry GetSlotByHandle(const FRockInventorySlotHandle& InSlotHandle) const;
 	const FRockInventorySlotEntry& GetSlotByAbsoluteIndex(int32 AbsoluteIndex) const;
 
-	// TODO: Maintain reverse mapping for ItemHandle->SlotHandle to make this more efficient
-	// TODO: Currently O(N) but could be O(1) with memory cache
-	// Alternatively try to not use this as much
+	/** The slot holding the item, through the item-to-slot index: O(1). Empty/null for an invalid or stale handle and for an item that is in no slot. */
 	FRockInventorySlotEntry GetSlotByItemHandle(const FRockItemStackHandle& InItemHandle) const;
 	const FRockInventorySlotEntry* GetSlotByItemHandlePtr(const FRockItemStackHandle& InItemHandle) const;
 
@@ -222,6 +270,28 @@ public:
 	friend struct FRockInventoryData;
 	friend class URockItemInstanceLibrary;
 	friend class URockInventoryComponent;
+#if WITH_DEV_AUTOMATION_TESTS
+	/** Lets tests stand in for the replication system (apply replicated arrays, call their callbacks). */
+	friend struct FRockInventoryTestAccess;
+#endif
+};
+
+/** Groups everything done to an inventory while it lives into one change batch (and one Revision step). Null-safe. */
+struct FRockInventoryOperationScope
+{
+	explicit FRockInventoryOperationScope(URockInventory* InInventory) : Inventory(InInventory)
+	{
+		if (Inventory) { Inventory->BeginOperation(); }
+	}
+	~FRockInventoryOperationScope()
+	{
+		if (Inventory) { Inventory->EndOperation(); }
+	}
+	FRockInventoryOperationScope(const FRockInventoryOperationScope&) = delete;
+	FRockInventoryOperationScope& operator=(const FRockInventoryOperationScope&) = delete;
+
+private:
+	URockInventory* Inventory;
 };
 
 

@@ -71,6 +71,8 @@ void URockInventory::Init(const URockInventoryConfig* config)
 		return;
 	}
 
+	FRockInventoryOperationScope Scope(this);
+	bItemSlotIndexDirty = true;
 	RegisterReplicationWithOwner();
 	// Set owner references for containers
 	ItemData.SetOwningInventory(this);
@@ -220,14 +222,57 @@ const FRockInventorySlotEntry* URockInventory::GetSlotByItemHandlePtr(const FRoc
 	const FRockItemStack& Item = ItemData[index];
 	if (Item.GetGeneration() != InItemHandle.GetGeneration()) { return nullptr; }
 
-	for (const FRockInventorySlotEntry& SlotEntry : SlotData)
+	if (bItemSlotIndexDirty)
 	{
-		if (SlotEntry.ItemHandle == InItemHandle)
-		{
-			return &SlotEntry;
-		}
+		RebuildItemSlotIndex();
 	}
-	return nullptr;
+	if (!ItemSlotIndex.IsValidIndex(index) || !SlotData.ContainsIndex(ItemSlotIndex[index]))
+	{
+		return nullptr;
+	}
+	// The index is keyed by item index only, so the generation check is the slot's own handle
+	const FRockInventorySlotEntry& SlotEntry = SlotData[ItemSlotIndex[index]];
+	return SlotEntry.ItemHandle == InItemHandle ? &SlotEntry : nullptr;
+}
+
+void URockInventory::RebuildItemSlotIndex() const
+{
+	ItemSlotIndex.Init(INDEX_NONE, ItemData.Num());
+	for (int32 SlotIndex = 0; SlotIndex < SlotData.Num(); ++SlotIndex)
+	{
+		const FRockItemStackHandle& Handle = SlotData[SlotIndex].ItemHandle;
+		if (!Handle.IsValid()) { continue; }
+		const int32 ItemIndex = Handle.GetIndex();
+		while (ItemSlotIndex.Num() <= ItemIndex)
+		{
+			ItemSlotIndex.Add(INDEX_NONE);
+		}
+		ItemSlotIndex[ItemIndex] = SlotIndex;
+	}
+	bItemSlotIndexDirty = false;
+}
+
+void URockInventory::UpdateItemSlotIndex(int32 SlotIndex, const FRockItemStackHandle& OldHandle, const FRockItemStackHandle& NewHandle) const
+{
+	if (bItemSlotIndexDirty)
+	{
+		// The next lookup rebuilds it from SlotData
+		return;
+	}
+	// Only release the entry if it still points here: when the item moved to another slot, that slot may have been updated first
+	if (OldHandle.IsValid() && ItemSlotIndex.IsValidIndex(OldHandle.GetIndex()) && ItemSlotIndex[OldHandle.GetIndex()] == SlotIndex)
+	{
+		ItemSlotIndex[OldHandle.GetIndex()] = INDEX_NONE;
+	}
+	if (NewHandle.IsValid())
+	{
+		const int32 ItemIndex = NewHandle.GetIndex();
+		while (ItemSlotIndex.Num() <= ItemIndex)
+		{
+			ItemSlotIndex.Add(INDEX_NONE);
+		}
+		ItemSlotIndex[ItemIndex] = SlotIndex;
+	}
 }
 
 void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, const FRockItemStack& InItemStack)
@@ -238,6 +283,7 @@ void URockInventory::SetItemByHandle(const FRockItemStackHandle& InSlotHandle, c
 		UE_LOG(LogRockInventory, Warning, TEXT("SetItemByHandle - Invalid or stale item handle %s"), *InSlotHandle.ToString());
 		return;
 	}
+	FRockInventoryOperationScope Scope(this);
 	FRockItemStack& ChangedItem = ItemData[InSlotHandle.GetIndex()];
 	ChangedItem.CopyDataFrom(InItemStack);
 	ItemData.MarkItemDirty(ChangedItem);
@@ -287,12 +333,15 @@ void URockInventory::SetSlotByHandle(const FRockInventorySlotHandle& InSlotHandl
 		// SlotHandle shouldn't ever change. It only is a way to reference itself.
 		//ChangedSlot.SlotHandle = InSlotEntry.SlotHandle;
 
+		FRockInventoryOperationScope Scope(this);
 		const FRockItemStackHandle PreviousItemHandle = ChangedSlot.LastKnownItemHandle;
+		const FRockItemStackHandle OldItemHandle = ChangedSlot.ItemHandle;
 		ChangedSlot.ItemHandle = InSlotEntry.ItemHandle;
 		ChangedSlot.LastKnownItemHandle = InSlotEntry.ItemHandle;
 		ChangedSlot.Orientation = InSlotEntry.Orientation;
 		ChangedSlot.bIsLocked = InSlotEntry.bIsLocked;
 		SlotData.MarkItemDirty(ChangedSlot);
+		UpdateItemSlotIndex(slotIndex, OldItemHandle, InSlotEntry.ItemHandle);
 
 		FRockSlotDelta slotDelta(this, InSlotHandle, ChangeType, PreviousItemHandle);
 		BroadcastSlotChanged(slotDelta);
@@ -346,6 +395,7 @@ void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(URockInventory, SlotData);
 	DOREPLIFETIME(URockInventory, SlotSections);
 	DOREPLIFETIME(URockInventory, PendingSlotOperations);
+	DOREPLIFETIME(URockInventory, Revision);
 }
 
 bool URockInventory::IsSupportedForNetworking() const
@@ -411,7 +461,12 @@ void URockInventory::UnregisterReplicationWithOwner()
 
 void URockInventory::BroadcastSlotChanged(const FRockSlotDelta& SlotDelta)
 {
-	OnSlotChanged.Broadcast(SlotDelta);
+	PendingBatch.AddSlotDelta(SlotDelta);
+	// Inside an operation or a replication update the batch waits for its end; a stray call is its own batch
+	if (OperationDepth == 0 && !bAwaitingNetReceive)
+	{
+		FlushPendingChanges(false);
+	}
 }
 
 void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& ItemStackHandle, ERockItemChangeType ChangeType)
@@ -420,7 +475,87 @@ void URockInventory::BroadcastItemChanged(const FRockItemStackHandle& ItemStackH
 	ItemDelta.Inventory = this;
 	ItemDelta.ItemHandle = ItemStackHandle;
 	ItemDelta.ChangeType = ChangeType;
-	OnItemChanged.Broadcast(ItemDelta);
+	PendingBatch.AddItemDelta(ItemDelta);
+	if (OperationDepth == 0 && !bAwaitingNetReceive)
+	{
+		FlushPendingChanges(false);
+	}
+}
+
+void URockInventory::QueueReplicatedSlotDelta(const FRockSlotDelta& SlotDelta)
+{
+	bAwaitingNetReceive = true;
+	BroadcastSlotChanged(SlotDelta);
+}
+
+void URockInventory::QueueReplicatedItemDelta(const FRockItemStackHandle& ItemStackHandle, ERockItemChangeType ChangeType)
+{
+	bAwaitingNetReceive = true;
+	BroadcastItemChanged(ItemStackHandle, ChangeType);
+}
+
+void URockInventory::OnReplicatedSlotEntry(int32 SlotIndex, const FRockItemStackHandle& PreviousItemHandle)
+{
+	if (SlotData.ContainsIndex(SlotIndex))
+	{
+		UpdateItemSlotIndex(SlotIndex, PreviousItemHandle, SlotData[SlotIndex].ItemHandle);
+	}
+}
+
+void URockInventory::EndOperation()
+{
+	if (!ensureMsgf(OperationDepth > 0, TEXT("EndOperation without BeginOperation")))
+	{
+		return;
+	}
+	if (--OperationDepth == 0 && !bAwaitingNetReceive && !PendingBatch.IsEmpty())
+	{
+		FlushPendingChanges(true);
+	}
+}
+
+void URockInventory::PostNetReceive()
+{
+	Super::PostNetReceive();
+	if (bAwaitingNetReceive)
+	{
+		bAwaitingNetReceive = false;
+		if (OperationDepth == 0 && !PendingBatch.IsEmpty())
+		{
+			FlushPendingChanges(false);
+		}
+	}
+}
+
+void URockInventory::FlushPendingChanges(bool bBumpRevision)
+{
+	if (PendingBatch.IsEmpty())
+	{
+		return;
+	}
+	// Take the batch first: a listener that changes the inventory again starts a new operation with a new batch
+	FRockInventoryChangeBatch Batch = MoveTemp(PendingBatch);
+	PendingBatch = FRockInventoryChangeBatch();
+	if (bBumpRevision)
+	{
+		++Revision;
+	}
+	Batch.Inventory = this;
+	Batch.Revision = static_cast<int32>(Revision);
+
+	OnChangeBatch.Broadcast(Batch);
+	// Legacy adapters, in the order the changes were made
+	for (const int32 Entry : Batch.ReplayOrder)
+	{
+		if (Entry >= 0)
+		{
+			OnSlotChanged.Broadcast(Batch.SlotDeltas[Entry]);
+		}
+		else
+		{
+			OnItemChanged.Broadcast(Batch.ItemDeltas[~Entry]);
+		}
+	}
 }
 
 void URockInventory::RegisterSlotStatus(AController* Instigator, const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus)
@@ -689,6 +824,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 		return FRockItemStackHandle::Invalid();
 	}
 
+	FRockInventoryOperationScope Scope(this);
 	const int32 PreviousItemDataNum = ItemData.Num();
 	const uint32 Index = AcquireAvailableItemIndex();
 	checkf(Index != INDEX_NONE, TEXT("AddItemToInventory - Failed to acquire item index"));
@@ -786,6 +922,7 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStackHandle& InItemS
 		return;
 	}
 
+	FRockInventoryOperationScope Scope(this);
 	if (ItemData[InIndex].RuntimeInstance)
 	{
 		ItemData[InIndex].RuntimeInstance->UnregisterReplicationWithOwner();

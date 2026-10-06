@@ -4,6 +4,7 @@
 
 #include "Inventory/RockInventory.h"
 #include "Item/RockItemDefinition.h"
+#include "Item/RockItemFragment.h"
 #include "Item/RockItemInstance.h"
 
 FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackCount)
@@ -104,12 +105,26 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 		return false;
 	}
 
-	// Check definition's stackability rules?
-	//if (Definition)
+	// Two different runtime instances carry state of their own and cannot be merged into one. A stack without an instance yet
+	// (not initialized) is not held back by this.
+	if (RuntimeInstance && Other.RuntimeInstance && RuntimeInstance != Other.RuntimeInstance)
 	{
+		return false;
 	}
 
-	// Check runtime instance's fragments?
+	// Any fragment can veto
+	if (!Definition)
+	{
+		return true;
+	}
+	for (const FInstancedStruct& Fragment : Definition->GetAllFragments())
+	{
+		const FRockItemFragment* ItemFragment = Fragment.GetPtr<FRockItemFragment>();
+		if (ItemFragment && !ItemFragment->CanCombineItemStack(*this, Other))
+		{
+			return false;
+		}
+	}
 
 	return true;
 }
@@ -216,7 +231,7 @@ void FRockInventoryItemContainer::PreReplicatedRemove(const TArrayView<int32> Re
 	{
 		if (PreviousItemHandles.IsValidIndex(Index) && PreviousItemHandles[Index].IsValid())
 		{
-			OwnerInventory->BroadcastItemChanged(PreviousItemHandles[Index], ERockItemChangeType::Removed);
+			OwnerInventory->QueueReplicatedItemDelta(PreviousItemHandles[Index], ERockItemChangeType::Removed);
 			PreviousItemHandles[Index] = FRockItemStackHandle::Invalid();
 		}
 	}
@@ -251,7 +266,7 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 		{
 			if (bWasPreviouslyValid)
 			{
-				OwnerInventory->BroadcastItemChanged(PrevHandle, ERockItemChangeType::Removed);
+				OwnerInventory->QueueReplicatedItemDelta(PrevHandle, ERockItemChangeType::Removed);
 			}
 		}
 		else // Item is valid
@@ -266,18 +281,18 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 			{
 				// Scenario: Slot was empty, now has an item.
 				// This falls under an Initial Sync edge case
-				OwnerInventory->BroadcastItemChanged(CurrentItem.ItemHandle, ERockItemChangeType::Added);
+				OwnerInventory->QueueReplicatedItemDelta(CurrentItem.ItemHandle, ERockItemChangeType::Added);
 			}
 			else if (CurrentItem.ItemHandle.GetGeneration() == PrevHandle.GetGeneration())
 			{
 				// Scenario: Definitely the same item, just data/stack count changed.
-				OwnerInventory->BroadcastItemChanged(CurrentItem.ItemHandle, ERockItemChangeType::Changed);
+				OwnerInventory->QueueReplicatedItemDelta(CurrentItem.ItemHandle, ERockItemChangeType::Changed);
 			}
 			else
 			{
 				// Scenario: Explicit swap: generation mismatch. Valid Item
-				OwnerInventory->BroadcastItemChanged(PrevHandle, ERockItemChangeType::Removed);
-				OwnerInventory->BroadcastItemChanged(CurrentItem.ItemHandle, ERockItemChangeType::Added);
+				OwnerInventory->QueueReplicatedItemDelta(PrevHandle, ERockItemChangeType::Removed);
+				OwnerInventory->QueueReplicatedItemDelta(CurrentItem.ItemHandle, ERockItemChangeType::Added);
 			}
 		}
 

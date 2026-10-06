@@ -41,6 +41,33 @@ enum class ERockMoveRefusal : uint8
 	NoRoomToRotate,
 };
 
+/** Why an add is refused. None means it is allowed. */
+enum class ERockAddRefusal : uint8
+{
+	None,
+	/** The stack has no definition or no items. */
+	InvalidStack,
+	InvalidSlot,
+	/** The section's filter rejects the item. */
+	SectionRejectsItem,
+	/** The slot holds a stack of the same item that is already full. */
+	NothingToMerge,
+	/** The footprint does not fit at the slot and its stack cannot take the items. */
+	NoRoom,
+	/** Only from URockInventoryLibrary::AddItemToSlot: no inventory, or it is not owned by an actor with authority. */
+	NotAllowed,
+};
+
+/** Why a remove is refused. None means it is allowed. */
+enum class ERockRemoveRefusal : uint8
+{
+	None,
+	InvalidSlot,
+	EmptySlot,
+	/** More items asked for than the stack holds. */
+	NotEnoughItems,
+};
+
 enum class ERockDataChangeType : uint8
 {
 	/** A slot got another item handle, orientation or lock state. */
@@ -135,7 +162,43 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryData
 		FRockInventoryData& Target, const FRockInventorySlotHandle& TargetSlot,
 		const FRockMoveItemParams& Params, FRockInventoryChangeSet& OutChanges);
 
+	/**
+	 * Would adding Stack at Slot be allowed? An empty cell takes a new stack when the footprint fits; the anchor of a stack that
+	 * stacks with Stack takes what fits up to the max. At most MaxStackCount items are added to a new stack.
+	 * Pending slot operations are a URockInventory concern and not seen here.
+	 */
+	ERockAddRefusal CanAdd(const FRockInventorySlotHandle& Slot, const FRockItemStack& Stack, ERockItemOrientation Orientation = ERockItemOrientation::Horizontal) const;
+
+	/**
+	 * Adds Stack at Slot (see CanAdd). OutAdded is how many items went in (the rest of Stack is the caller's excess). On refusal nothing changes.
+	 * Changes are on the Target side. A new stack keeps Stack's bInitialized flag: the instance and OnItemCreated hooks run when
+	 * the change set is committed to a URockInventory, not here, so a stack created here may still gain custom values at commit.
+	 */
+	ERockAddRefusal ApplyAdd(
+		const FRockInventorySlotHandle& Slot, const FRockItemStack& Stack, ERockItemOrientation Orientation,
+		FRockInventoryChangeSet& OutChanges, int32& OutAdded);
+
+	/** Would removing Count items from the stack at Slot be allowed? Count <= 0 means the whole stack. */
+	ERockRemoveRefusal CanRemove(const FRockInventorySlotHandle& Slot, int32 Count = 0) const;
+
+	/**
+	 * Removes Count items from the stack at Slot (Count <= 0: the whole stack). A stack that reaches zero is released and its slot cleared.
+	 * Changes are on the Source side. On refusal nothing changes.
+	 */
+	ERockRemoveRefusal ApplyRemove(const FRockInventorySlotHandle& Slot, int32 Count, FRockInventoryChangeSet& OutChanges);
+
+	/** Units across every stack the predicate accepts. */
+	int32 CountMatching(const TFunctionRef<bool(const FRockItemStack&)>& Matches) const;
+
+	/**
+	 * Removes up to Count units (> 0) from the stacks the predicate accepts, visiting slots in index order, so the lowest slot is emptied first.
+	 * With bAllOrNothing nothing changes unless Count units exist. Returns how many were removed. Changes are on the Source side.
+	 */
+	int32 RemoveMatching(const TFunctionRef<bool(const FRockItemStack&)>& Matches, int32 Count, bool bAllOrNothing, FRockInventoryChangeSet& OutChanges);
+
 private:
+	/** Shared by CanAdd and ApplyAdd. Amount is what would be added. */
+	ERockAddRefusal PlanAdd(const FRockInventorySlotHandle& Slot, const FRockItemStack& Stack, ERockItemOrientation Orientation, bool& bOutMerge, int32& OutAmount) const;
 	FRockItemStackHandle AllocateStack(const FRockItemStack& Copy);
 	void FreeStack(const FRockItemStackHandle& StackHandle);
 

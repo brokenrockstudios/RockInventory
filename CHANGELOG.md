@@ -2,6 +2,21 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.0604
+- Added (T-75): `URockInventoryAccessSubsystem`, the server-side access registry. Reasons Owner, Open, Proximity (view only, for containers you own) and Shared (stub); rights None / View / LimitedTake / Full; per-container `FRockInventoryAccessPolicy` (openable by, reach mode Default / Ignore / Custom, reach override, owner); C++ delegates `OnBeforeOpen` (veto), `OnAfterOpen`, `OnClosed`; periodic reach re-check. Deny by default.
+- Added: `URockInventoryManagerComponent::Server_OpenInventory` / `Server_CloseInventory`; the component closes its controller's opens in `EndPlay`.
+- Changed: `CanAccess(Inventory, Instigator, Required = Full)` is a plain C++ virtual (no longer a Blueprint event) and asks the registry: another player's container, in reach or not, now needs an explicit open, and a player's own inventory cannot be opened by others. `MaxAccessReach` moved to `URockInventoryAccessSubsystem::DefaultReach`.
+- Added: `BRS.RockInventory.Access` tests; `ServerCommands` tests open the container first and gained a never-opened case.
+## 2610.0603
+- Added (T-74): change sets. `URockInventory::OnChangeBatch` delivers one `FRockInventoryChangeBatch` (slot deltas, item deltas, `Revision`) per finished server operation (move, loot, split, setter call; `FRockInventoryOperationScope` groups calls) and per replication update on a client (flushed in `PostNetReceive`). A move inside one inventory is one batch holding both slots.
+- Added: replicated `URockInventory::Revision` (`GetRevision()`), raised once per server operation that changed something.
+- Changed: `OnSlotChanged` and `OnItemChanged` are adapters replayed from the batch, in the order the changes were made, after the operation is complete (they used to fire in the middle of it). `GetSlotByItemHandlePtr` / `GetSlotByItemHandle` are O(1) through an item-to-slot index kept on the server and on clients.
+- Added: `BRS.RockInventory.ChangeSet` tests (batches, revision, client flush, randomized index-versus-scan).
+## 2610.0602
+- Added (T-73): Layer 0 `FRockInventoryData::CanAdd`/`ApplyAdd`, `CanRemove`/`ApplyRemove`, `CountMatching` and `RemoveMatching` (all-or-nothing option, lowest slot first), with `ERockAddRefusal`/`ERockRemoveRefusal`. `URockInventoryLibrary::AddItemToSlot`, `RemoveMatching`, `CountMatching` and `RemoveItemsById` (BlueprintAuthorityOnly) run them and commit the change set.
+- Changed: `FRockItemStack::CanStackWith` asks every fragment's `CanCombineItemStack` (a veto is final) and refuses two different runtime instances; loot merges and moves respect it.
+- Removed: `FRockItemDefinitionFragment`, `RockContainerExperiment`, `FRockInventoryChangeEvent`, `ERockInventoryChangeType`, `ERockTransactionState`, `ERockTransactionResult`, and the runtime module's public UMG dependency. `K2_DropItem` shows as "Drop Item"; `K2_HasItem` and `K2_GetItemCount` are BlueprintPure. README drift fixed.
+- Added: `BRS.RockInventory.AddRemove` tests, add/remove cases in `BRS.RockInventory.Data`, fragment veto and instance cases in `BRS.RockInventory.Stack`.
 ## 2610.0601
 - Added (T-72): `FRockInventoryData` (Layer 0, plain sections/slots/stacks, no UObject inventory) with side-effect-free `CanMove` and `ApplyMove` (move, merge, split, rotate, cross-inventory transfer) returning an `FRockInventoryChangeSet`; `ERockMoveRefusal` says why a move is refused.
 - Changed: `URockInventoryLibrary::MoveItem` snapshots the inventories into `FRockInventoryData`, applies the move there and commits the change set (same events, same warnings). New `BRS.RockInventory.Data` tests run the Move scenarios on plain data.

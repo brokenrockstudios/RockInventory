@@ -94,7 +94,7 @@ Key members:
 | `StackCount`      | How many of the item are in this stack                                                                                          |
 | `CustomValue1/2`  | Generic integer payload. Such as durability, charge level, ammo count. Meaning declared by `CustomValue1Tag` on the definition) |
 | `RuntimeInstance` | Nullable pointer to a `URockItemInstance`; `nullptr` for the vast majority of items                                             |
-| `Generation`      | 8-bit counter used to invalidate stale `FRockItemStackHandle` references without shrinking the backing array                    |
+| `Generation`      | 16-bit counter used to invalidate stale `FRockItemStackHandle` references without shrinking the backing array                    |
 | `bInitialized`    | Guards one-time setup (fragment `OnItemCreated` callbacks, runtime instance spawning)                                           |
 
 Write access to `FRockItemStack` internals is intentionally **restricted via `friend` declarations** to
@@ -107,7 +107,7 @@ events.
 FName Id = Stack.GetItemId(); 
 int32 Count = Stack.GetStackCount(); 
 int32 MaxCount = Stack.GetMaxStackCount(); 
-// delegates to Definition 
+// same definition and custom values, no two different runtime instances, and no fragment veto
 bool CanMerge = Stack.CanStackWith(OtherStack);
 ```
 
@@ -174,8 +174,8 @@ They are stored as `TInstancedStruct<FRockItemFragment>` inside `FRockItemDefini
 Fragments have two engine-level hooks:
 
 // Called once when an FRockItemStack is first initialized virtual void OnItemCreated(FRockItemStack& ItemStack) const;
-// Fragments can veto stack merging virtual bool CanCombineItemStack(const FRockItemStack& A, const FRockItemStack& B)
-const;
+// Fragments can veto stack merging: FRockItemStack::CanStackWith asks every fragment of the definition, and one false is final
+virtual bool CanCombineItemStack(const FRockItemStack& A, const FRockItemStack& B) const;
 
 Built-in examples: `FRockItemFragment_SetStats` (seeds `CustomValue1/2` on creation), `FRockItemFragment_Actor` (world
 actor data), `FRockItemFragment_FuelData`.
@@ -213,7 +213,7 @@ Designer authors URockItemDefinition
 │
 │ (Asset Manager. Loaded on demand)
 │
-│  AddItem / Transaction
+│  LootItemToInventory / Transaction
 ▼
 URockInventory::ItemData  [ FRockItemStack, FRockItemStack, ... ]
 │                               │
@@ -226,19 +226,25 @@ FFastArray delta replication    Iris / standard UObject replication
 ```
 
 1. A designer creates a `URockItemDefinition` asset and optionally adds fragments.
-2. At runtime, `URockInventoryLibrary::AddItem` creates an `FRockItemStack` referencing that definition and inserts it
+2. At runtime, `URockInventoryLibrary::LootItemToInventory` (or `URockInventory::AddItemToInventory` for a known slot) creates an `FRockItemStack` referencing that definition and inserts it
    into `ItemData`.
 3. If the definition requires a runtime instance, `URockItemInstance` (or a game-specific subclass) is spawned and
    linked to the stack.
 4. The `FRockInventoryItemContainer` delta-replicates the stack array to clients; `URockItemInstance` replicates
    separately via the standard `UObject` replication path.
-5. Code that needs to react to changes listens to `URockInventory::OnSlotChanged` / `OnItemStackChanged` delegates.
+5. Code that needs to react to changes listens to `URockInventory::OnChangeBatch`: one `FRockInventoryChangeBatch` (slot deltas, item deltas, replicated `Revision`) per finished operation on the server and per replication update on a client, so a move is one batch holding both slots. `OnSlotChanged` / `OnItemChanged` still exist as adapters replayed from the batch. Code that changes several things at once can group them with `FRockInventoryOperationScope`.
 
 ---
 
 ## Plain-data moves
 
 `FRockInventoryData` is the inventory as plain data (sections, slots, stacks) with no world, events or authority. `FRockInventoryData::CanMove` answers whether a move, merge, split, rotation or cross-inventory transfer is allowed, and `ApplyMove` does it and returns an `FRockInventoryChangeSet` of before/after slots and stacks. `URockInventoryLibrary::MoveItem` snapshots the inventories into it, applies the move and commits the change set, so a move behaves the same on the server, in a test and (later) in a client's prediction model.
+
+The same data has `CanAdd`/`ApplyAdd` (put a stack at one slot: a new stack in an empty cell that fits, or a top-up of a stack it stacks with) and `CanRemove`/`ApplyRemove` (take some or all of the stack at a slot), plus `CountMatching` and `RemoveMatching` (remove up to N items from the stacks a predicate accepts, lowest slot first, optionally all-or-nothing). `URockInventoryLibrary::AddItemToSlot`, `RemoveMatching` and `RemoveItemsById` run them on a snapshot and commit the change set; the commit is where runtime instances are created and `OnItemCreated` runs. Pickup placement (`LootItemToInventory`) has its own planner on the live inventory and does not use these yet.
+
+## Access
+
+Every server command asks `URockInventoryManagerComponent::CanAccess`, which asks the world's `URockInventoryAccessSubsystem`. Deny by default. A player has access to an inventory when it sits on their own controller, pawn or player state (always), when they opened it and are still within reach (`Server_OpenInventory` / `Server_CloseInventory`; a periodic check closes the open when they walk away), when they own the container and are nearby (view only), or through a per-container grant. A player's own inventory cannot be opened by others; a chest, a body or a dropped backpack can, by anyone in reach, and several players may have the same one open. Per-container rules (who may open, reach mode, owner) are set with `SetPolicy`; `OnBeforeOpen` can veto, `OnAfterOpen` and `OnClosed` announce. Access is an answer with rights (None, View, LimitedTake, Full), so a later rule can answer with less than Full. Replication is not gated yet.
 
 ## Pickup placement
 

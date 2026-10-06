@@ -2,6 +2,7 @@
 
 #include "RockInventoryTestFixture.h"
 
+#include "Access/RockInventoryAccessSubsystem.h"
 #include "Components/RockInventoryManagerComponent.h"
 #include "Components/SceneComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -40,6 +41,7 @@ TEST_CLASS(RockInventoryServerCommandTests, "BRS.RockInventory.ServerCommands")
 	URockInventoryManagerComponent* Manager = nullptr;
 	URockInventory* Mine = nullptr;
 	URockItemDefinition* Apple = nullptr;
+	URockInventoryAccessSubsystem* Access = nullptr;
 
 	URockInventory* MakeInventory(AActor* InOwner)
 	{
@@ -68,6 +70,8 @@ TEST_CLASS(RockInventoryServerCommandTests, "BRS.RockInventory.ServerCommands")
 		KeepAlive.Emplace(Manager);
 		Mine = MakeInventory(AttackerPawn);
 		Apple = Fixture.MakeDefinition("Apple");
+		Access = URockInventoryAccessSubsystem::Get(AttackerPawn);
+		ASSERT_THAT(IsNotNull(Access));
 	}
 
 	FRockInventorySlotHandle Slot(const URockInventory* Inventory, int32 Column) const
@@ -138,6 +142,7 @@ TEST_CLASS(RockInventoryServerCommandTests, "BRS.RockInventory.ServerCommands")
 	{
 		URockInventory* Chest = MakeInventoryAt(100.f);
 		Place(Chest, 0);
+		ASSERT_THAT(IsTrue(Access->Open(Attacker, Chest) == ERockOpenResult::Opened));
 
 		Manager->Server_MoveItem_Implementation(MoveCommand(Chest, Mine, Attacker));
 
@@ -145,16 +150,29 @@ TEST_CLASS(RockInventoryServerCommandTests, "BRS.RockInventory.ServerCommands")
 		ASSERT_THAT(IsTrue(HasItem(Mine, 1)));
 	}
 
-	TEST_METHOD(Move_ReachIsTheComponentSetting)
+	TEST_METHOD(Move_ReachIsTheRegistrySetting)
 	{
 		URockInventory* Chest = MakeInventoryAt(100.f);
 		Place(Chest, 0);
-		Manager->MaxAccessReach = 50.f;
+		ASSERT_THAT(IsTrue(Access->Open(Attacker, Chest) == ERockOpenResult::Opened));
+		Access->DefaultReach = 50.f;
 		TestRunner->AddExpectedMessagePlain(TEXT("may not access inventory"), ELogVerbosity::Warning);
 
 		Manager->Server_MoveItem_Implementation(MoveCommand(Chest, Mine, Attacker));
 
 		ASSERT_THAT(IsTrue(HasItem(Chest, 0)));
+	}
+
+	TEST_METHOD(Move_FromAContainerWithinReachThatWasNeverOpened_IsRefused)
+	{
+		URockInventory* Chest = MakeInventoryAt(100.f);
+		Place(Chest, 0);
+		TestRunner->AddExpectedMessagePlain(TEXT("may not access inventory"), ELogVerbosity::Warning);
+
+		Manager->Server_MoveItem_Implementation(MoveCommand(Chest, Mine, Attacker));
+
+		ASSERT_THAT(IsTrue(HasItem(Chest, 0)));
+		ASSERT_THAT(IsFalse(HasItem(Mine, 1)));
 	}
 
 	TEST_METHOD(Move_WithASpoofedInstigator_ActsAsTheOwningController)

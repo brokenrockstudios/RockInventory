@@ -325,6 +325,179 @@ TArray<bool> FRockInventoryData::BuildOccupancy(const FRockItemStackHandle& Igno
 	return Occupancy;
 }
 
+ERockAddRefusal FRockInventoryData::PlanAdd(
+	const FRockInventorySlotHandle& Slot, const FRockItemStack& Stack, ERockItemOrientation Orientation, bool& bOutMerge, int32& OutAmount) const
+{
+	bOutMerge = false;
+	OutAmount = 0;
+	if (!Stack.IsValid())
+	{
+		return ERockAddRefusal::InvalidStack;
+	}
+	const FRockInventorySlotEntry* Entry = GetSlot(Slot);
+	const FRockInventorySectionInfo* Section = FindSection(Slot);
+	if (!Entry || !Section)
+	{
+		return ERockAddRefusal::InvalidSlot;
+	}
+	if (!URockInventoryLibrary::CanItemBePlacedInSection(Stack, *Section))
+	{
+		return ERockAddRefusal::SectionRejectsItem;
+	}
+
+	if (const FRockItemStack* Existing = GetStack(Entry->ItemHandle))
+	{
+		if (!Existing->CanStackWith(Stack))
+		{
+			return ERockAddRefusal::NoRoom;
+		}
+		OutAmount = FMath::Min(Existing->GetMaxStackCount() - Existing->GetStackCount(), Stack.GetStackCount());
+		if (OutAmount <= 0)
+		{
+			OutAmount = 0;
+			return ERockAddRefusal::NothingToMerge;
+		}
+		bOutMerge = true;
+		return ERockAddRefusal::None;
+	}
+
+	if (!Fits(BuildOccupancy(), *Section, Slot, Stack, Orientation))
+	{
+		return ERockAddRefusal::NoRoom;
+	}
+	OutAmount = FMath::Min(Stack.GetMaxStackCount(), Stack.GetStackCount());
+	return ERockAddRefusal::None;
+}
+
+ERockAddRefusal FRockInventoryData::CanAdd(const FRockInventorySlotHandle& Slot, const FRockItemStack& Stack, ERockItemOrientation Orientation) const
+{
+	bool bMerge;
+	int32 Amount;
+	return PlanAdd(Slot, Stack, Orientation, bMerge, Amount);
+}
+
+ERockAddRefusal FRockInventoryData::ApplyAdd(
+	const FRockInventorySlotHandle& Slot, const FRockItemStack& Stack, ERockItemOrientation Orientation,
+	FRockInventoryChangeSet& OutChanges, int32& OutAdded)
+{
+	OutChanges.Changes.Reset();
+	bool bMerge;
+	const ERockAddRefusal Refusal = PlanAdd(Slot, Stack, Orientation, bMerge, OutAdded);
+	if (Refusal != ERockAddRefusal::None)
+	{
+		return Refusal;
+	}
+
+	if (bMerge)
+	{
+		const FRockItemStackHandle Handle = Slots[Slot.GetAbsoluteIndex()].ItemHandle;
+		FRockItemStack& Existing = Stacks[Handle.GetIndex()];
+		const FRockItemStack Before = Existing;
+		Existing.StackCount += OutAdded;
+		AddStackChange(OutChanges, ERockDataChangeType::StackModified, ERockInventorySide::Target, Handle, Before, Existing);
+		return ERockAddRefusal::None;
+	}
+
+	FRockItemStack Part = Stack;
+	Part.StackCount = OutAdded;
+	const FRockItemStackHandle Handle = AllocateStack(Part);
+	AddStackChange(OutChanges, ERockDataChangeType::StackCreated, ERockInventorySide::Target, Handle, FRockItemStack(), Stacks[Handle.GetIndex()]);
+
+	FRockInventorySlotEntry& To = Slots[Slot.GetAbsoluteIndex()];
+	const FRockInventorySlotEntry ToBefore = To;
+	To.ItemHandle = Handle;
+	To.Orientation = Orientation;
+	AddSlotChange(OutChanges, ERockInventorySide::Target, ToBefore, To);
+	return ERockAddRefusal::None;
+}
+
+ERockRemoveRefusal FRockInventoryData::CanRemove(const FRockInventorySlotHandle& Slot, int32 Count) const
+{
+	if (!GetSlot(Slot))
+	{
+		return ERockRemoveRefusal::InvalidSlot;
+	}
+	const FRockItemStack* Stack = GetSlotStack(Slot);
+	if (!Stack)
+	{
+		return ERockRemoveRefusal::EmptySlot;
+	}
+	return Count > Stack->GetStackCount() ? ERockRemoveRefusal::NotEnoughItems : ERockRemoveRefusal::None;
+}
+
+ERockRemoveRefusal FRockInventoryData::ApplyRemove(const FRockInventorySlotHandle& Slot, int32 Count, FRockInventoryChangeSet& OutChanges)
+{
+	OutChanges.Changes.Reset();
+	const ERockRemoveRefusal Refusal = CanRemove(Slot, Count);
+	if (Refusal != ERockRemoveRefusal::None)
+	{
+		return Refusal;
+	}
+
+	FRockInventorySlotEntry& From = Slots[Slot.GetAbsoluteIndex()];
+	const FRockItemStackHandle Handle = From.ItemHandle;
+	FRockItemStack& Stack = Stacks[Handle.GetIndex()];
+	const FRockItemStack Before = Stack;
+	if (Count <= 0 || Count == Stack.GetStackCount())
+	{
+		const FRockInventorySlotEntry FromBefore = From;
+		From.ItemHandle = FRockItemStackHandle::Invalid();
+		From.Orientation = ERockItemOrientation::Horizontal;
+		AddSlotChange(OutChanges, ERockInventorySide::Source, FromBefore, From);
+		FreeStack(Handle);
+		AddStackChange(OutChanges, ERockDataChangeType::StackRemoved, ERockInventorySide::Source, Handle, Before, FRockItemStack());
+		return ERockRemoveRefusal::None;
+	}
+
+	Stack.StackCount -= Count;
+	AddStackChange(OutChanges, ERockDataChangeType::StackModified, ERockInventorySide::Source, Handle, Before, Stack);
+	return ERockRemoveRefusal::None;
+}
+
+int32 FRockInventoryData::CountMatching(const TFunctionRef<bool(const FRockItemStack&)>& Matches) const
+{
+	int32 Total = 0;
+	for (const FRockItemStack& Stack : Stacks)
+	{
+		if (Stack.IsValid() && Matches(Stack))
+		{
+			Total += Stack.GetStackCount();
+		}
+	}
+	return Total;
+}
+
+int32 FRockInventoryData::RemoveMatching(
+	const TFunctionRef<bool(const FRockItemStack&)>& Matches, int32 Count, bool bAllOrNothing, FRockInventoryChangeSet& OutChanges)
+{
+	OutChanges.Changes.Reset();
+	if (Count <= 0)
+	{
+		return 0;
+	}
+	if (bAllOrNothing && CountMatching(Matches) < Count)
+	{
+		return 0;
+	}
+
+	int32 Remaining = Count;
+	for (int32 SlotIndex = 0; SlotIndex < Slots.Num() && Remaining > 0; ++SlotIndex)
+	{
+		const FRockInventorySlotHandle SlotHandle = Slots[SlotIndex].SlotHandle;
+		const FRockItemStack* Stack = GetSlotStack(SlotHandle);
+		if (!Stack || !Matches(*Stack))
+		{
+			continue;
+		}
+		const int32 Take = FMath::Min(Remaining, Stack->GetStackCount());
+		FRockInventoryChangeSet One;
+		ApplyRemove(SlotHandle, Take, One);
+		OutChanges.Changes.Append(One.Changes);
+		Remaining -= Take;
+	}
+	return Count - Remaining;
+}
+
 ERockMoveRefusal FRockInventoryData::CanMove(
 	const FRockInventoryData& Source, const FRockInventorySlotHandle& SourceSlot,
 	const FRockInventoryData& Target, const FRockInventorySlotHandle& TargetSlot,

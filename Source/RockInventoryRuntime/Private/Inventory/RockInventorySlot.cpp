@@ -82,13 +82,14 @@ void FRockInventorySlotContainer::PostReplicatedAdd(const TArrayView<int32> Adde
 			const FRockItemStackHandle PreviousItemHandle = Slot.LastKnownItemHandle;
 			// Initialize a tracking handle so PostReplicatedChange can detect transitions
 			Slot.LastKnownItemHandle = Slot.ItemHandle;
+			OwnerInventory->OnReplicatedSlotEntry(Index, PreviousItemHandle);
 			auto isItemValid = OwnerInventory->GetItemByHandle(Slot.LastKnownItemHandle).IsValid();
 			ERockSlotChangeType ChangeType = isItemValid ? ERockSlotChangeType::ItemAdded : ERockSlotChangeType::None;
 
 			if (ChangeType != ERockSlotChangeType::None)
 			{
 				FRockSlotDelta SlotDelta(OwnerInventory, AllSlots[Index].SlotHandle, ChangeType, PreviousItemHandle);
-				OwnerInventory->BroadcastSlotChanged(SlotDelta);
+				OwnerInventory->QueueReplicatedSlotDelta(SlotDelta);
 			}
 		}
 	}
@@ -100,6 +101,8 @@ void FRockInventorySlotContainer::PreReplicatedRemove(const TArrayView<int32> Re
 	{
 		return;
 	}
+	// Slot indices shift when the array shrinks; the item-to-slot index is rebuilt on the next lookup
+	OwnerInventory->InvalidateItemSlotIndex();
 	for (const int32 Index : RemovedIndices)
 	{
 		if (AllSlots.IsValidIndex(Index))
@@ -112,7 +115,7 @@ void FRockInventorySlotContainer::PreReplicatedRemove(const TArrayView<int32> Re
 			if (OwnerInventory->GetItemByHandle(Slot.ItemHandle).IsValid())
 			{
 				FRockSlotDelta SlotDelta(OwnerInventory, AllSlots[Index].SlotHandle, ERockSlotChangeType::ItemRemoved, Slot.LastKnownItemHandle);
-				OwnerInventory->BroadcastSlotChanged(SlotDelta);
+				OwnerInventory->QueueReplicatedSlotDelta(SlotDelta);
 			}
 		}
 	}
@@ -152,9 +155,10 @@ void FRockInventorySlotContainer::PostReplicatedChange(const TArrayView<int32> C
 			const FRockItemStackHandle PreviousItemHandle = Slot.LastKnownItemHandle;
 			// Update tracking for next change
 			Slot.LastKnownItemHandle = Slot.ItemHandle;
+			OwnerInventory->OnReplicatedSlotEntry(Index, PreviousItemHandle);
 
 			FRockSlotDelta SlotDelta(OwnerInventory, AllSlots[Index].SlotHandle, ChangeType, PreviousItemHandle);
-			OwnerInventory->BroadcastSlotChanged(SlotDelta);
+			OwnerInventory->QueueReplicatedSlotDelta(SlotDelta);
 		}
 	}
 }

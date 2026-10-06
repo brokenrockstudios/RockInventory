@@ -2,7 +2,10 @@
 
 #include "RockInventoryTestFixture.h"
 
+#include "Item/RockItemInstance.h"
 #include "Library/RockInventoryLibrary.h"
+#include "RockInventoryTestFragments.h"
+#include "StructUtils/InstancedStruct.h"
 #include "Library/RockItemStackLibrary.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -70,6 +73,95 @@ TEST_CLASS(RockInventoryStackTests, "BRS.RockInventory.Stack")
 		ASSERT_THAT(IsTrue(Fixture.Inventory->GetItemByHandle(Charged).CanStackWith(Fixture.Inventory->GetItemByHandle(Empty))));
 		URockInventoryLibrary::SetCustomValue2(Fixture.Inventory, Empty, 1);
 		ASSERT_THAT(IsFalse(Fixture.Inventory->GetItemByHandle(Charged).CanStackWith(Fixture.Inventory->GetItemByHandle(Empty))));
+	}
+
+	TEST_METHOD(CanStackWith_AFragmentThatVetoes_IsFalse)
+	{
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple", 5);
+		Apple->Fragments.Add(FInstancedStruct::Make(FRockTestFragment_NeverCombine()));
+
+		ASSERT_THAT(IsFalse(FRockItemStack(Apple, 1).CanStackWith(FRockItemStack(Apple, 1))));
+	}
+
+	TEST_METHOD(CanStackWith_AFragmentThatAllows_IsTrue)
+	{
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple", 5);
+		Apple->Fragments.Add(FInstancedStruct::Make(FRockItemFragment()));
+
+		ASSERT_THAT(IsTrue(FRockItemStack(Apple, 1).CanStackWith(FRockItemStack(Apple, 1))));
+	}
+
+	TEST_METHOD(CanStackWith_OneVetoAmongSeveralFragments_IsFalse)
+	{
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple", 5);
+		Apple->Fragments.Add(FInstancedStruct::Make(FRockItemFragment()));
+		Apple->Fragments.Add(FInstancedStruct::Make(FRockTestFragment_NeverCombine()));
+
+		ASSERT_THAT(IsFalse(FRockItemStack(Apple, 1).CanStackWith(FRockItemStack(Apple, 1))));
+	}
+
+	TEST_METHOD(CanStackWith_AFragmentThatLooksAtTheStacks_DecidesPerPair)
+	{
+		Fixture.InitGrid(4, 1);
+		URockItemDefinition* Battery = Fixture.MakeDefinition("Battery", 5);
+		FRockTestFragment_CombineLimit Limit;
+		Limit.Limit = 50;
+		Battery->Fragments.Add(FInstancedStruct::Make(Limit));
+		const FRockItemStackHandle Low = Fixture.PlaceAt(Battery, 1, Fixture.SlotAt(0, 0));
+		const FRockItemStackHandle AlsoLow = Fixture.PlaceAt(Battery, 1, Fixture.SlotAt(1, 0));
+		const FRockItemStackHandle High = Fixture.PlaceAt(Battery, 1, Fixture.SlotAt(2, 0));
+		const FRockItemStackHandle AlsoHigh = Fixture.PlaceAt(Battery, 1, Fixture.SlotAt(3, 0));
+		URockInventoryLibrary::SetCustomValue1(Fixture.Inventory, Low, 10);
+		URockInventoryLibrary::SetCustomValue1(Fixture.Inventory, AlsoLow, 10);
+		URockInventoryLibrary::SetCustomValue1(Fixture.Inventory, High, 90);
+		URockInventoryLibrary::SetCustomValue1(Fixture.Inventory, AlsoHigh, 90);
+
+		// Equal custom values stack by the base rule; only the fragment tells these two pairs apart
+		ASSERT_THAT(IsTrue(Fixture.Inventory->GetItemByHandle(Low).CanStackWith(Fixture.Inventory->GetItemByHandle(AlsoLow))));
+		ASSERT_THAT(IsFalse(Fixture.Inventory->GetItemByHandle(High).CanStackWith(Fixture.Inventory->GetItemByHandle(AlsoHigh))));
+	}
+
+	TEST_METHOD(CanStackWith_DifferentRuntimeInstances_IsFalse)
+	{
+		Fixture.InitGrid(2, 1);
+		URockItemDefinition* Pouch = Fixture.MakeDefinition("Pouch", 5);
+		Pouch->RuntimeInstanceClass = URockItemInstance::StaticClass();
+		const FRockItemStackHandle First = Fixture.PlaceAt(Pouch, 1, Fixture.SlotAt(0, 0));
+		const FRockItemStackHandle Second = Fixture.PlaceAt(Pouch, 1, Fixture.SlotAt(1, 0));
+		const FRockItemStack A = Fixture.Inventory->GetItemByHandle(First);
+		const FRockItemStack B = Fixture.Inventory->GetItemByHandle(Second);
+
+		ASSERT_THAT(IsTrue(A.GetRuntimeInstance() != nullptr));
+		ASSERT_THAT(IsTrue(A.GetRuntimeInstance() != B.GetRuntimeInstance()));
+		ASSERT_THAT(IsFalse(A.CanStackWith(B)));
+		// The same instance is the same stack
+		ASSERT_THAT(IsTrue(A.CanStackWith(A)));
+	}
+
+	TEST_METHOD(CanStackWith_AnInstancedStackAndOneWithoutAnInstanceYet_IsTrue)
+	{
+		Fixture.InitGrid(2, 1);
+		URockItemDefinition* Pouch = Fixture.MakeDefinition("Pouch", 5);
+		Pouch->RuntimeInstanceClass = URockItemInstance::StaticClass();
+		const FRockItemStack Placed = Fixture.Inventory->GetItemByHandle(Fixture.PlaceAt(Pouch, 1, Fixture.SlotAt(0, 0)));
+
+		ASSERT_THAT(IsTrue(Placed.CanStackWith(FRockItemStack(Pouch, 1))));
+	}
+
+	TEST_METHOD(Loot_DoesNotMergeIntoAStackWhoseFragmentVetoes)
+	{
+		Fixture.InitGrid(2, 1);
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple", 5);
+		Apple->Fragments.Add(FInstancedStruct::Make(FRockTestFragment_NeverCombine()));
+		Fixture.PlaceAt(Apple, 1, Fixture.SlotAt(0, 0));
+		FRockInventorySlotHandle Slot;
+		int32 Excess = 0;
+
+		ASSERT_THAT(IsTrue(Fixture.Loot(Apple, 1, Slot, Excess)));
+
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(1, 0), Slot));
+		ASSERT_THAT(AreEqual(1, Fixture.Inventory->GetItemBySlotHandle(Fixture.SlotAt(0, 0)).GetStackCount()));
+		ASSERT_THAT(AreEqual(2, Fixture.Inventory->GetNumItemStacks()));
 	}
 
 	TEST_METHOD(Library_CanStackWith_AlsoRequiresRoomForBothStacks)
