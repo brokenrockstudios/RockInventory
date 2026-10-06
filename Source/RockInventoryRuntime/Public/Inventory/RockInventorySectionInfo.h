@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "RockSlotHandle.h"
 #include "Enums/RockItemSizePolicy.h"
+#include "Enums/RockLootIntent.h"
 #include "UObject/Object.h"
 
 #include "RockInventorySectionInfo.generated.h"
@@ -36,6 +37,15 @@ struct ROCKINVENTORYRUNTIME_API FRockInventorySectionInfo
 
 	/** Sets the meta tags (see MetaTags). Returns *this, like SetSectionFilter. */
 	FRockInventorySectionInfo& SetMetaTags(const FGameplayTagContainer& InMetaTags);
+
+	/** Sets which loot intents may use this section (see AcceptedLootIntents). Returns *this, like SetSectionFilter. */
+	FRockInventorySectionInfo& SetAcceptedLootIntents(ERockLootIntent InIntents);
+
+	/** Sets the loot order rank (see LootPriority). Lower numbers are tried first (-1 before 0 before 10). Returns *this. */
+	FRockInventorySectionInfo& SetLootPriority(int32 InPriority);
+
+	/** Sets the soft loot preference (see LootPreference), e.g. FGameplayTagQuery::MakeQuery_MatchAnyTags(SidearmTags). Returns *this. */
+	FRockInventorySectionInfo& SetLootPreference(const FGameplayTagQuery& InPreference);
 
 private:
 	UPROPERTY(EditAnywhere, meta = (Categories = "Inventory.Section,Inventory.Group"))
@@ -72,6 +82,23 @@ private:
 	UPROPERTY(EditAnywhere)
 	FGameplayTagQuery SectionFilter;
 
+	/** Which loot calls may place items here (ERockLootIntent flags). A call is allowed in when its intent shares a bit with this.
+	 * Storage sections keep the default (Store), equipment sections accept Equip, a quick slot both, and a section nothing should auto-fill (an oven input) none.
+	 * Dragging an item onto a chosen slot is not loot and ignores this.
+	 */
+	UPROPERTY(EditAnywhere, meta = (Bitmask, BitmaskEnum = "/Script/RockInventoryRuntime.ERockLootIntent"))
+	int32 AcceptedLootIntents = static_cast<int32>(ERockLootIntent::Store);
+
+	/** Loot order among eligible sections: lower numbers are tried first (-1 before 0 before 10), ties keep config order. It only orders; it never makes a section eligible. */
+	UPROPERTY(EditAnywhere)
+	int32 LootPriority = 0;
+
+	/** Sections whose LootPreference matches an item are tried before those that merely allow it. Empty means no preference.
+	 * It only reorders: unlike SectionFilter it never excludes an item. e.g. Secondary prefers Sidearm, Primary prefers Weapon and not Sidearm, both filters allow Weapon.
+	 */
+	UPROPERTY(EditAnywhere)
+	FGameplayTagQuery LootPreference;
+
 public:
 	void Initialize(int32 InFirstSlotIndex, int32 InSectionIndex);
 
@@ -106,6 +133,16 @@ public:
 
 	/** Returns the meta-tags associated with this section */
 	const FGameplayTagContainer& GetMetaTags() const;
+
+	/** ERockLootIntent flags this section accepts */
+	int32 GetAcceptedLootIntents() const;
+
+	/** True when a loot call with these ERockLootIntent flags may use this section */
+	bool AcceptsLootIntent(int32 CallIntents) const;
+
+	int32 GetLootPriority() const;
+
+	const FGameplayTagQuery& GetLootPreference() const;
 
 	// Returns invalid section info
 	static const FRockInventorySectionInfo& Invalid();

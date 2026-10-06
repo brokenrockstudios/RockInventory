@@ -670,9 +670,10 @@ FRockItemReference URockInventory::MakeItemReference(FRockItemStackHandle ItemHa
 	return FRockItemReference(this, ItemHandle);
 }
 
-FRockSlotReference URockInventory::MakeSlotReference(FRockInventorySlotHandle SlotHandle)
+FRockSlotReference URockInventory::MakeSlotReference(FRockInventorySlotHandle SlotHandle) const
 {
-	return FRockSlotReference(this, SlotHandle);
+	// A reference only names the slot; reading it back through the weak pointer is what the caller chooses to do
+	return FRockSlotReference(const_cast<URockInventory*>(this), SlotHandle);
 }
 
 FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& InItemStack)

@@ -201,7 +201,7 @@ public:
 	/** Does this handle point to a valid item stack in the inventory */
 	bool IsHandleValid(FRockItemStackHandle ItemHandle) const;
 	FRockItemReference MakeItemReference(FRockItemStackHandle SlotHandle);
-	FRockSlotReference MakeSlotReference(FRockInventorySlotHandle SlotHandle);
+	FRockSlotReference MakeSlotReference(FRockInventorySlotHandle SlotHandle) const;
 
 	// TODO: Should we handle ActivateItem, DeactivateItem, UseItem
 	// Or should other classes handle that?

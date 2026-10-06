@@ -83,12 +83,14 @@ void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)
 	URockInventoryComponent* InventoryComp = InInstigator->GetComponentByClass<URockInventoryComponent>();
 	if (InventoryComp)
 	{
-		int32 outExcess = ItemStack.GetStackCount();
-		FRockInventorySlotHandle outHandle;
+		// A pickup may store or equip; with the default sections that is the same as storing
+		FRockLootParams LootParams;
+		LootParams.Intent = static_cast<int32>(ERockLootIntent::Store | ERockLootIntent::Equip);
+		FRockLootResult LootResult;
 
-		if (URockInventoryLibrary::LootItemToInventory(InventoryComp->Inventory, ItemStack, outHandle, outExcess))
+		if (URockInventoryLibrary::LootItemToInventory(InventoryComp->Inventory, ItemStack, LootParams, LootResult))
 		{
-			OnLooted(InInstigator, ItemStack, outExcess);
+			OnLooted(InInstigator, ItemStack, LootResult.Excess);
 		}
 		else
 		{

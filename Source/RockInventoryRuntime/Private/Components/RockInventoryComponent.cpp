@@ -65,14 +65,14 @@ void URockInventoryComponent::OnRep_Inventory(URockInventory* OldInventory)
 	K2_OnInventoryChanged();
 }
 
-bool URockInventoryComponent::K2_AddItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess)
+bool URockInventoryComponent::K2_AddItem(const FRockItemStack& InItemStack, const FRockLootParams& Params, FRockLootResult& OutResult)
 {
-	return URockInventoryLibrary::LootItemToInventory(Inventory, InItemStack, outHandle, OutExcess);
+	return URockInventoryLibrary::LootItemToInventory(Inventory, InItemStack, Params, OutResult);
 }
 
-bool URockInventoryComponent::K2_LootItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess)
+bool URockInventoryComponent::K2_LootItem(const FRockItemStack& InItemStack, const FRockLootParams& Params, FRockLootResult& OutResult)
 {
-	return URockInventoryLibrary::LootItemToInventory(Inventory, InItemStack, outHandle, OutExcess);
+	return URockInventoryLibrary::LootItemToInventory(Inventory, InItemStack, Params, OutResult);
 }
 
 FRockItemStack URockInventoryComponent::K2_DropItem(const FRockInventorySlotHandle& SlotHandle)

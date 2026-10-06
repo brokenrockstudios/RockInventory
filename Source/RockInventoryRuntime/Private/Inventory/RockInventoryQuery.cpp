@@ -136,3 +136,18 @@ FRockInventoryQuery& FRockInventoryQuery::AndItem(TFunction<bool(const FRockItem
 	}
 	return *this;
 }
+
+int32 FRockLootResult::GetPlacedCount() const
+{
+	int32 Placed = 0;
+	for (const FRockLootPlacement& Placement : Placements)
+	{
+		Placed += Placement.Count;
+	}
+	return Placed;
+}
+
+const FRockLootPlacement* FRockLootResult::FindNewStack() const
+{
+	return Placements.FindByPredicate([](const FRockLootPlacement& Placement) { return Placement.bNewStack; });
+}

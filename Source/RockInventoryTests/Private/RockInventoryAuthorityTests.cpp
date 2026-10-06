@@ -36,10 +36,10 @@ TEST_CLASS(RockInventoryAuthorityTests, "BRS.RockInventory.Authority")
 	{
 		BecomeClient();
 		ExpectRefusal(TEXT("LootItemToInventory"));
-		FRockInventorySlotHandle Slot;
-		int32 Excess = 0;
+		FRockLootResult Result;
 
-		const bool bPlaced = URockInventoryLibrary::LootItemToInventory(Fixture.Inventory, FRockItemStack(Apple, 2), Slot, Excess);
+		const bool bPlaced = URockInventoryLibrary::LootItemToInventory(Fixture.Inventory, FRockItemStack(Apple, 2), FRockLootParams(), Result);
+		const int32 Excess = Result.Excess;
 
 		ASSERT_THAT(IsFalse(bPlaced));
 		ASSERT_THAT(AreEqual(2, Excess));
@@ -104,10 +104,10 @@ TEST_CLASS(RockInventoryAuthorityTests, "BRS.RockInventory.Authority")
 
 	TEST_METHOD(Loot_OnTheAuthority_StillWorks)
 	{
-		FRockInventorySlotHandle Slot;
-		int32 Excess = 0;
+		FRockLootResult Result;
 
-		const bool bPlaced = URockInventoryLibrary::LootItemToInventory(Fixture.Inventory, FRockItemStack(Apple, 2), Slot, Excess);
+		const bool bPlaced = URockInventoryLibrary::LootItemToInventory(Fixture.Inventory, FRockItemStack(Apple, 2), FRockLootParams(), Result);
+		const int32 Excess = Result.Excess;
 
 		ASSERT_THAT(IsTrue(bPlaced));
 		ASSERT_THAT(AreEqual(0, Excess));

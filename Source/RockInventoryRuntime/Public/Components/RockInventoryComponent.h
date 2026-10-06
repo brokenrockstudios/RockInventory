@@ -43,16 +43,15 @@ public:
 	/**
 	 * Adds an item to the inventory
 	 * @param InItemStack The item and amount to add
-	 * @param outHandle Output parameter with handle to the slot where item was placed
-	 * @param OutExcess Output parameter with the quantity that couldn't be added due to space limitations
-	 * @return True if at least some of the item was added
+	 * @param Params What the call may do (intent, exclusions); the defaults add like a plain pickup
+	 * @param OutResult Every placement made and the quantity that couldn't be added due to space limitations
+	 * @return True if the whole stack was added
 	 */
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Add Item"))
-	bool K2_AddItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess);
+	bool K2_AddItem(const FRockItemStack& InItemStack, const FRockLootParams& Params, FRockLootResult& OutResult);
 
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Loot Item"))
-	bool K2_LootItem(const FRockItemStack& InItemStack, FRockInventorySlotHandle& outHandle, int32& OutExcess);
-
+	bool K2_LootItem(const FRockItemStack& InItemStack, const FRockLootParams& Params, FRockLootResult& OutResult);
 	// After calling this, the item will cease to exist in this inventory, do something with it!
 	UFUNCTION(BlueprintCallable, Category="RockInventory|Items", Meta=(DisplayName="Loot Item"))
 	FRockItemStack K2_DropItem(const FRockInventorySlotHandle& SlotHandle);

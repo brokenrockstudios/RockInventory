@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Inventory/RockInventoryQuery.h"
 #include "Inventory/RockSlotHandle.h"
 #include "Item/RockItemStack.h"
 #include "Transactions/Core/RockInventoryTransaction.h"
@@ -19,11 +20,9 @@ struct FRockLootWorldItemUndoTransaction : public FRockItemTransactionBase
 	TObjectPtr<URockInventory> TargetInventory = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockItemStack ItemStack;
+	/** What the loot placed and the excess, as returned by URockInventoryLibrary::LootItemToInventory. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FRockInventorySlotHandle TargetSlotHandle;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Excess = -1;
+	FRockLootResult Result;
 	bool bSuccess;
 
 	bool CanUndo();
@@ -43,6 +42,10 @@ struct ROCKINVENTORYRUNTIME_API FRockLootWorldItemTransaction : public FRockItem
 	// No specific location
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<URockInventory> TargetInventory = nullptr;
+
+	// What the looting may do. Sent by the client like the rest of the command, so it can only narrow what the sections allow.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRockLootParams LootParams;
 
 	bool CanExecute() const;
 	FRockLootWorldItemUndoTransaction Execute();

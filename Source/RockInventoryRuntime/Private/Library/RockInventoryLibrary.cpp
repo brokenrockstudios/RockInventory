@@ -25,152 +25,417 @@ namespace
 		UE_LOG(LogRockInventory, Warning, TEXT("%s - refused, %s is not owned by an actor with authority"), Operation, *GetNameSafe(Inventory));
 		return false;
 	}
+
+	enum class ELootSectionVerdict : uint8
+	{
+		Candidate,
+		NoSlots,
+		ExcludedByMetaTag,
+		IntentNotAccepted,
+		FilterRejects,
+	};
+
+	/** The hard checks of the loot plan for one section, cheapest first. The type restriction is the same for every slot of the section. */
+	ELootSectionVerdict JudgeSectionForLoot(const FRockInventorySectionInfo& Section, const FRockItemStack& ItemStack, const FRockLootParams& Params)
+	{
+		if (Section.GetFirstSlotIndex() == INDEX_NONE || Section.GetNumSlots() <= 0)
+		{
+			return ELootSectionVerdict::NoSlots;
+		}
+		// The caller can keep whole sections out of the call by meta tag
+		if (!Params.ExcludeSectionMetaTags.IsEmpty() && Section.GetMetaTags().HasAny(Params.ExcludeSectionMetaTags))
+		{
+			return ELootSectionVerdict::ExcludedByMetaTag;
+		}
+		if (!Section.AcceptsLootIntent(Params.Intent))
+		{
+			return ELootSectionVerdict::IntentNotAccepted;
+		}
+		if (!URockInventoryLibrary::CanItemBePlacedInSection(ItemStack, Section))
+		{
+			return ELootSectionVerdict::FilterRejects;
+		}
+		return ELootSectionVerdict::Candidate;
+	}
+
+	/** Soft preference: tier 0 when the section names a preference and the item matches it. Reads the definition's cached tags. */
+	int32 LootTierOf(const FRockInventorySectionInfo& Section, const FRockItemStack& ItemStack)
+	{
+		const FGameplayTagQuery& Preference = Section.GetLootPreference();
+		return !Preference.IsEmpty() && Preference.Matches(ItemStack.GetDefinition()->GetAllTags()) ? 0 : 1;
+	}
+
+	/** Sort key: tier, then priority, then config order (so equal ranks stay stable). Priority is biased to non-negative. */
+	int64 LootPlanKey(const FRockLootPlanEntry& Entry)
+	{
+		return (static_cast<int64>(Entry.Tier) << 48) | ((static_cast<int64>(Entry.Priority) + 0x80000000LL) << 16) | static_cast<int64>(Entry.SectionIndex & 0xFFFF);
+	}
 }
 
-// What LootItemToInventory decided to do, computed without touching the inventory (see DecideLoot / CommitLoot).
-struct URockInventoryLibrary::FLootDecision
+void URockInventoryLibrary::BuildLootPlan(
+	const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootPlan& OutPlan)
 {
-	/** Partial stacks to top up, in slot order. */
-	struct FMerge
+	OutPlan.Reset();
+	if (!Inventory || !ItemStack.IsValid())
 	{
-		FRockInventorySlotHandle SlotHandle;
-		int32 Count = 0;
-	};
-	TArray<FMerge, TInlineAllocator<8>> Merges;
-
-	/** Set when what is left after the merges goes into an empty slot as a new stack. */
-	bool bPlaceNewStack = false;
-	FRockInventorySlotHandle NewStackSlot;
-	ERockItemOrientation NewStackOrientation = ERockItemOrientation::Horizontal;
-	int32 NewStackCount = 0;
-
-	/** Count that finds no home. 0 when everything is placed. */
-	int32 Excess = 0;
-};
-
-void URockInventoryLibrary::DecideLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, FLootDecision& OutDecision)
-{
-	int32 Remaining = ItemStack.GetStackCount();
-	const FIntPoint ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
-
-	TArray<bool> OccupancyGrid;
-	PrecomputeOccupancyGrids(Inventory, OccupancyGrid);
-
-	// Slots another operation holds. The first operation listed for a slot is the one that counts.
-	TBitArray<> PendingSlots;
-	if (!Inventory->PendingSlotOperations.IsEmpty())
+		return;
+	}
+	for (int32 SectionIndex = 0; SectionIndex < Inventory->SlotSections.Num(); ++SectionIndex)
 	{
-		const int32 NumSlots = Inventory->SlotData.Num();
-		PendingSlots.Init(false, NumSlots);
-		TBitArray<> Seen(false, NumSlots);
-		for (const FRockPendingSlotOperation& Operation : Inventory->PendingSlotOperations)
+		const FRockInventorySectionInfo& Section = Inventory->SlotSections[SectionIndex];
+		if (JudgeSectionForLoot(Section, ItemStack, Params) != ELootSectionVerdict::Candidate)
 		{
-			const int32 SlotIndex = Operation.SlotHandle.GetAbsoluteIndex();
-			if (!Operation.SlotHandle.IsValid() || !Seen.IsValidIndex(SlotIndex) || Seen[SlotIndex])
+			continue;
+		}
+		FRockLootPlanEntry& Entry = OutPlan.AddDefaulted_GetRef();
+		Entry.Inventory = Inventory;
+		Entry.SectionIndex = SectionIndex;
+		Entry.Tier = LootTierOf(Section, ItemStack);
+		Entry.Priority = Section.GetLootPriority();
+	}
+	OutPlan.Sort([](const FRockLootPlanEntry& A, const FRockLootPlanEntry& B) { return LootPlanKey(A) < LootPlanKey(B); });
+}
+
+FString URockInventoryLibrary::DescribeLootPlan(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params)
+{
+	if (!Inventory || !ItemStack.IsValid())
+	{
+		return TEXT("Loot plan: invalid inventory or item");
+	}
+	FRockLootPlan Plan;
+	BuildLootPlan(Inventory, ItemStack, Params, Plan);
+
+	FString Text = FString::Printf(TEXT("Loot plan for %s x%d, intent %d%s%s:"), *ItemStack.GetDebugString(), ItemStack.GetStackCount(), Params.Intent,
+		Params.HasIntent(ERockLootIntent::Store) ? TEXT(" Store") : TEXT(""), Params.HasIntent(ERockLootIntent::Equip) ? TEXT(" Equip") : TEXT(""));
+	int32 Rank = 1;
+	for (const FRockLootPlanEntry& Entry : Plan)
+	{
+		const FRockInventorySectionInfo& Section = Inventory->SlotSections[Entry.SectionIndex];
+		Text += FString::Printf(TEXT("\n  %d. %s (section %d): %s, priority %d"), Rank++, *Section.GetSectionTag().ToString(), Entry.SectionIndex,
+			Entry.Tier == 0 ? TEXT("preferred") : TEXT("allowed"), Entry.Priority);
+	}
+	for (int32 SectionIndex = 0; SectionIndex < Inventory->SlotSections.Num(); ++SectionIndex)
+	{
+		const FRockInventorySectionInfo& Section = Inventory->SlotSections[SectionIndex];
+		const TCHAR* Reason = nullptr;
+		switch (JudgeSectionForLoot(Section, ItemStack, Params))
+		{
+		case ELootSectionVerdict::NoSlots: Reason = TEXT("no slots"); break;
+		case ELootSectionVerdict::ExcludedByMetaTag: Reason = TEXT("excluded by a meta tag of the call"); break;
+		case ELootSectionVerdict::IntentNotAccepted: Reason = TEXT("does not accept this intent"); break;
+		case ELootSectionVerdict::FilterRejects: Reason = TEXT("section filter rejects the item"); break;
+		default: break;
+		}
+		if (Reason)
+		{
+			Text += FString::Printf(TEXT("\n  skipped %s (section %d): %s"), *Section.GetSectionTag().ToString(), SectionIndex, Reason);
+		}
+	}
+	if (Plan.IsEmpty())
+	{
+		Text += TEXT("\n  no section can take this item");
+	}
+	return Text;
+}
+
+namespace
+{
+	bool IsSlotPending(const TBitArray<>& PendingSlots, int32 AbsoluteIndex)
+	{
+		return PendingSlots.IsValidIndex(AbsoluteIndex) && PendingSlots[AbsoluteIndex];
+	}
+
+	/** Marks the cells a stack of this size would cover, the same way PrecomputeOccupancyGrids does for placed items. */
+	void MarkFootprint(TArray<bool>& Grid, const FRockInventorySectionInfo& Section, int32 Column, int32 Row, FIntPoint Size)
+	{
+		if (Section.GetSlotSizePolicy() == ERockItemSizePolicy::IgnoreSize)
+		{
+			Size = FIntPoint(1, 1);
+		}
+		for (int32 Y = 0; Y < Size.Y; ++Y)
+		{
+			for (int32 X = 0; X < Size.X; ++X)
 			{
-				continue;
+				const int32 GridIndex = Section.GetFirstSlotIndex() + ((Row + Y) * Section.GetColumns() + (Column + X));
+				if (Grid.IsValidIndex(GridIndex))
+				{
+					Grid[GridIndex] = true;
+				}
 			}
-			Seen[SlotIndex] = true;
-			PendingSlots[SlotIndex] = Operation.SlotStatus == ERockSlotStatus::Pending;
 		}
 	}
 
-	// Sections are contiguous and in config order, so this visits slots in the same order as SlotData.
-	for (const FRockInventorySectionInfo& Section : Inventory->SlotSections)
+	/** The default orientation if the stack fits at this cell, else rotated for a non-square item. False when neither fits. */
+	bool FindFitOrientation(const TArray<bool>& Grid, const FRockInventorySectionInfo& Section, int32 Column, int32 Row, FIntPoint ItemSize, ERockItemOrientation& OutOrientation)
 	{
-		if (Remaining <= 0)
+		OutOrientation = ERockItemOrientation::Horizontal;
+		if (URockInventoryLibrary::CanItemFitInGridPosition(Grid, Section, Column, Row, FVector2D(ItemSize)))
 		{
-			break;
+			return true;
 		}
+		if (ItemSize.X != ItemSize.Y)
+		{
+			OutOrientation = ERockItemOrientation::Vertical;
+			return URockInventoryLibrary::CanItemFitInGridPosition(Grid, Section, Column, Row, FVector2D(ItemSize.Y, ItemSize.X));
+		}
+		return false;
+	}
+}
+
+/** Slots another operation holds. The first operation listed for a slot is the one that counts. Empty when nothing is pending. */
+TBitArray<> URockInventoryLibrary::BuildPendingSlots(const URockInventory* Inventory)
+{
+	TBitArray<> PendingSlots;
+	if (Inventory->PendingSlotOperations.IsEmpty())
+	{
+		return PendingSlots;
+	}
+	const int32 NumSlots = Inventory->SlotData.Num();
+	PendingSlots.Init(false, NumSlots);
+	TBitArray<> Seen(false, NumSlots);
+	for (const FRockPendingSlotOperation& Operation : Inventory->PendingSlotOperations)
+	{
+		const int32 SlotIndex = Operation.SlotHandle.GetAbsoluteIndex();
+		if (!Operation.SlotHandle.IsValid() || !Seen.IsValidIndex(SlotIndex) || Seen[SlotIndex])
+		{
+			continue;
+		}
+		Seen[SlotIndex] = true;
+		PendingSlots[SlotIndex] = Operation.SlotStatus == ERockSlotStatus::Pending;
+	}
+	return PendingSlots;
+}
+
+/** Pass 1: top up partial stacks across the plan. Same rule as CanMergeItemAtGridPosition with the Partial condition, without copying the stack. */
+void URockInventoryLibrary::DecideMerges(
+	const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
+	int32 SkipAbsoluteIndex, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining)
+{
+	for (const FRockLootPlanEntry& Entry : Plan)
+	{
+		if (InOutRemaining <= 0)
+		{
+			return;
+		}
+		const FRockInventorySectionInfo& Section = Inventory->SlotSections[Entry.SectionIndex];
 		const int32 FirstSlotIndex = Section.GetFirstSlotIndex();
 		const int32 NumSectionSlots = Section.GetNumSlots();
-		if (FirstSlotIndex == INDEX_NONE || NumSectionSlots <= 0)
-		{
-			continue;
-		}
-		// The type restriction is the same for every slot of the section
-		if (!CanItemBePlacedInSection(ItemStack, Section))
-		{
-			continue;
-		}
-
-		const int32 Columns = Section.GetColumns();
-		for (int32 LocalSlotIndex = 0; LocalSlotIndex < NumSectionSlots && Remaining > 0; ++LocalSlotIndex)
+		for (int32 LocalSlotIndex = 0; LocalSlotIndex < NumSectionSlots && InOutRemaining > 0; ++LocalSlotIndex)
 		{
 			const int32 AbsoluteIndex = FirstSlotIndex + LocalSlotIndex;
-			// We don't want to overwrite any pending operations
-			if (PendingSlots.IsValidIndex(AbsoluteIndex) && PendingSlots[AbsoluteIndex])
+			// Do not overwrite any pending operations, nor merge into a stack that is leaving
+			if (AbsoluteIndex == SkipAbsoluteIndex || IsSlotPending(PendingSlots, AbsoluteIndex))
 			{
 				continue;
 			}
 			const FRockInventorySlotEntry& Slot = Inventory->SlotData[AbsoluteIndex];
-
-			// Same rule as CanMergeItemAtGridPosition with the Partial condition, without copying the stack
 			const FRockItemStack* Existing = Inventory->GetItemByHandlePtr(Slot.ItemHandle);
 			if (Existing && Existing->IsValid() && Existing->CanStackWith(ItemStack) && Existing->GetStackCount() < Existing->GetMaxStackCount())
 			{
-				const int32 MergeCount = FMath::Min(Existing->GetMaxStackCount() - Existing->GetStackCount(), Remaining);
-				OutDecision.Merges.Add({Slot.SlotHandle, MergeCount});
-				Remaining -= MergeCount;
-				continue;
-			}
-
-			// Finally check if it fits spatially. Prefer the default orientation, then fall back to rotated for non-square items.
-			const int32 Column = LocalSlotIndex % Columns;
-			const int32 Row = LocalSlotIndex / Columns;
-			ERockItemOrientation FitOrientation = ERockItemOrientation::Horizontal;
-			bool bFits = CanItemFitInGridPosition(OccupancyGrid, Section, Column, Row, FVector2D(ItemSize));
-			if (!bFits && ItemSize.X != ItemSize.Y)
-			{
-				FitOrientation = ERockItemOrientation::Vertical;
-				bFits = CanItemFitInGridPosition(OccupancyGrid, Section, Column, Row, FVector2D(ItemSize.Y, ItemSize.X));
-			}
-			if (bFits)
-			{
-				OutDecision.bPlaceNewStack = true;
-				OutDecision.NewStackSlot = Slot.SlotHandle;
-				OutDecision.NewStackOrientation = FitOrientation;
-				OutDecision.NewStackCount = Remaining;
-				OutDecision.Excess = 0;
-				return;
+				const int32 MergeCount = FMath::Min(Existing->GetMaxStackCount() - Existing->GetStackCount(), InOutRemaining);
+				FRockLootPlacement& Merge = OutPlacements.AddDefaulted_GetRef();
+				Merge.Slot = Inventory->MakeSlotReference(Slot.SlotHandle);
+				Merge.Count = MergeCount;
+				Merge.Orientation = Slot.Orientation;
+				InOutRemaining -= MergeCount;
 			}
 		}
 	}
-	OutDecision.Excess = Remaining;
 }
 
-void URockInventoryLibrary::CommitLoot(
-	URockInventory* Inventory, const FRockItemStack& ItemStack, const FLootDecision& Decision, FRockInventorySlotHandle& OutHandle)
+/**
+ * Pass 2: what is left becomes one new stack in the first slot that fits, following the plan. Prefers the default orientation, then rotated for non-square items.
+ * The footprint is marked in the grid when it is placed. Returns false when nothing fits.
+ */
+bool URockInventoryLibrary::DecideNewStack(
+	const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
+	TArray<bool>& InOutGrid, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining)
 {
-	if (Decision.Merges.IsEmpty() && !Decision.bPlaceNewStack)
+	const FIntPoint ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
+	for (const FRockLootPlanEntry& Entry : Plan)
 	{
-		return;
+		const FRockInventorySectionInfo& Section = Inventory->SlotSections[Entry.SectionIndex];
+		const int32 FirstSlotIndex = Section.GetFirstSlotIndex();
+		const int32 NumSectionSlots = Section.GetNumSlots();
+		const int32 Columns = Section.GetColumns();
+		for (int32 LocalSlotIndex = 0; LocalSlotIndex < NumSectionSlots; ++LocalSlotIndex)
+		{
+			const int32 AbsoluteIndex = FirstSlotIndex + LocalSlotIndex;
+			if (IsSlotPending(PendingSlots, AbsoluteIndex))
+			{
+				continue;
+			}
+			const int32 Column = LocalSlotIndex % Columns;
+			const int32 Row = LocalSlotIndex / Columns;
+			ERockItemOrientation FitOrientation;
+			if (FindFitOrientation(InOutGrid, Section, Column, Row, ItemSize, FitOrientation))
+			{
+				FRockLootPlacement& NewStack = OutPlacements.AddDefaulted_GetRef();
+				NewStack.Slot = Inventory->MakeSlotReference(Inventory->SlotData[AbsoluteIndex].SlotHandle);
+				NewStack.Count = InOutRemaining;
+				NewStack.Orientation = FitOrientation;
+				NewStack.bNewStack = true;
+				InOutRemaining = 0;
+				MarkFootprint(InOutGrid, Section, Column, Row, FitOrientation == ERockItemOrientation::Horizontal ? ItemSize : FIntPoint(ItemSize.Y, ItemSize.X));
+				return true;
+			}
+		}
 	}
+	return false;
+}
 
+/**
+ * Equip with swap: the first occupied slot in plan order that the item fits in once its current stack is gone. That stack is routed through a Store call on a
+ * scratch copy of the occupancy (the new item's footprint already marked, the leaving stack excluded from merging). Fills OutResult and returns true when the
+ * displaced stack is fully stored; returns false, leaving OutResult untouched, when no slot qualifies or the displaced stack has nowhere to go.
+ */
+bool URockInventoryLibrary::DecideSwap(
+	const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, const FRockLootPlan& Plan,
+	const TBitArray<>& PendingSlots, FRockLootResult& OutResult)
+{
+	const FIntPoint ItemSize = URockItemStackLibrary::GetItemSize(ItemStack);
+	for (const FRockLootPlanEntry& Entry : Plan)
+	{
+		const FRockInventorySectionInfo& Section = Inventory->SlotSections[Entry.SectionIndex];
+		const int32 FirstSlotIndex = Section.GetFirstSlotIndex();
+		const int32 Columns = Section.GetColumns();
+		for (int32 LocalSlotIndex = 0; LocalSlotIndex < Section.GetNumSlots(); ++LocalSlotIndex)
+		{
+			const int32 AbsoluteIndex = FirstSlotIndex + LocalSlotIndex;
+			if (IsSlotPending(PendingSlots, AbsoluteIndex))
+			{
+				continue;
+			}
+			const FRockInventorySlotEntry& Slot = Inventory->SlotData[AbsoluteIndex];
+			const FRockItemStack* Occupant = Inventory->GetItemByHandlePtr(Slot.ItemHandle);
+			// Only the anchor slot of a stack carries its handle. A stack the item would merge into was already used by the merge pass (a full one is not worth swapping).
+			if (!Occupant || !Occupant->IsValid() || Occupant->CanStackWith(ItemStack))
+			{
+				continue;
+			}
+
+			TArray<bool> Grid;
+			URockInventoryLibrary::PrecomputeOccupancyGrids(Inventory, Grid, Slot.ItemHandle);
+			const int32 Column = LocalSlotIndex % Columns;
+			const int32 Row = LocalSlotIndex / Columns;
+			ERockItemOrientation FitOrientation;
+			if (!FindFitOrientation(Grid, Section, Column, Row, ItemSize, FitOrientation))
+			{
+				continue;
+			}
+			MarkFootprint(Grid, Section, Column, Row, FitOrientation == ERockItemOrientation::Horizontal ? ItemSize : FIntPoint(ItemSize.Y, ItemSize.X));
+
+			// The first fitting occupant decides: if it cannot be stored the swap is refused, later slots are not tried
+			FRockLootParams StoreParams;
+			StoreParams.Intent = static_cast<int32>(ERockLootIntent::Store);
+			StoreParams.ExcludeSectionMetaTags = Params.ExcludeSectionMetaTags;
+			FRockLootPlan StorePlan;
+			URockInventoryLibrary::BuildLootPlan(Inventory, *Occupant, StoreParams, StorePlan);
+
+			TArray<FRockLootPlacement> DisplacedPlacements;
+			int32 DisplacedRemaining = Occupant->GetStackCount();
+			DecideMerges(Inventory, *Occupant, StorePlan, PendingSlots, AbsoluteIndex, DisplacedPlacements, DisplacedRemaining);
+			if (DisplacedRemaining > 0)
+			{
+				DecideNewStack(Inventory, *Occupant, StorePlan, PendingSlots, Grid, DisplacedPlacements, DisplacedRemaining);
+			}
+			if (DisplacedRemaining > 0)
+			{
+				return false;
+			}
+
+			FRockLootPlacement& NewStack = OutResult.Placements.AddDefaulted_GetRef();
+			NewStack.Slot = Inventory->MakeSlotReference(Slot.SlotHandle);
+			NewStack.Count = ItemStack.GetStackCount();
+			NewStack.Orientation = FitOrientation;
+			NewStack.bNewStack = true;
+			OutResult.Excess = 0;
+			OutResult.bSwapped = true;
+			OutResult.DisplacedSlot = Inventory->MakeSlotReference(Slot.SlotHandle);
+			OutResult.DisplacedPlacements = MoveTemp(DisplacedPlacements);
+			return true;
+		}
+	}
+	return false;
+}
+
+/** Applies placements of one stack in order: merges into existing stacks, a new stack into its slot. */
+void URockInventoryLibrary::ApplyPlacements(URockInventory* Inventory, const FRockItemStack& ItemStack, const TArray<FRockLootPlacement>& Placements)
+{
 	// The one copy: the merge and add calls take the stack, and its count is the part being placed
 	FRockItemStack Placing = ItemStack;
-	for (const FLootDecision::FMerge& Merge : Decision.Merges)
+	for (const FRockLootPlacement& Placement : Placements)
 	{
-		Placing.StackCount = Merge.Count;
-		MergeItemAtGridPosition(Inventory, Merge.SlotHandle, Placing);
-	}
-	if (Decision.bPlaceNewStack)
-	{
-		Placing.StackCount = Decision.NewStackCount;
+		const FRockInventorySlotHandle SlotHandle = Placement.Slot.GetSlotHandle();
+		Placing.StackCount = Placement.Count;
+		if (!Placement.bNewStack)
+		{
+			URockInventoryLibrary::MergeItemAtGridPosition(Inventory, SlotHandle, Placing);
+			continue;
+		}
 		const FRockItemStackHandle& ItemHandle = Inventory->AddItemToInventory(Placing);
-		FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(Decision.NewStackSlot);
+		FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(SlotHandle);
 		SlotEntry.ItemHandle = ItemHandle;
-		SlotEntry.Orientation = Decision.NewStackOrientation;
-		Inventory->SetSlotByHandle(Decision.NewStackSlot, SlotEntry);
-		OutHandle = Decision.NewStackSlot;
+		SlotEntry.Orientation = Placement.Orientation;
+		Inventory->SetSlotByHandle(SlotHandle, SlotEntry);
+	}
+}
+
+void URockInventoryLibrary::DecideLoot(
+	const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootResult& OutResult)
+{
+	OutResult.Placements.Reset();
+	OutResult.bSwapped = false;
+	OutResult.DisplacedSlot = FRockSlotReference();
+	OutResult.DisplacedPlacements.Reset();
+	int32 Remaining = ItemStack.GetStackCount();
+	OutResult.Excess = Remaining;
+
+	TArray<bool> OccupancyGrid;
+	PrecomputeOccupancyGrids(Inventory, OccupancyGrid);
+	const TBitArray<> PendingSlots = BuildPendingSlots(Inventory);
+
+	// The sections this call may use, in the order it tries them (computed once per call, not per slot)
+	FRockLootPlan Plan;
+	BuildLootPlan(Inventory, ItemStack, Params, Plan);
+
+	DecideMerges(Inventory, ItemStack, Plan, PendingSlots, INDEX_NONE, OutResult.Placements, Remaining);
+	OutResult.Excess = Remaining;
+	if (Remaining > 0)
+	{
+		DecideNewStack(Inventory, ItemStack, Plan, PendingSlots, OccupancyGrid, OutResult.Placements, Remaining);
+		OutResult.Excess = Remaining;
+	}
+
+	// Equip with swap: only when nothing was placed at all (empty slots and partial stacks come first)
+	if (Remaining > 0 && OutResult.Placements.IsEmpty() && Params.CanSwap())
+	{
+		DecideSwap(Inventory, ItemStack, Params, Plan, PendingSlots, OutResult);
+	}
+}
+
+void URockInventoryLibrary::CommitLoot(URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootResult& Decision)
+{
+	if (!Decision.bSwapped)
+	{
+		ApplyPlacements(Inventory, ItemStack, Decision.Placements);
+		return;
+	}
+	// Swap: the displaced stack leaves its slot first, the new stack takes the slot, then the displaced stack goes where the decision stored it
+	const FRockItemStack Displaced = SplitItemStackAtLocation(Inventory, Decision.DisplacedSlot.GetSlotHandle());
+	ApplyPlacements(Inventory, ItemStack, Decision.Placements);
+	if (Displaced.IsValid())
+	{
+		ApplyPlacements(Inventory, Displaced, Decision.DisplacedPlacements);
 	}
 }
 
 bool URockInventoryLibrary::LootItemToInventory(
-	URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess)
+	URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootResult& OutResult)
 {
 	// Start off with the full stack size in the event we can't place it
-	OutExcess = ItemStack.GetStackCount();
+	OutResult = FRockLootResult();
+	OutResult.Excess = ItemStack.GetStackCount();
 	UE_LOG(LogRockInventory, Verbose, TEXT("LootItemToInventory::ItemStack: %s"), *ItemStack.GetDebugString());
 	if (!Inventory)
 	{
@@ -187,15 +452,23 @@ bool URockInventoryLibrary::LootItemToInventory(
 		return false;
 	}
 
-	FLootDecision Decision;
-	DecideLoot(Inventory, ItemStack, Decision);
-	CommitLoot(Inventory, ItemStack, Decision, OutHandle);
+	DecideLoot(Inventory, ItemStack, Params, OutResult);
+	CommitLoot(Inventory, ItemStack, OutResult);
 
 	// A partial placement still consumed some of the item. The caller must update their ItemStack with the excess.
-	OutExcess = Decision.Excess;
-	return Decision.Excess <= 0;
+	return OutResult.IsFullyPlaced();
 }
 
+FRockLootResult URockInventoryLibrary::PreviewLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params)
+{
+	FRockLootResult Result;
+	Result.Excess = ItemStack.GetStackCount();
+	if (Inventory && ItemStack.IsValid())
+	{
+		DecideLoot(Inventory, ItemStack, Params, Result);
+	}
+	return Result;
+}
 FRockItemStack URockInventoryLibrary::SplitItemStackAtLocation(URockInventory* Inventory, const FRockInventorySlotHandle& SlotHandle, int32 Quantity)
 {
 	if (!Inventory)

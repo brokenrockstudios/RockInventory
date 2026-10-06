@@ -2,6 +2,21 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.0509
+- Added (T-62): Equip and swap. An Equip-only call (`Equip` without `Store`) with `FRockLootParams::bAllowSwap` that finds no empty equipment slot displaces the first occupied slot (plan order) the item fits in; the displaced stack is stored through a `Store` call (merge first), and the call is refused with nothing changed when it cannot be stored. `Store | Equip` and `Store` never swap. `FRockLootResult` gains `bSwapped`, `DisplacedSlot`, `DisplacedPlacements`; `FRockLootParams::CanSwap()`. `PreviewLoot` predicts all of it.
+- Changed: `DecideLoot` split into private `DecideMerges`, `DecideNewStack`, `DecideSwap`, `ApplyPlacements`; behavior without a swap unchanged.
+- Added: `BRS.RockInventory.Loot.Swap` tests (empty slot before swap, swap stores displaced, merge of displaced, no room refused, unaccepted item refused, no swap for Store or Store|Equip or without `bAllowSwap`, item that fits no occupied slot).
+
+## 2610.0508
+- Added (T-36): pickup placement priority. `FRockInventorySectionInfo` gains `AcceptedLootIntents` (`ERockLootIntent` flags, default `Store`), `LootPriority` (lower first, ties keep config order) and `LootPreference` (soft tag query: matching sections are tried first, never exclusion), with chainable setters. `URockInventoryLibrary::BuildLootPlan` orders the sections a call may use (const, no allocation up to 16 sections, `FRockLootPlanEntry` inventory + section index) and `DescribeLootPlan` explains the order and every skipped section. `FRockLootParams::Intent` is now applied: a section is used only when it shares an intent bit with the call.
+- Changed (T-36): loot is merge-first. `DecideLoot` tops up partial stacks across all planned sections before it places a new stack, so a later partial stack beats an earlier empty slot (previously merge and fill were interleaved per slot). `ERockLootIntent` moved to `Enums/RockLootIntent.h`.
+- Added: `BRS.RockInventory.Loot.Priority` tests (sword, pistol, pot, occupied slot, Store and Equip isolation, no-intent section, priority and ties, merge-first, plan description, timing log).
+
+## 2610.0507
+- Changed (T-35): loot API shape, no routing change. `URockInventoryLibrary::LootItemToInventory` now takes `FRockLootParams` and fills an `FRockLootResult` (placements as `FRockSlotReference`, count, orientation, new-stack flag, plus the excess) instead of `OutHandle`/`OutExcess`; the private `FLootDecision` is replaced by that public result. `URockInventoryComponent::K2_AddItem`/`K2_LootItem` and `FRockLootWorldItemUndoTransaction` (`Result` replaces `TargetSlotHandle`/`Excess`) follow; `FRockLootWorldItemTransaction` gains `LootParams`; `ARockInventoryWorldItemBase::OnPickedUp` loots with `Store | Equip`. Blueprint pins of the two K2 functions change.
+- Added (T-35): `ERockLootIntent` (`Store`, `Equip`, flags), `FRockLootParams` (intent, `bAllowSwap`, `ExcludeSectionMetaTags`; intent and swap are carried, applied from T-36 and T-62), and read-only `URockInventoryLibrary::PreviewLoot` that returns the placements the real call would make. `URockInventory::MakeSlotReference` is now `const`.
+- Removed (T-35): the unused `FRockLootPhase`, `ERockSectionFillStrategy` and old `FRockLootParams` sketch in `RockInventoryQuery.h`.
+- Added: `BRS.RockInventory.Loot.Api` tests.
 ## 2610.0506
 - Fixed (T-71): a nested inventory follows its item. Added C++-only `URockInventory::SetOwner`; `URockItemInstance::SetOwningInventory` now uses it to update the nested inventory's owner (null in a world item), so a moved backpack re-registers for replication through its new owner instead of the old one. Added `BRS.RockInventory.Nested` tests.
 

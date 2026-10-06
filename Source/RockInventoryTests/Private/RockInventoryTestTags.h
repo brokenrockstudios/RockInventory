@@ -12,4 +12,14 @@ namespace RockInventoryTestTags
 	extern FGameplayTag Food;
 	extern FGameplayTag MetaA;
 	extern FGameplayTag MetaB;
+	/** Item tags for the loot placement tests. */
+	extern FGameplayTag Sidearm;
+	extern FGameplayTag Wieldable;
+	extern FGameplayTag Headgear;
+	/** Section tags for equipment-style layouts (Head, Primary, Secondary). */
+	extern FGameplayTag SectionHead;
+	extern FGameplayTag SectionPrimary;
+	extern FGameplayTag SectionSecondary;
+	/** Twelve distinct section tags, for layouts with many sections. */
+	extern TArray<FGameplayTag> BulkSections;
 }

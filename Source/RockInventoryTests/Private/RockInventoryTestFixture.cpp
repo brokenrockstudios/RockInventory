@@ -80,5 +80,13 @@ FRockItemStackHandle FRockInventoryFixture::PlaceAt(URockItemDefinition* Definit
 
 bool FRockInventoryFixture::Loot(URockItemDefinition* Definition, int32 Count, FRockInventorySlotHandle& OutSlot, int32& OutExcess)
 {
-	return URockInventoryLibrary::LootItemToInventory(Inventory, FRockItemStack(Definition, Count), OutSlot, OutExcess);
+	FRockLootResult Result;
+	const bool bPlaced = URockInventoryLibrary::LootItemToInventory(Inventory, FRockItemStack(Definition, Count), FRockLootParams(), Result);
+	OutExcess = Result.Excess;
+	// OutSlot is the new stack's slot, and stays untouched when everything merged into existing stacks
+	if (const FRockLootPlacement* NewStack = Result.FindNewStack())
+	{
+		OutSlot = NewStack->Slot.GetSlotHandle();
+	}
+	return bPlaced;
 }

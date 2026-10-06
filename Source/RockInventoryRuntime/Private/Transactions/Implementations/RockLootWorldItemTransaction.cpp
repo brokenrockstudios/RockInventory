@@ -103,10 +103,10 @@ FRockLootWorldItemUndoTransaction FRockLootWorldItemTransaction::Execute()
 	// What Item are we looting?
 	const FRockItemStack ItemStack = WorldItemInterfaceActor->GetItemStack(TargetInventory->GetOwningActor());
 	
-	UndoData.bSuccess = URockInventoryLibrary::LootItemToInventory(TargetInventory, ItemStack, UndoData.TargetSlotHandle, UndoData.Excess);
+	UndoData.bSuccess = URockInventoryLibrary::LootItemToInventory(TargetInventory, ItemStack, LootParams, UndoData.Result);
 
 	// Let the actor know how much we took, so it can reconcile if it should delete itself or whatever.
-	WorldItemInterfaceActor->OnLooted(TargetInventory->GetOwningActor(), ItemStack, UndoData.Excess);
+	WorldItemInterfaceActor->OnLooted(TargetInventory->GetOwningActor(), ItemStack, UndoData.Result.Excess);
 
 	return UndoData;
 }

@@ -47,6 +47,26 @@ const FGameplayTagContainer& FRockInventorySectionInfo::GetMetaTags() const
 	return MetaTags;
 }
 
+int32 FRockInventorySectionInfo::GetAcceptedLootIntents() const
+{
+	return AcceptedLootIntents;
+}
+
+bool FRockInventorySectionInfo::AcceptsLootIntent(int32 CallIntents) const
+{
+	return (AcceptedLootIntents & CallIntents) != 0;
+}
+
+int32 FRockInventorySectionInfo::GetLootPriority() const
+{
+	return LootPriority;
+}
+
+const FGameplayTagQuery& FRockInventorySectionInfo::GetLootPreference() const
+{
+	return LootPreference;
+}
+
 int32 FRockInventorySectionInfo::GetSectionIndex() const
 {
 	return SectionIndex;
@@ -68,6 +88,24 @@ FRockInventorySectionInfo& FRockInventorySectionInfo::SetSectionFilter(const FGa
 FRockInventorySectionInfo& FRockInventorySectionInfo::SetMetaTags(const FGameplayTagContainer& InMetaTags)
 {
 	MetaTags = InMetaTags;
+	return *this;
+}
+
+FRockInventorySectionInfo& FRockInventorySectionInfo::SetAcceptedLootIntents(ERockLootIntent InIntents)
+{
+	AcceptedLootIntents = static_cast<int32>(InIntents);
+	return *this;
+}
+
+FRockInventorySectionInfo& FRockInventorySectionInfo::SetLootPriority(int32 InPriority)
+{
+	LootPriority = InPriority;
+	return *this;
+}
+
+FRockInventorySectionInfo& FRockInventorySectionInfo::SetLootPreference(const FGameplayTagQuery& InPreference)
+{
+	LootPreference = InPreference;
 	return *this;
 }
 

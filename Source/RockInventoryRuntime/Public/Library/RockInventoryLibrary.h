@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Enums/RockEnums.h"
+#include "Inventory/RockInventoryQuery.h"
 #include "Inventory/RockInventorySectionInfo.h"
 #include "Inventory/RockSlotHandle.h"
 #include "Item/RockItemStack.h"
@@ -25,10 +26,31 @@ class ROCKINVENTORYRUNTIME_API URockInventoryLibrary : public UBlueprintFunction
 public:
 	// Core Item
 	// Every mutator in this library runs on the authority only: a call on a client logs a warning, changes nothing and fails.
-	// Add it from anywhere. This will attempt to merge into existing stacks.
-	// In case of multiple stacks being merged, the last one will be assigned the OutHandle
-	// We also will 'fully initialized' any items not initialized (e.g. Create their runtime instances)
-	static bool LootItemToInventory(URockInventory* Inventory, const FRockItemStack& ItemStack, FRockInventorySlotHandle& OutHandle, int32& OutExcess);
+	/**
+	 * Add it from anywhere. This merges into existing stacks first, then places what is left as a new stack in the first slot it fits.
+	 * We also 'fully initialize' any items not initialized (e.g. create their runtime instances).
+	 * @param Params - What the call may do (see FRockLootParams)
+	 * @param OutResult - Every placement made and the excess. Always filled; on failure Excess is the whole stack and Placements is empty.
+	 * @return True when the whole stack was placed
+	 */
+	static bool LootItemToInventory(URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootResult& OutResult);
+
+	/**
+	 * Read-only: the placements LootItemToInventory would make right now with the same params. Changes nothing and needs no authority,
+	 * so a client can ask. The server stays authoritative and may differ after a race. Invalid input returns the whole stack as excess, silently.
+	 */
+	static FRockLootResult PreviewLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params = FRockLootParams());
+
+	/**
+	 * The sections a loot call would try, in order (read-only, no allocation for up to 16 sections). A section is kept when the call's intent shares a bit with
+	 * its AcceptedLootIntents, it has slots, no ExcludeSectionMetaTags entry matches and its SectionFilter accepts the item. Order: sections whose LootPreference
+	 * matches the item first, then LootPriority (lower first), then config order. Entries are root-inventory sections only.
+	 */
+	static void BuildLootPlan(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootPlan& OutPlan);
+
+	/** Debug text for designers: every section of the inventory, in the order the call would try them, or why it is skipped. */
+	UFUNCTION(BlueprintPure, Category = "Rock Inventory")
+	static FString DescribeLootPlan(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params);
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Inventory Location Manipulation
@@ -136,10 +158,25 @@ public:
 	static TArray<FRockInventorySlotHandle> FindAllSlotsInSectionsWithMetaTag(URockInventory* Inventory, FGameplayTag SectionMetaTag);
 
 private:
-	/** What LootItemToInventory decided, defined in the .cpp */
-	struct FLootDecision;
-	/** Works out where the stack goes (merges, then the first slot it fits) without changing the inventory. */
-	static void DecideLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, FLootDecision& OutDecision);
-	/** Applies a decision from DecideLoot. Sets OutHandle only when a new stack was placed. */
-	static void CommitLoot(URockInventory* Inventory, const FRockItemStack& ItemStack, const FLootDecision& Decision, FRockInventorySlotHandle& OutHandle);
+	/** Slots another operation holds (first listed operation per slot counts). Empty when nothing is pending. */
+	static TBitArray<> BuildPendingSlots(const URockInventory* Inventory);
+	/** Pass 1: top up partial stacks across the plan. SkipAbsoluteIndex names a stack that is leaving (INDEX_NONE for none). */
+	static void DecideMerges(
+		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
+		int32 SkipAbsoluteIndex, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining);
+	/** Pass 2: the remainder becomes one new stack in the first slot of the plan that fits; marks its footprint in the grid. False when nothing fits. */
+	static bool DecideNewStack(
+		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
+		TArray<bool>& InOutGrid, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining);
+	/** Equip with swap (FRockLootParams::CanSwap). Fills OutResult and returns true only when the displaced stack is fully stored too; otherwise OutResult is untouched. */
+	static bool DecideSwap(
+		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, const FRockLootPlan& Plan,
+		const TBitArray<>& PendingSlots, FRockLootResult& OutResult);
+	/** Applies placements of one stack in order. */
+	static void ApplyPlacements(URockInventory* Inventory, const FRockItemStack& ItemStack, const TArray<FRockLootPlacement>& Placements);
+
+	/** Works out where the stack goes without changing the inventory: BuildLootPlan, then merges into partial stacks across the plan, then one new stack in the first slot that fits, then (Equip-only with bAllowSwap, nothing placed) a swap. Fills Placements and Excess. */
+	static void DecideLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootResult& OutResult);
+	/** Applies a decision from DecideLoot, in placement order. A swap removes the displaced stack first, places the new one, then the displaced one. */
+	static void CommitLoot(URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootResult& Decision);
 };
