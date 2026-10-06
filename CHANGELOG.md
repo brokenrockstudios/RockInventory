@@ -2,6 +2,9 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.0506
+- Fixed (T-71): a nested inventory follows its item. Added C++-only `URockInventory::SetOwner`; `URockItemInstance::SetOwningInventory` now uses it to update the nested inventory's owner (null in a world item), so a moved backpack re-registers for replication through its new owner instead of the old one. Added `BRS.RockInventory.Nested` tests.
+
 ## 2610.0505
 - Changed (T-70): library mutators (`LootItemToInventory`, `SplitItemStackAtLocation`, `MoveItem`, `MergeItemAtGridPosition`, `SetCustomValue1/2`) run on the authority only: a client call logs a warning, changes nothing and fails; the Blueprint ones are `BlueprintAuthorityOnly`. `AddItemToInventory` ensures instead of `checkf` and returns an invalid handle off the authority.
 - Removed (T-70): `bEnablePredictiveExecution`, `FRockInventoryTransactionRecord`, the client and server transaction histories and `ClearHistory` on `URockInventoryManagerComponent`. `MoveItem`/`DropItem`/`LootWorldItem` only validate and send the server RPC.

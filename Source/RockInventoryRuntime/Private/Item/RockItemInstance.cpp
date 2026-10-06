@@ -117,6 +117,12 @@ void URockItemInstance::SetOwningInventory(URockInventory* InOwningInventory)
 		UnregisterReplicationWithOwner();
 	}
 	OwningInventory = InOwningInventory;
+	// A nested inventory follows its item: its owner is the inventory holding the item (null while the item is in the world).
+	// Register below walks Owner to find the replication owner, so this must happen before it.
+	if (URockInventory* Nested = GetNestedInventory())
+	{
+		Nested->SetOwner(InOwningInventory);
+	}
 
 	RegisterReplicationWithOwner();
 }

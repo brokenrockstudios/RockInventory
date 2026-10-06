@@ -15,7 +15,7 @@ void FRockItemState_NestedInventory::OnStateAdded(URockItemInstance* OwnerInstan
 
 	// Who owns the 'nested inventory'? Need to test! UGH multiplayer boo 
 	//NestedInventory->Owner = OwnerInstance;
-	NestedInventory->Owner = OwnerInstance->GetOwningInventory();
+	NestedInventory->SetOwner(OwnerInstance->GetOwningInventory());
 
 	// Do we need to forward stuff about the nested inventory up to the top level inventory?
 	// NestedInventory->OnItemChanged.AddUObject(OwnerInstance, &URockItemInstance::NotifyChange);

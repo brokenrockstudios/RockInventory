@@ -29,7 +29,7 @@ void URockInventoryComponent::BeginPlay()
 	if (GetOwner()->HasAuthority())
 	{
 		Inventory = NewObject<URockInventory>(this); // ?? RF_Transient
-		Inventory->Owner = this;
+		Inventory->SetOwner(this);
 		Inventory->Init(InventoryConfig);
 	}
 }

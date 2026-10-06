@@ -86,6 +86,13 @@ public:
 
 	UObject* GetOwner() const { return Owner; }
 
+	/**
+	 * Sets the replication-owner link that GetTopLevelOwner follows to find the actor (not the Outer).
+	 * A nested inventory's owner is the inventory holding its item, so the item instance updates it when the item moves.
+	 * C++ only: Blueprint already gets a setter for the Owner property.
+	 */
+	void SetOwner(UObject* InOwner) { Owner = InOwner; }
+
 	/** Walks the ownership chain until it finds an Actor */
 	AActor* GetOwningActor();
 
