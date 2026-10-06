@@ -14,6 +14,7 @@
 
 class URockInventoryComponent;
 class URockInventory;
+struct FRockLootScratch;
 
 /**
  * 
@@ -40,6 +41,14 @@ public:
 	 * so a client can ask. The server stays authoritative and may differ after a race. Invalid input returns the whole stack as excess, silently.
 	 */
 	static FRockLootResult PreviewLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params = FRockLootParams());
+
+	/**
+	 * Read-only: PreviewLoot for several stacks looted one after another with the same params, one result per input stack in input order.
+	 * Each stack is simulated against a scratch copy of the occupancy, the partial stacks and the new stacks the earlier ones would create, so a "take all"
+	 * accounts for earlier stacks taking space and topping up stacks. Matches calling LootItemToInventory for each stack in order. Invalid stacks get the
+	 * whole stack as excess and change nothing. bAllowSwap is ignored here (a swap needs the live occupancy, which the simulation no longer matches).
+	 */
+	static TArray<FRockLootResult> PreviewLoot(const URockInventory* Inventory, const TArray<FRockItemStack>& ItemStacks, const FRockLootParams& Params = FRockLootParams());
 
 	/**
 	 * The sections a loot call would try, in order (read-only, no allocation for up to 16 sections). A section is kept when the call's intent shares a bit with
@@ -160,14 +169,14 @@ public:
 private:
 	/** Slots another operation holds (first listed operation per slot counts). Empty when nothing is pending. */
 	static TBitArray<> BuildPendingSlots(const URockInventory* Inventory);
-	/** Pass 1: top up partial stacks across the plan. SkipAbsoluteIndex names a stack that is leaving (INDEX_NONE for none). */
+	/** Pass 1: top up partial stacks across the plan. SkipAbsoluteIndex names a stack that is leaving (INDEX_NONE for none). Scratch (batch preview) adds what earlier stacks would have put there. */
 	static void DecideMerges(
 		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
-		int32 SkipAbsoluteIndex, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining);
+		int32 SkipAbsoluteIndex, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining, FRockLootScratch* Scratch = nullptr);
 	/** Pass 2: the remainder becomes one new stack in the first slot of the plan that fits; marks its footprint in the grid. False when nothing fits. */
 	static bool DecideNewStack(
 		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
-		TArray<bool>& InOutGrid, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining);
+		TArray<bool>& InOutGrid, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining, FRockLootScratch* Scratch = nullptr);
 	/** Equip with swap (FRockLootParams::CanSwap). Fills OutResult and returns true only when the displaced stack is fully stored too; otherwise OutResult is untouched. */
 	static bool DecideSwap(
 		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, const FRockLootPlan& Plan,
@@ -176,7 +185,7 @@ private:
 	static void ApplyPlacements(URockInventory* Inventory, const FRockItemStack& ItemStack, const TArray<FRockLootPlacement>& Placements);
 
 	/** Works out where the stack goes without changing the inventory: BuildLootPlan, then merges into partial stacks across the plan, then one new stack in the first slot that fits, then (Equip-only with bAllowSwap, nothing placed) a swap. Fills Placements and Excess. */
-	static void DecideLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootResult& OutResult);
+	static void DecideLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootResult& OutResult, FRockLootScratch* Scratch = nullptr);
 	/** Applies a decision from DecideLoot, in placement order. A swap removes the displaced stack first, places the new one, then the displaced one. */
 	static void CommitLoot(URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootResult& Decision);
 };

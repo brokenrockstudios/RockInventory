@@ -788,6 +788,126 @@ TEST_CLASS(RockInventoryLootApiTests, "BRS.RockInventory.Loot.Api")
 		ASSERT_THAT(AreEqual(Fixture.SlotAt(0, 0), Preview.Placements[0].Slot.GetSlotHandle()));
 	}
 
+	// Previews the whole array, then loots the stacks one by one, and checks every result agrees (T-95).
+	bool BatchPreviewMatchesSequentialLoot(const TArray<FRockItemStack>& Stacks, const FRockLootParams& Params, TArray<FRockLootResult>& OutPreview)
+	{
+		OutPreview = URockInventoryLibrary::PreviewLoot(Fixture.Inventory, Stacks, Params);
+		if (OutPreview.Num() != Stacks.Num())
+		{
+			return false;
+		}
+		bool bAgree = true;
+		for (int32 StackIndex = 0; StackIndex < Stacks.Num(); ++StackIndex)
+		{
+			FRockLootResult Real;
+			URockInventoryLibrary::LootItemToInventory(Fixture.Inventory, Stacks[StackIndex], Params, Real);
+			const FRockLootResult& Preview = OutPreview[StackIndex];
+			bAgree &= Preview.Excess == Real.Excess && Preview.Placements.Num() == Real.Placements.Num();
+			for (int32 Index = 0; bAgree && Index < Real.Placements.Num(); ++Index)
+			{
+				bAgree &= SamePlacement(Preview.Placements[Index], Real.Placements[Index]);
+			}
+		}
+		return bAgree;
+	}
+
+	TEST_METHOD(PreviewArray_LaterStackSeesTheSpaceTheEarlierOneTakes)
+	{
+		Fixture.InitGrid(2, 1);
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple");
+		URockItemDefinition* Pear = Fixture.MakeDefinition("Pear");
+		URockItemDefinition* Plum = Fixture.MakeDefinition("Plum");
+
+		const TArray<FRockLootResult> Preview = URockInventoryLibrary::PreviewLoot(
+			Fixture.Inventory, TArray<FRockItemStack>{FRockItemStack(Apple, 1), FRockItemStack(Pear, 1), FRockItemStack(Plum, 1)});
+
+		ASSERT_THAT(AreEqual(3, Preview.Num()));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(0, 0), Preview[0].Placements[0].Slot.GetSlotHandle()));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(1, 0), Preview[1].Placements[0].Slot.GetSlotHandle()));
+		ASSERT_THAT(AreEqual(1, Preview[2].Excess));
+		ASSERT_THAT(IsTrue(Preview[2].Placements.IsEmpty()));
+	}
+
+	TEST_METHOD(PreviewArray_ChangesNothing)
+	{
+		Fixture.InitGrid(3, 1);
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 5);
+		Fixture.PlaceAt(Arrow, 3, Fixture.SlotAt(0, 0));
+
+		URockInventoryLibrary::PreviewLoot(Fixture.Inventory, TArray<FRockItemStack>{FRockItemStack(Arrow, 5), FRockItemStack(Arrow, 5)});
+
+		ASSERT_THAT(AreEqual(1, Fixture.Inventory->GetNumItemStacks()));
+		ASSERT_THAT(AreEqual(3, Fixture.Inventory->GetItemBySlotHandle(Fixture.SlotAt(0, 0)).GetStackCount()));
+	}
+
+	TEST_METHOD(PreviewArray_SecondStackMergesIntoTheNewStackOfTheFirst)
+	{
+		Fixture.InitGrid(2, 1);
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 5);
+
+		TArray<FRockLootResult> Preview;
+		ASSERT_THAT(IsTrue(BatchPreviewMatchesSequentialLoot({FRockItemStack(Arrow, 3), FRockItemStack(Arrow, 2)}, FRockLootParams(), Preview)));
+
+		ASSERT_THAT(IsTrue(Preview[0].Placements[0].bNewStack));
+		ASSERT_THAT(AreEqual(1, Preview[1].Placements.Num()));
+		ASSERT_THAT(IsFalse(Preview[1].Placements[0].bNewStack));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(0, 0), Preview[1].Placements[0].Slot.GetSlotHandle()));
+		ASSERT_THAT(AreEqual(0, Preview[1].Excess));
+	}
+
+	TEST_METHOD(PreviewArray_PartialStackIsFilledOnceAcrossTheBatch)
+	{
+		// Slot 0 holds 3 of 5 arrows: the first stack takes the 2 free units, the second must not count them again and spills into a new stack.
+		Fixture.InitGrid(3, 1);
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 5);
+		Fixture.PlaceAt(Arrow, 3, Fixture.SlotAt(0, 0));
+
+		TArray<FRockLootResult> Preview;
+		ASSERT_THAT(IsTrue(BatchPreviewMatchesSequentialLoot({FRockItemStack(Arrow, 2), FRockItemStack(Arrow, 4)}, FRockLootParams(), Preview)));
+
+		ASSERT_THAT(AreEqual(2, Preview[0].Placements[0].Count));
+		ASSERT_THAT(AreEqual(1, Preview[1].Placements.Num()));
+		ASSERT_THAT(IsTrue(Preview[1].Placements[0].bNewStack));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(1, 0), Preview[1].Placements[0].Slot.GetSlotHandle()));
+		ASSERT_THAT(AreEqual(4, Preview[1].Placements[0].Count));
+	}
+
+	TEST_METHOD(PreviewArray_RotatedItemsAndExcessMatchSequentialLoot)
+	{
+		// A 1-wide column takes one rotated plank; the later planks are excess, the first apple takes the last free cell and the second is excess
+		Fixture.InitGrid(1, 4);
+		URockItemDefinition* Plank = Fixture.MakeDefinition("Plank", 1, FIntPoint(3, 1));
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple");
+
+		TArray<FRockLootResult> Preview;
+		ASSERT_THAT(IsTrue(BatchPreviewMatchesSequentialLoot(
+			{FRockItemStack(Plank, 1), FRockItemStack(Plank, 1), FRockItemStack(Apple, 1), FRockItemStack(Apple, 1)}, FRockLootParams(), Preview)));
+
+		ASSERT_THAT(AreEqual(ERockItemOrientation::Vertical, Preview[0].Placements[0].Orientation));
+		ASSERT_THAT(AreEqual(1, Preview[1].Excess));
+		ASSERT_THAT(AreEqual(0, Preview[2].Excess));
+		ASSERT_THAT(AreEqual(1, Preview[3].Excess));
+	}
+
+	TEST_METHOD(PreviewArray_InvalidInput_GivesOneResultPerStackWithoutWarning)
+	{
+		Fixture.InitGrid(2, 1);
+		URockItemDefinition* Apple = Fixture.MakeDefinition("Apple");
+
+		const TArray<FRockLootResult> NullInventory = URockInventoryLibrary::PreviewLoot(nullptr, TArray<FRockItemStack>{FRockItemStack(Apple, 2), FRockItemStack(Apple, 1)});
+		const TArray<FRockLootResult> WithInvalid = URockInventoryLibrary::PreviewLoot(
+			Fixture.Inventory, TArray<FRockItemStack>{FRockItemStack::Invalid(), FRockItemStack(Apple, 1)});
+		const TArray<FRockLootResult> Empty = URockInventoryLibrary::PreviewLoot(Fixture.Inventory, TArray<FRockItemStack>());
+
+		ASSERT_THAT(AreEqual(2, NullInventory.Num()));
+		ASSERT_THAT(AreEqual(2, NullInventory[0].Excess));
+		ASSERT_THAT(IsTrue(NullInventory[1].Placements.IsEmpty()));
+		ASSERT_THAT(AreEqual(2, WithInvalid.Num()));
+		ASSERT_THAT(IsTrue(WithInvalid[0].Placements.IsEmpty()));
+		ASSERT_THAT(AreEqual(Fixture.SlotAt(0, 0), WithInvalid[1].Placements[0].Slot.GetSlotHandle()));
+		ASSERT_THAT(AreEqual(0, Empty.Num()));
+	}
+
 	TEST_METHOD(ExcludeSectionMetaTags_SkipsTheSection_PreviewAndRealCallAgree)
 	{
 		Fixture.Init({

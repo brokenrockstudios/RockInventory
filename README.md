@@ -24,6 +24,7 @@ Feel free to use, learn from, reference, enjoy, or contribute!
     - [Fragment System](#fragment-system)
     - [URockInventory: The Container](#urockinventory--the-container)
     - [Data Flow](#data-flow)
+- [Pickup placement](#pickup-placement)
 - [Other Great Inventory Systems](#other-great-inventory-systems)
 - [Development with agents](#development-with-agents)
 - [Credit](#credit)
@@ -232,6 +233,80 @@ FFastArray delta replication    Iris / standard UObject replication
 4. The `FRockInventoryItemContainer` delta-replicates the stack array to clients; `URockItemInstance` replicates
    separately via the standard `UObject` replication path.
 5. Code that needs to react to changes listens to `URockInventory::OnSlotChanged` / `OnItemStackChanged` delegates.
+
+---
+
+## Pickup placement
+
+Where a picked-up item lands is decided by data on the sections of the inventory config, not by code. One planner
+(`URockInventoryLibrary::BuildLootPlan`) serves `LootItemToInventory` and the read-only `PreviewLoot`, so a preview
+always matches the real call. `DescribeLootPlan` prints the section order and why each other section was skipped.
+
+### Section settings
+
+| Setting (on `FRockInventorySectionInfo`) | Meaning |
+|---|---|
+| `SectionFilter` | Hard rule: only items whose tags match may be placed here (by pickup or by drag). |
+| `AcceptedLootIntents` | Which loot calls may use the section: `Store` (default), `Equip`, both, or none (an oven input that nothing should auto-fill). |
+| `LootPriority` | Lower numbers are tried first (`-1` before `0` before `10`). Ties keep config order. |
+| `LootPreference` | Soft rule: sections whose preference matches the item are tried before the rest. It only reorders, it never excludes. |
+
+Order is (preference match, priority, config order). Placement is merge first: partial stacks in any usable section are
+topped up before an empty slot is used, then the remainder goes to one new stack in the first slot that fits (rotated
+if needed). Dragging an item onto a chosen slot is not loot and ignores intents, priority and preference.
+
+### Intents, equip and swap
+
+| Call `Intent` | What it can do |
+|---|---|
+| `Store` | Uses only sections that accept `Store`. Never equips and never swaps. |
+| `Equip` | Uses only sections that accept `Equip`. With `bAllowSwap` and no empty equipment slot, it displaces the first occupied slot (plan order) the item fits in; the displaced stack is stored like a `Store` call, and the whole call is refused with nothing changed when it cannot be stored. |
+| `Store \| Equip` (default for a plain pickup) | Both kinds of section, by the order above. Never swaps. |
+
+An `Equip` call places the item in an equipment section; it does not make the character wear it. That is the game's
+equipment code (for example sections tagged `AutoEquip`).
+
+### Example: sword, pistol and pot
+
+A player config of Head, Primary, Secondary and Backpack sections:
+
+| Section | Filter | `AcceptedLootIntents` | `LootPriority` | `LootPreference` |
+|---|---|---|---|---|
+| Head | Headgear | `Equip` | 0 | none |
+| Primary | Weapon and Wieldable | `Equip` | 0 | Weapon and not Sidearm |
+| Secondary | Weapon | `Equip` | 1 | Sidearm |
+| Backpack | none | `Store` | 10 | none |
+
+With a `Store | Equip` call (these are the cases in `BRS.RockInventory.Loot.Priority`):
+
+- A sword goes to Primary, the next sword to Secondary, the next to the Backpack.
+- A pistol prefers Secondary, then falls through to Primary (allowed, just not preferred), then the Backpack.
+- A pot (Headgear and Wieldable) goes to Head, then Primary, then the Backpack (Secondary wants a weapon).
+
+An `Equip`-only call with `bAllowSwap` for a sword, when every equipment slot that takes it is occupied, swaps with
+the first of them in plan order and stores the old item in the Backpack (`BRS.RockInventory.Loot.Swap`). An empty
+equipment slot is always used before a swap.
+
+### Validation
+
+`URockInventoryConfig::IsDataValid` (shown by the data validator in the editor) warns, without failing the asset, about:
+
+- no section with slots that accepts `Store` (a plain pickup could never place anything);
+- two sections with the same section tag;
+- a `LootPreference` that no item passing the section's `SectionFilter` could match (for example it asks for a tag the
+  filter excludes). Matching is checked by trying every combination of the tags the two queries mention; beyond 10
+  distinct tags the check is skipped.
+
+A filter that merely lists other tags is not flagged: one item can carry both tags. `URockInventoryConfig::CollectLootIssues`
+runs the same checks on any section list, which is what the tests use.
+
+### Setup for Fen
+
+The player inventory config: equipment sections (Head, Primary, Secondary, ...) get `AcceptedLootIntents = Equip`,
+storage sections (pockets, backpack) keep `Store` with a larger `LootPriority` than the equipment sections, and
+`LootPreference` on Primary and Secondary as in the table above. Check that the Primary and Head filters admit the items
+you intend. Equipment sections that carry `AutoEquip` still wear items through the equipment manager, not through the
+intent.
 
 ---
 

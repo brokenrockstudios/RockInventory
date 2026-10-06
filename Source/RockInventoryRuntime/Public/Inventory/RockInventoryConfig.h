@@ -7,8 +7,28 @@
 #include "RockInventoryConfig.generated.h"
 
 struct FRockInventorySectionInfo;
+
+/** What a loot setting check found wrong in a config. All of them are warnings: the inventory still works, loot just cannot use it as intended. */
+enum class ERockConfigIssue : uint8
+{
+	/** No section with slots accepts the Store intent, so a plain pickup (Store) can never place anything. */
+	NoStorageSection,
+	/** Two sections share a section tag, so lookups by tag and loot placements are ambiguous. */
+	DuplicateSectionTag,
+	/** A section's LootPreference can never match an item its SectionFilter lets in, so the preference never has an effect. */
+	UnreachableLootPreference,
+};
+
+struct ROCKINVENTORYRUNTIME_API FRockConfigIssue
+{
+	ERockConfigIssue Kind = ERockConfigIssue::NoStorageSection;
+	/** Index into the checked section array, or INDEX_NONE for a whole-config issue. */
+	int32 SectionIndex = INDEX_NONE;
+	FText Message;
+};
+
 /**
- * 
+ *
  */
 UCLASS()
 class ROCKINVENTORYRUNTIME_API URockInventoryConfig : public UPrimaryDataAsset
@@ -26,4 +46,17 @@ public:
 
 	// TODO:
 	// Consider having a 'parent' config' or even an 'array' of composable configs?
+
+	/**
+	 * Checks the loot settings of a section list (intents, section tags, preference versus filter) without needing an asset.
+	 * IsDataValid reports these as warnings. A preference is checked by trying every combination of the tags the filter and the
+	 * preference mention (skipped, no issue reported, when they mention more than MaxTagsForPreferenceCheck distinct tags).
+	 */
+	static void CollectLootIssues(const TArray<FRockInventorySectionInfo>& Sections, TArray<FRockConfigIssue>& OutIssues);
+
+	static constexpr int32 MaxTagsForPreferenceCheck = 10;
+
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
+#endif
 };

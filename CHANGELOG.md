@@ -2,6 +2,14 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.0511
+- Added (T-37): `URockInventoryConfig::IsDataValid` warns (never fails) about a config with no section that has slots and accepts `Store`, duplicate section tags, and a `LootPreference` no item admitted by the section's `SectionFilter` can match. The checks are the static `URockInventoryConfig::CollectLootIssues` (`FRockConfigIssue`, `ERockConfigIssue`).
+- Added: `BRS.RockInventory.Config` tests, README "Pickup placement" section.
+
+## 2610.0510
+- Added (T-95): `URockInventoryLibrary::PreviewLoot(Inventory, TArray<FRockItemStack>, Params)` returns one `FRockLootResult` per stack, simulating them in order against a scratch copy of occupancy, partial stacks and the new stacks earlier ones would create (a "take all" accounts for earlier stacks); matches looting each stack in order. `bAllowSwap` is ignored in the batch.
+- Added: `PreviewArray_*` tests in `BRS.RockInventory.Loot.Api`.
+
 ## 2610.0509
 - Added (T-62): Equip and swap. An Equip-only call (`Equip` without `Store`) with `FRockLootParams::bAllowSwap` that finds no empty equipment slot displaces the first occupied slot (plan order) the item fits in; the displaced stack is stored through a `Store` call (merge first), and the call is refused with nothing changed when it cannot be stored. `Store | Equip` and `Store` never swap. `FRockLootResult` gains `bSwapped`, `DisplacedSlot`, `DisplacedPlacements`; `FRockLootParams::CanSwap()`. `PreviewLoot` predicts all of it.
 - Changed: `DecideLoot` split into private `DecideMerges`, `DecideNewStack`, `DecideSwap`, `ApplyPlacements`; behavior without a swap unchanged.
