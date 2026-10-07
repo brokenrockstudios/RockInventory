@@ -2,6 +2,27 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.0702
+- Added (T-76): gated replication. Inventories and item instances register with `COND_NetGroup` (`RockInventoryReplication::RegisterSubObject`) in `NetGroupOwner` plus the private viewer group (`RockViewer_<id>`) of every player with View rights; `URockInventoryAccessSubsystem` recomputes viewers on every open, close, grant, policy change and reach re-check (proximity too) and moves the inventory and its instances in and out of the groups (`RefreshReplication`). A nested inventory is its own unit; the backpack item follows the inventory it is in. Console variable `RockInventory.GatedReplication` (default 1; 0 = COND_None as before).
+- Changed (T-76): `RegisterReplicationWithOwner` of inventories and instances no longer publishes to everyone first. Chests, bodies and other players' inventories now reach a client only through an open (`Server_OpenInventory`), proximity or a shared grant: until T-131 calls the open from gameplay they do not appear on other clients.
+- Fixed (T-76): the engine only ever adds an object to an Iris net group, so a closed viewer kept receiving updates; the object is now removed from the group in Iris too.
+- Added (T-76): `URockInventoryConfig::Visibility` (`ERockNestedVisibility`, copied to the inventory by `Init`; `Separate`, the default, `FollowsParent`, or `OwnerOnly`: a secure container whose contents only the player it sits on ever receives or may touch; opens, shared grants and proximity are refused or ignored). A `FollowsParent` nested inventory (a scope on a gun) is gated, accessed and sync-stated with the inventory holding the item: its instances and its own `FollowsParent` children join the parent viewers' groups (`URockInventory::GetGatingRoot`, `ForEachGatedObject`), `CanAccess`/`Open`/`Close` resolve to the root, and the `Observed` entry is the root's.
+- Added (T-76): client sync state `URockInventory::GetSyncState()` / `OnSyncStateChanged` (Unknown, Syncing, Live, Stale), from the owner-only replicated `URockInventoryManagerComponent` `Observed` list (inventory + Revision at the grant).
+- Added (T-76): `BRS.RockInventory.Gating` (groups per viewer, instances, nested inventories, proximity, shared, moves, observed list, gating off) and `Network.RockInventory.Gating` (PIE, `-Network`: second client sees nothing, sees a chest and its instance only while it has it open, a nested inventory only after opening it, goes Stale after close or lost reach).
+- Changed (tests): `Network.RockInventory.NetGroupSpike.ItemInstance_NeedsTheSameMembershipAsItsInventory` now expects 0 leaked instances (it expected 1 because the plugin's own registration used COND_None).
+
+## 2610.0701
+- Fixed (T-127): a client copy of an inventory that arrives as a plain replicated subobject (nested inventories, inventories gated per viewer) never set `OwnerInventory` on its slot and item arrays, so the array callbacks returned early: no `OnChangeBatch`, no legacy deltas, and the item-to-slot index was not updated by replication. `URockInventory::PostInitProperties` now sets it for every non-CDO inventory (`URockInventoryComponent::OnRep_Inventory` did it only for the top-level one).
+- Added (T-127): `Network.RockInventory.ChangeSet` (PIE, `-Network`): the owner and a granted viewer each get one `OnChangeBatch` per replication update carrying the replicated `Revision` (two operations in one server step: one batch, revision +2), the legacy deltas replay from it, and the item-to-slot lookup follows the move.
+
+## 2610.0606
+- Changed (T-124): the loot commit (`CommitLoot`, swap included) and `SplitItemStackAtLocation` go through the Layer 0 `ApplyAdd`/`ApplyRemove` and one `CommitChangeSet`; occupancy has one implementation (`FRockInventoryData::FillOccupancy`/`MarkFootprint`, used by `PrecomputeOccupancyGrids` too).
+- Changed (T-124): looting more than one stack's worth into empty slots now makes several stacks of at most the max size (before: one stack above the max); a swap is refused for a count above the max. A whole-stack split records the slot change before the stack removal.
+- Added (T-124): `Loot_MoreThanOneStackIntoEmptySlots_SplitsAtTheMaxStackSize`, `Loot_MoreThanFitsInEmptySlots_ReportsTheRestAsExcess`.
+
+## 2610.0605
+- Fixed (tests): `SpawnPawnAt` was defined in two test files' anonymous namespaces and collided in unity builds; moved to `RockInventoryTestFixture.h`. Replaced deprecated bool `GetObjectsWithOuter` calls with `EGetObjectsFlags`.
+
 ## 2610.0604
 - Added (T-75): `URockInventoryAccessSubsystem`, the server-side access registry. Reasons Owner, Open, Proximity (view only, for containers you own) and Shared (stub); rights None / View / LimitedTake / Full; per-container `FRockInventoryAccessPolicy` (openable by, reach mode Default / Ignore / Custom, reach override, owner); C++ delegates `OnBeforeOpen` (veto), `OnAfterOpen`, `OnClosed`; periodic reach re-check. Deny by default.
 - Added: `URockInventoryManagerComponent::Server_OpenInventory` / `Server_CloseInventory`; the component closes its controller's opens in `EndPlay`.

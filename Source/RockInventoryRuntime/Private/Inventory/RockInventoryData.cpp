@@ -284,14 +284,22 @@ FRockItemStackHandle FRockInventoryData::PlaceStack(const FRockItemStack& Stack,
 TArray<bool> FRockInventoryData::BuildOccupancy(const FRockItemStackHandle& IgnoreHandle) const
 {
 	TArray<bool> Occupancy;
-	Occupancy.Init(false, Slots.Num());
+	FillOccupancy(Sections, Slots, [this](const FRockItemStackHandle& Handle) { return GetStack(Handle); }, IgnoreHandle, Occupancy);
+	return Occupancy;
+}
 
-	for (const FRockInventorySectionInfo& Section : Sections)
+void FRockInventoryData::FillOccupancy(
+	const TArray<FRockInventorySectionInfo>& InSections, const TArray<FRockInventorySlotEntry>& InSlots,
+	const TFunctionRef<const FRockItemStack*(const FRockItemStackHandle&)>& GetStack,
+	const FRockItemStackHandle& IgnoreHandle, TArray<bool>& OutOccupancy)
+{
+	OutOccupancy.Init(false, InSlots.Num());
+	for (const FRockInventorySectionInfo& Section : InSections)
 	{
 		const int32 Offset = Section.GetFirstSlotIndex();
 		for (int32 LocalIndex = 0; LocalIndex < Section.GetNumSlots(); ++LocalIndex)
 		{
-			const FRockInventorySlotEntry& Slot = Slots[Offset + LocalIndex];
+			const FRockInventorySlotEntry& Slot = InSlots[Offset + LocalIndex];
 			if (Slot.ItemHandle == IgnoreHandle)
 			{
 				continue;
@@ -301,28 +309,29 @@ TArray<bool> FRockInventoryData::BuildOccupancy(const FRockItemStackHandle& Igno
 			{
 				continue;
 			}
-			if (Section.GetSlotSizePolicy() == ERockItemSizePolicy::IgnoreSize)
+			MarkFootprint(OutOccupancy, Section, LocalIndex % Section.GetColumns(), LocalIndex / Section.GetColumns(),
+				URockItemStackLibrary::GetItemSizeForOrientation(*Stack, Slot.Orientation));
+		}
+	}
+}
+
+void FRockInventoryData::MarkFootprint(TArray<bool>& InOutOccupancy, const FRockInventorySectionInfo& Section, int32 Column, int32 Row, FIntPoint Size)
+{
+	if (Section.GetSlotSizePolicy() == ERockItemSizePolicy::IgnoreSize)
+	{
+		Size = FIntPoint(1, 1);
+	}
+	for (int32 Y = 0; Y < Size.Y; ++Y)
+	{
+		for (int32 X = 0; X < Size.X; ++X)
+		{
+			const int32 GridIndex = Section.GetFirstSlotIndex() + (Row + Y) * Section.GetColumns() + (Column + X);
+			if (InOutOccupancy.IsValidIndex(GridIndex))
 			{
-				Occupancy[Offset + LocalIndex] = true;
-				continue;
-			}
-			const int32 Column = LocalIndex % Section.GetColumns();
-			const int32 Row = LocalIndex / Section.GetColumns();
-			const FIntPoint Size = URockItemStackLibrary::GetItemSizeForOrientation(*Stack, Slot.Orientation);
-			for (int32 Y = 0; Y < Size.Y; ++Y)
-			{
-				for (int32 X = 0; X < Size.X; ++X)
-				{
-					const int32 GridIndex = Offset + (Row + Y) * Section.GetColumns() + (Column + X);
-					if (Occupancy.IsValidIndex(GridIndex))
-					{
-						Occupancy[GridIndex] = true;
-					}
-				}
+				InOutOccupancy[GridIndex] = true;
 			}
 		}
 	}
-	return Occupancy;
 }
 
 ERockAddRefusal FRockInventoryData::PlanAdd(

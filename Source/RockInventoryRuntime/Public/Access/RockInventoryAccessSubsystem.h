@@ -9,6 +9,7 @@
 
 class AActor;
 class AController;
+class APlayerController;
 class URockInventory;
 
 /** What a player may do with a container. Ordered: a higher value includes the lower ones. Gameplay can add a rule by answering with less than Full. */
@@ -120,7 +121,12 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FRockInventoryClosed, const AController&,
  *
  * Authority only: the opens live on the server. A player may have several containers open and several players may
  * have the same one open. An open ends on Close, or when the periodic check (RecheckReach, every RecheckInterval)
- * finds the player out of reach. Replication is not gated by this yet (T-76).
+ * finds the player out of reach.
+ *
+ * It also drives gated replication (T-76, see Replication/RockInventoryReplication.h): every player who has View rights on an
+ * inventory (owner, open, proximity, shared) is a viewer, the inventory and its item instances are put in each viewer's net group,
+ * and the viewer's manager component is told (Observed) so the client can show a sync state. Viewers are recomputed on every open,
+ * close and grant, and on the reach re-check.
  */
 UCLASS()
 class ROCKINVENTORYRUNTIME_API URockInventoryAccessSubsystem : public UTickableWorldSubsystem
@@ -166,6 +172,15 @@ public:
 	void GrantShared(const URockInventory* Inventory, const AController* Controller, ERockInventoryRights Rights);
 	void RevokeShared(const URockInventory* Inventory, const AController* Controller);
 
+	/** Net groups the inventory (and its item instances) belong to right now: NetGroupOwner plus the viewer group of every viewer. Owner only for null. */
+	TArray<FName> GetReplicationGroups(const URockInventory* Inventory) const;
+	/** Player controllers with at least View rights on the inventory (the owner's own controller included when it holds the inventory). */
+	TArray<APlayerController*> GetViewerControllers(const URockInventory* Inventory) const;
+	/** Re-applies the inventory's viewers to the net groups of the inventory and its item instances, and tells controllers that gained or lost it. Server only. */
+	void RefreshReplication(URockInventory& Inventory);
+	/** A gated object of the inventory was registered: starts tracking an inventory that already has viewers. */
+	void NotifyGatedObjectRegistered(URockInventory& Inventory);
+
 	/** Raised before an open is accepted. */
 	FRockInventoryBeforeOpen OnBeforeOpen;
 	/** Raised once an open was accepted (not for AlreadyOpen). */
@@ -203,5 +218,9 @@ private:
 	TArray<FOpenEntry> OpenEntries;
 	TArray<FSharedGrant> SharedGrants;
 	TMap<TWeakObjectPtr<const URockInventory>, FRockInventoryAccessPolicy> Policies;
+	/** Inventories that had viewers at the last refresh, with those viewers: the diff says who gained or lost the inventory. */
+	TMap<TWeakObjectPtr<URockInventory>, TArray<TWeakObjectPtr<APlayerController>>> Viewed;
+	/** Refreshes every inventory whose viewer set may have changed (open, shared, with an owner policy, or already viewed). */
+	void RefreshAllReplication();
 	float SinceRecheck = 0.f;
 };

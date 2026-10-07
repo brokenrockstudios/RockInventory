@@ -3,11 +3,15 @@
 #include "Components/RockInventoryManagerComponent.h"
 
 #include "Access/RockInventoryAccessSubsystem.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
 #include "RockInventoryLogging.h"
 #include "Inventory/RockInventory.h"
+#include "Net/UnrealNetwork.h"
 #include "Transactions/Core/RockInventoryTransaction.h"
 #include "Transactions/Implementations/RockMoveItemTransaction.h"
 
@@ -15,6 +19,94 @@ URockInventoryManagerComponent::URockInventoryManagerComponent(const FObjectInit
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
+}
+
+void URockInventoryManagerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(URockInventoryManagerComponent, Observed, COND_OwnerOnly);
+}
+
+URockInventoryManagerComponent* URockInventoryManagerComponent::FindFor(const AController* Controller)
+{
+	if (!Controller)
+	{
+		return nullptr;
+	}
+	if (URockInventoryManagerComponent* Found = Controller->FindComponentByClass<URockInventoryManagerComponent>())
+	{
+		return Found;
+	}
+	if (const APlayerState* PlayerState = Controller->PlayerState)
+	{
+		if (URockInventoryManagerComponent* Found = PlayerState->FindComponentByClass<URockInventoryManagerComponent>())
+		{
+			return Found;
+		}
+	}
+	if (const APawn* Pawn = Controller->GetPawn())
+	{
+		return Pawn->FindComponentByClass<URockInventoryManagerComponent>();
+	}
+	return nullptr;
+}
+
+URockInventoryManagerComponent* URockInventoryManagerComponent::FindLocal(const UWorld* World)
+{
+	return GEngine ? FindFor(GEngine->GetFirstLocalPlayerController(World)) : nullptr;
+}
+
+void URockInventoryManagerComponent::ServerSetObserved(URockInventory* Inventory, bool bObserved)
+{
+	if (!Inventory || GetOwnerRole() != ROLE_Authority)
+	{
+		return;
+	}
+	const int32 Index = Observed.IndexOfByPredicate([Inventory](const FRockObservedInventory& Entry) { return Entry.Inventory == Inventory; });
+	if (bObserved)
+	{
+		FRockObservedInventory& Entry = Index == INDEX_NONE ? Observed.AddDefaulted_GetRef() : Observed[Index];
+		Entry.Inventory = Inventory;
+		Entry.Revision = Inventory->GetRevision();
+	}
+	else if (Index != INDEX_NONE)
+	{
+		Observed.RemoveAtSwap(Index);
+	}
+	else
+	{
+		return;
+	}
+	// A listen server's own client part: no replication happens, so the OnRep does not run
+	if (GetNetMode() != NM_DedicatedServer)
+	{
+		Inventory->RefreshSyncStateWithFollowers();
+	}
+}
+
+const FRockObservedInventory* URockInventoryManagerComponent::FindObserved(const URockInventory* Inventory) const
+{
+	return Observed.FindByPredicate([Inventory](const FRockObservedInventory& Entry) { return Entry.Inventory == Inventory; });
+}
+
+void URockInventoryManagerComponent::OnRep_Observed(const TArray<FRockObservedInventory>& OldObserved)
+{
+	// Entries that left (closed, out of reach) turn Stale; new ones turn Syncing. An entry whose inventory has not arrived yet is
+	// picked up by the inventory's own PostNetReceive.
+	for (const FRockObservedInventory& Old : OldObserved)
+	{
+		if (Old.Inventory && !FindObserved(Old.Inventory))
+		{
+			Old.Inventory->RefreshSyncStateWithFollowers();
+		}
+	}
+	for (const FRockObservedInventory& Entry : Observed)
+	{
+		if (Entry.Inventory)
+		{
+			Entry.Inventory->RefreshSyncStateWithFollowers();
+		}
+	}
 }
 
 bool URockInventoryManagerComponent::CanAccess(const URockInventory* Inventory, const AController* Instigator, ERockInventoryRights Required) const

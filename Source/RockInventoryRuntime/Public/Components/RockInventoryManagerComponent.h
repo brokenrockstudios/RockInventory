@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Access/RockInventoryAccessSubsystem.h"
 #include "Inventory/RockPendingSlotOperation.h"
+#include "Replication/RockInventoryReplication.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Transactions/Implementations/RockDropItemTransaction.h"
 #include "Transactions/Implementations/RockLootWorldItemTransaction.h"
@@ -42,6 +43,22 @@ public:
 	void Server_CloseInventory(URockInventory* Inventory);
 	void Server_CloseInventory_Implementation(URockInventory* Inventory);
 
+	/** The manager component on this controller, its player state or its pawn. Null if none. */
+	static URockInventoryManagerComponent* FindFor(const AController* Controller);
+	/** The manager component of the first local player controller in the world (a client's own). Null if none. */
+	static URockInventoryManagerComponent* FindLocal(const UWorld* World);
+
+	/**
+	 * Server: adds or removes Inventory in this player's Observed list, which replicates to the owning client only. The registry calls it when
+	 * the player gains or loses View rights, so the client can tell Syncing, Live and Stale apart (URockInventory::GetSyncState).
+	 */
+	void ServerSetObserved(URockInventory* Inventory, bool bObserved);
+	/** The grant for Inventory in the replicated list, or null. */
+	const FRockObservedInventory* FindObserved(const URockInventory* Inventory) const;
+	const TArray<FRockObservedInventory>& GetObserved() const { return Observed; }
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	/** The controller that owns this component's connection: the owner itself, its pawn's controller, or its player state's controller. Null if none. */
 	AController* GetOwningController() const;
 
@@ -53,6 +70,12 @@ public:
 
 private:
 	bool bAwaitingServerSync = false;
+
+	/** Inventories the server replicates to this player on top of their own (opened, nearby, shared). Owner only. */
+	UPROPERTY(ReplicatedUsing = OnRep_Observed)
+	TArray<FRockObservedInventory> Observed;
+	UFUNCTION()
+	void OnRep_Observed(const TArray<FRockObservedInventory>& OldObserved);
 
 public:
 	/**

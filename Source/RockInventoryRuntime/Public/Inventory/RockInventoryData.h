@@ -147,6 +147,18 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryData
 	TArray<bool> BuildOccupancy(const FRockItemStackHandle& IgnoreHandle = FRockItemStackHandle::Invalid()) const;
 
 	/**
+	 * The one occupancy implementation: BuildOccupancy and URockInventoryLibrary::PrecomputeOccupancyGrids both use it. GetStack maps a
+	 * handle to its stack (null for none), so a live inventory can be read without copying it.
+	 */
+	static void FillOccupancy(
+		const TArray<FRockInventorySectionInfo>& InSections, const TArray<FRockInventorySlotEntry>& InSlots,
+		const TFunctionRef<const FRockItemStack*(const FRockItemStackHandle&)>& GetStack,
+		const FRockItemStackHandle& IgnoreHandle, TArray<bool>& OutOccupancy);
+
+	/** Marks the cells a stack of Size would cover from (Column, Row) in the section (a single cell in an IgnoreSize section). Cells outside the grid are skipped. */
+	static void MarkFootprint(TArray<bool>& InOutOccupancy, const FRockInventorySectionInfo& Section, int32 Column, int32 Row, FIntPoint Size);
+
+	/**
 	 * Would the move be allowed? Moving a slot onto itself with the same orientation is allowed and changes nothing; with another
 	 * orientation it rotates in place. A different slot moves, merges or splits depending on what is there.
 	 * Source and Target may be the same object (a move inside one inventory).

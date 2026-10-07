@@ -6,6 +6,8 @@
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
 #include "Components/ActorTestSpawner.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Pawn.h"
 #include "Inventory/RockInventory.h"
 #include "Inventory/RockInventorySectionInfo.h"
 #include "Item/RockItemDefinition.h"
@@ -57,3 +59,14 @@ public:
 private:
 	TArray<TStrongObjectPtr<UObject>> KeepAlive;
 };
+
+/** A pawn with a root component, so it has a location. Shared by tests (unity builds merge their anonymous namespaces). */
+inline APawn& SpawnPawnAt(FActorTestSpawner& Spawner, const FVector& Location)
+{
+	APawn& Pawn = Spawner.SpawnActor<APawn>();
+	USceneComponent* Root = NewObject<USceneComponent>(&Pawn, TEXT("Root"));
+	Pawn.SetRootComponent(Root);
+	Root->RegisterComponent();
+	Pawn.SetActorLocation(Location);
+	return Pawn;
+}

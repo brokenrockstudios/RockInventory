@@ -12,13 +12,13 @@ ARockInventoryNetTestActor::ARockInventoryNetTestActor()
 	bAlwaysRelevant = true;
 	bReplicateUsingRegisteredSubObjectList = true;
 	SetNetUpdateFrequency(100.f);
-	SetReplicateMovement(false);
+	AActor::SetReplicateMovement(true);
 }
 
 URockInventory* ARockInventoryNetTestActor::FindInventory() const
 {
 	TArray<UObject*> Inner;
-	GetObjectsWithOuter(this, Inner, false);
+	GetObjectsWithOuter(this, Inner, EGetObjectsFlags::None);
 	for (UObject* Object : Inner)
 	{
 		if (URockInventory* Inventory = Cast<URockInventory>(Object))
@@ -29,11 +29,26 @@ URockInventory* ARockInventoryNetTestActor::FindInventory() const
 	return nullptr;
 }
 
+TArray<URockInventory*> ARockInventoryNetTestActor::FindInventories() const
+{
+	TArray<URockInventory*> Result;
+	TArray<UObject*> Inner;
+	GetObjectsWithOuter(this, Inner, EGetObjectsFlags::None);
+	for (UObject* Object : Inner)
+	{
+		if (URockInventory* Inventory = Cast<URockInventory>(Object))
+		{
+			Result.Add(Inventory);
+		}
+	}
+	return Result;
+}
+
 TArray<URockItemInstance*> ARockInventoryNetTestActor::FindInstances() const
 {
 	TArray<URockItemInstance*> Result;
 	TArray<UObject*> Inner;
-	GetObjectsWithOuter(this, Inner, true);
+	GetObjectsWithOuter(this, Inner, EGetObjectsFlags::IncludeNestedObjects);
 	for (UObject* Object : Inner)
 	{
 		if (URockItemInstance* Instance = Cast<URockItemInstance>(Object))

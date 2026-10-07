@@ -29,8 +29,15 @@ public:
 	UPROPERTY()
 	TArray<TObjectPtr<URockItemInstance>> ServerInstances;
 
+	/** A second inventory under ServerInventory (its Owner link), a gating unit of its own (T-76). */
+	UPROPERTY()
+	TObjectPtr<URockInventory> ServerNested;
+
 	/** The inventory subobject this actor holds on this machine (the server's, or a client's replicated copy), or null. */
 	URockInventory* FindInventory() const;
+
+	/** Every inventory subobject this actor holds on this machine, in no particular order. */
+	TArray<URockInventory*> FindInventories() const;
 
 	/** The item instances held on this machine, in no particular order. */
 	TArray<URockItemInstance*> FindInstances() const;

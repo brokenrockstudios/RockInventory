@@ -253,7 +253,8 @@ NETWORK_TEST_CLASS(RockInventoryNetGroupSpike, "Network.RockInventory.NetGroupSp
 	{
 		Network.SpawnAndReplicate<ARockInventoryNetTestActor, &FState::Actor>();
 
-		// An inventory gated to the owner, plus two instances: one registered through the plugin's own path (COND_None), one gated like the inventory.
+		// An inventory gated to the owner, plus two instances: one registered through the plugin's own path, one gated by hand like the inventory.
+		// Before T-76 the plugin's path registered with COND_None and that instance leaked to every client; now both are owner only.
 		Network.ThenServer(TEXT("Create the inventory and two instances"), [this](FState& ServerState)
 		{
 			APlayerController* OwnerController = ServerController(ServerState, OwnerClient);
@@ -269,7 +270,7 @@ NETWORK_TEST_CLASS(RockInventoryNetGroupSpike, "Network.RockInventory.NetGroupSp
 			Inventory->Init(Config);
 			GateSubObject(Actor, Inventory, {UE::Net::NetGroupOwner});
 
-			// Through the plugin: SetOwningInventory registers the instance on the top-level owner with COND_None.
+			// Through the plugin: SetOwningInventory registers the instance on the top-level owner (COND_NetGroup, owner group, since T-76).
 			URockItemInstance* Ungated = NewObject<URockItemInstance>(Inventory);
 			Ungated->SetOwningInventory(Inventory);
 			Actor->ServerInstances.Add(Ungated);
@@ -285,12 +286,12 @@ NETWORK_TEST_CLASS(RockInventoryNetGroupSpike, "Network.RockInventory.NetGroupSp
 			return ClientState.Actor && ClientState.Actor->FindInstances().Num() == 2;
 		});
 		WaitFrames(SettleFrames);
-		Network.ThenClient(TEXT("Viewer has no inventory; only the ungated instance leaks"), ViewerClient, [this](FState& ClientState)
+		Network.ThenClient(TEXT("Viewer has no inventory and no instance"), ViewerClient, [this](FState& ClientState)
 		{
 			ASSERT_THAT(IsNull(ClientState.Actor->FindInventory()));
 			const int32 InstancesSeen = ClientState.Actor->FindInstances().Num();
-			UE_LOG(LogRockInventoryNetSpike, Display, TEXT("Spike: ungranted client received %d of 2 instances (1 = only the COND_None one leaks)"), InstancesSeen);
-			ASSERT_THAT(AreEqual(1, InstancesSeen));
+			UE_LOG(LogRockInventoryNetSpike, Display, TEXT("Spike: ungranted client received %d of 2 instances (before T-76: 1, the plugin-registered one leaked)"), InstancesSeen);
+			ASSERT_THAT(AreEqual(0, InstancesSeen));
 		});
 	}
 };

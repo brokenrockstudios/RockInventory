@@ -14,6 +14,7 @@
 #include "Events/RockSlotChangeType.h"
 #include "Events/RockSlotDelta.h"
 #include "Item/RockItemStack.h"
+#include "Replication/RockInventoryReplication.h"
 #include "UObject/Object.h"
 
 #include "RockInventory.generated.h"
@@ -29,6 +30,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemStackChanged, const 
 
 /** One call per finished operation (server) or per replication update (client). See FRockInventoryChangeBatch. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryChangeBatch, const FRockInventoryChangeBatch&, ChangeBatch);
+
+/** Client only: what this client knows about the inventory changed (T-76). */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInventorySyncStateChanged, URockInventory&, ERockInventorySyncState);
 
 /**
  * The root class for the Rock Inventory System.
@@ -84,6 +88,10 @@ private:
 	/** Replicated array callbacks recorded changes; PostNetReceive flushes them once every array has been applied. */
 	bool bAwaitingNetReceive = false;
 
+	ERockInventorySyncState CachedSyncState = ERockInventorySyncState::Unknown;
+	/** A grant for this inventory was seen on this client at some point: without one now, the state is Stale rather than Unknown. */
+	bool bEverObserved = false;
+
 	/** Item index -> absolute index of the slot holding that item (INDEX_NONE when none). Derived from SlotData. */
 	mutable TArray<int32> ItemSlotIndex;
 	mutable bool bItemSlotIndexDirty = true;
@@ -113,6 +121,32 @@ public:
 	uint32 GetRevision() const { return Revision; }
 
 	/**
+	 * Nested inventories only: FollowsParent makes the viewers of the inventory holding the item this inventory's viewers (weapon attachments);
+	 * Separate is a container of its own that must be opened (backpack contents). Copied from URockInventoryConfig::Visibility by Init.
+	 */
+	UPROPERTY(Replicated)
+	ERockNestedVisibility NestedVisibility = ERockNestedVisibility::Separate;
+
+	/** The inventory whose viewers, access and Observed entry apply to this one: itself, or the first ancestor that does not follow its parent. */
+	const URockInventory* GetGatingRoot() const;
+	URockInventory* GetGatingRoot() { return const_cast<URockInventory*>(static_cast<const URockInventory*>(this)->GetGatingRoot()); }
+
+	/** Calls Func for every object that replicates with this inventory: the inventory itself, then the item instances in its stacks, and for a nested inventory that follows its parent (bFollowsParentViewers) the same again, recursively. Other nested inventories are their own unit and are not visited. */
+	void ForEachGatedObject(const TFunctionRef<void(UObject*)>& Func);
+
+	/**
+	 * What this machine knows about the inventory's contents (T-76). The server and a standalone game are always Live. A client is Live for
+	 * an inventory on its own player, Unknown for one it was never granted, Syncing from the grant until the replicated Revision reaches the
+	 * grant's, Live after that, and Stale once the grant ended (the copy stops updating but is not destroyed).
+	 */
+	ERockInventorySyncState GetSyncState() const;
+	/** Recomputes the sync state and broadcasts OnSyncStateChanged when it differs from the last one. Called when the grant list or the replicated state changes. */
+	void RefreshSyncState();
+	/** RefreshSyncState on this inventory and the nested ones that follow it. */
+	void RefreshSyncStateWithFollowers();
+	FOnInventorySyncStateChanged OnSyncStateChanged;
+
+	/**
 	 * Groups the changes made until the matching EndOperation into one batch. Nests; only the outermost end flushes.
 	 * Use FRockInventoryOperationScope. Every URockInventory mutator opens one itself, so a call that is not inside a scope is
 	 * its own operation.
@@ -129,6 +163,8 @@ public:
 	void InvalidateItemSlotIndex() { bItemSlotIndexDirty = true; }
 
 	virtual void PostNetReceive() override;
+	/** Points the slot and item arrays at this inventory, so a client copy that arrives as a plain replicated subobject routes its array callbacks here. */
+	virtual void PostInitProperties() override;
 
 	/* The owner of this inventory, most likely the InventoryComponent */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)

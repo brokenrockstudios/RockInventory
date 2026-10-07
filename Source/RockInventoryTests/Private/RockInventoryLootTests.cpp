@@ -133,6 +133,35 @@ TEST_CLASS(RockInventoryLootTests, "BRS.RockInventory.Loot")
 		ASSERT_THAT(AreEqual(12, URockInventoryLibrary::GetItemCount(Fixture.Inventory, "Arrow")));
 	}
 
+	TEST_METHOD(Loot_MoreThanOneStackIntoEmptySlots_SplitsAtTheMaxStackSize)
+	{
+		Fixture.InitGrid(3, 1);
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 10);
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsTrue(Fixture.Loot(Arrow, 25, Slot, Excess)));
+
+		ASSERT_THAT(AreEqual(0, Excess));
+		ASSERT_THAT(AreEqual(10, Fixture.Inventory->GetItemBySlotHandle(Fixture.SlotAt(0, 0)).GetStackCount()));
+		ASSERT_THAT(AreEqual(10, Fixture.Inventory->GetItemBySlotHandle(Fixture.SlotAt(1, 0)).GetStackCount()));
+		ASSERT_THAT(AreEqual(5, Fixture.Inventory->GetItemBySlotHandle(Fixture.SlotAt(2, 0)).GetStackCount()));
+		ASSERT_THAT(AreEqual(25, URockInventoryLibrary::GetItemCount(Fixture.Inventory, "Arrow")));
+	}
+
+	TEST_METHOD(Loot_MoreThanFitsInEmptySlots_ReportsTheRestAsExcess)
+	{
+		Fixture.InitGrid(2, 1);
+		URockItemDefinition* Arrow = Fixture.MakeDefinition("Arrow", 10);
+
+		FRockInventorySlotHandle Slot;
+		int32 Excess = -1;
+		ASSERT_THAT(IsFalse(Fixture.Loot(Arrow, 25, Slot, Excess)));
+
+		ASSERT_THAT(AreEqual(5, Excess));
+		ASSERT_THAT(AreEqual(20, URockInventoryLibrary::GetItemCount(Fixture.Inventory, "Arrow")));
+	}
+
 	TEST_METHOD(Loot_FullInventory_ReturnsRemainingAsExcess)
 	{
 		Fixture.InitGrid(1, 1);

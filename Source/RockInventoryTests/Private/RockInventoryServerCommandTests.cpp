@@ -13,20 +13,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
-{
-	/** An actor with a root component, so it has a location. */
-	APawn& SpawnPawnAt(FActorTestSpawner& Spawner, const FVector& Location)
-	{
-		APawn& Pawn = Spawner.SpawnActor<APawn>();
-		USceneComponent* Root = NewObject<USceneComponent>(&Pawn, TEXT("Root"));
-		Pawn.SetRootComponent(Root);
-		Root->RegisterComponent();
-		Pawn.SetActorLocation(Location);
-		return Pawn;
-	}
-}
-
 // The server commands of URockInventoryManagerComponent must not trust the client: the instigator comes from the owning
 // connection, and every inventory a command names goes through CanAccess. The Server_*_Implementation functions are called
 // directly, which is the code the RPC runs on the server (a test world has authority).

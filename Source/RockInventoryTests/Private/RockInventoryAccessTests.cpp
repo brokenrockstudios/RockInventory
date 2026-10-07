@@ -13,20 +13,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
-{
-	/** A pawn with a root component, so it has a location. */
-	APawn& SpawnPawnAt(FActorTestSpawner& Spawner, const FVector& Location)
-	{
-		APawn& Pawn = Spawner.SpawnActor<APawn>();
-		USceneComponent* Root = NewObject<USceneComponent>(&Pawn, TEXT("Root"));
-		Pawn.SetRootComponent(Root);
-		Root->RegisterComponent();
-		Pawn.SetActorLocation(Location);
-		return Pawn;
-	}
-}
-
 // The access registry (T-75): who may touch which inventory. Deny by default; the reasons are Owner, Open, Proximity and
 // Shared. The reach re-check is driven by hand (RecheckReach), the timer only calls it.
 TEST_CLASS(RockInventoryAccessTests, "BRS.RockInventory.Access")

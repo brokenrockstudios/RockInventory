@@ -129,16 +129,8 @@ void URockItemInstance::SetOwningInventory(URockInventory* InOwningInventory)
 
 void URockItemInstance::RegisterReplicationWithOwner()
 {
-	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
-	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
-	{
-		Component->AddReplicatedSubObject(this);
-	}
-	else if (AActor* actor = Cast<AActor>(topLevelOwner))
-	{
-		actor->AddReplicatedSubObject(this);
-	}
-	else
+	// Gated like the inventory the item is in: the same viewers see the instance (an instance in a world item has the owner only)
+	if (!RockInventoryReplication::RegisterSubObject(URockInventoryLibrary::GetTopLevelOwner(this), this, OwningInventory))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("URockItemInstance::RegisterReplicationWithOwner: OwningActor is null"));
 		return;
@@ -151,15 +143,7 @@ void URockItemInstance::RegisterReplicationWithOwner()
 
 void URockItemInstance::UnregisterReplicationWithOwner()
 {
-	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
-	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
-	{
-		Component->RemoveReplicatedSubObject(this);
-	}
-	else if (AActor* actor = Cast<AActor>(topLevelOwner))
-	{
-		actor->RemoveReplicatedSubObject(this);
-	}
+	RockInventoryReplication::UnregisterSubObject(URockInventoryLibrary::GetTopLevelOwner(this), this);
 	if (URockInventory* Nested = GetNestedInventory())
 	{
 		Nested->UnregisterReplicationWithOwner();

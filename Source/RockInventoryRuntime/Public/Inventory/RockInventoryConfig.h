@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Replication/RockInventoryReplication.h"
 #include "RockInventoryConfig.generated.h"
 
 struct FRockInventorySectionInfo;
@@ -43,6 +44,15 @@ public:
 	// Note: that the TabIndex will equal the order they are defined here.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<FRockInventorySectionInfo> InventoryTabs;
+
+	/**
+	 * Who sees this inventory's contents when it is an item's nested inventory, and what kind of container it is. Separate: a container that
+	 * has to be opened (a backpack's contents). FollowsParent: seen and accessed with the inventory holding the item (a weapon's attachments).
+	 * OwnerOnly: only the player it sits on ever receives or may touch the contents (a secure container); also valid on a top-level inventory.
+	 * Copied to URockInventory::NestedVisibility by Init.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	ERockNestedVisibility Visibility = ERockNestedVisibility::Separate;
 
 	// TODO:
 	// Consider having a 'parent' config' or even an 'array' of composable configs?

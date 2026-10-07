@@ -9,6 +9,8 @@
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
+#include "Components/RockInventoryManagerComponent.h"
+#include "Engine/World.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
 
@@ -73,6 +75,8 @@ void URockInventory::Init(const URockInventoryConfig* config)
 
 	FRockInventoryOperationScope Scope(this);
 	bItemSlotIndexDirty = true;
+	// Before the registration: the gating root and the groups depend on it
+	NestedVisibility = config->Visibility;
 	RegisterReplicationWithOwner();
 	// Set owner references for containers
 	ItemData.SetOwningInventory(this);
@@ -396,6 +400,7 @@ void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(URockInventory, SlotSections);
 	DOREPLIFETIME(URockInventory, PendingSlotOperations);
 	DOREPLIFETIME(URockInventory, Revision);
+	DOREPLIFETIME_CONDITION(URockInventory, NestedVisibility, COND_InitialOnly);
 }
 
 bool URockInventory::IsSupportedForNetworking() const
@@ -413,16 +418,8 @@ void URockInventory::RegisterReplicationFragments(
 
 void URockInventory::RegisterReplicationWithOwner()
 {
-	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
-	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
-	{
-		Component->AddReplicatedSubObject(this);
-	}
-	else if (AActor* actor = Cast<AActor>(topLevelOwner))
-	{
-		actor->AddReplicatedSubObject(this);
-	}
-	else
+	// Gated (COND_NetGroup, owner plus viewers) unless RockInventory.GatedReplication is 0; see Replication/RockInventoryReplication.h
+	if (!RockInventoryReplication::RegisterSubObject(URockInventoryLibrary::GetTopLevelOwner(this), this, this))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("RegisterReplicationWithOwner - No viable replication owner found"));
 	}
@@ -439,15 +436,7 @@ void URockInventory::RegisterReplicationWithOwner()
 
 void URockInventory::UnregisterReplicationWithOwner()
 {
-	UObject* topLevelOwner = URockInventoryLibrary::GetTopLevelOwner(this);
-	if (UActorComponent* Component = Cast<UActorComponent>(topLevelOwner))
-	{
-		Component->RemoveReplicatedSubObject(this);
-	}
-	else if (AActor* actor = Cast<AActor>(topLevelOwner))
-	{
-		actor->RemoveReplicatedSubObject(this);
-	}
+	RockInventoryReplication::UnregisterSubObject(URockInventoryLibrary::GetTopLevelOwner(this), this);
 
 	// Iterate over items and unregister them?
 	for (const FRockItemStack& Item : ItemData)
@@ -514,6 +503,18 @@ void URockInventory::EndOperation()
 	}
 }
 
+void URockInventory::PostInitProperties()
+{
+	Super::PostInitProperties();
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		// A client copy is created by the replication system and never goes through Init or URockInventoryComponent::OnRep_Inventory
+		// (nested inventories, inventories gated per viewer), so the arrays would drop every change callback without this.
+		ItemData.SetOwningInventory(this);
+		SlotData.SetOwningInventory(this);
+	}
+}
+
 void URockInventory::PostNetReceive()
 {
 	Super::PostNetReceive();
@@ -524,6 +525,109 @@ void URockInventory::PostNetReceive()
 		{
 			FlushPendingChanges(false);
 		}
+	}
+	// The replicated Revision may have caught up with the grant
+	RefreshSyncState();
+}
+
+const URockInventory* URockInventory::GetGatingRoot() const
+{
+	const URockInventory* Root = this;
+	// The depth cap only guards a cyclic Owner link
+	for (int32 Depth = 0; Depth < 16 && Root->NestedVisibility == ERockNestedVisibility::FollowsParent; ++Depth)
+	{
+		const URockInventory* Parent = Cast<URockInventory>(Root->GetOwner());
+		if (!Parent)
+		{
+			break;
+		}
+		Root = Parent;
+	}
+	return Root;
+}
+
+void URockInventory::ForEachGatedObject(const TFunctionRef<void(UObject*)>& Func)
+{
+	Func(this);
+	for (const FRockItemStack& Item : ItemData)
+	{
+		if (URockItemInstance* Instance = Item.GetRuntimeInstance())
+		{
+			Func(Instance);
+			URockInventory* Nested = Instance->GetNestedInventory();
+			if (Nested && Nested->NestedVisibility == ERockNestedVisibility::FollowsParent && Nested->GetOwner() == this)
+			{
+				// Func(Nested) comes first in the recursive call, then its own instances
+				Nested->ForEachGatedObject(Func);
+			}
+		}
+	}
+}
+
+void URockInventory::RefreshSyncStateWithFollowers()
+{
+	ForEachGatedObject([](UObject* Object)
+	{
+		if (URockInventory* Inventory = Cast<URockInventory>(Object))
+		{
+			Inventory->RefreshSyncState();
+		}
+	});
+}
+
+ERockInventorySyncState URockInventory::GetSyncState() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return ERockInventorySyncState::Unknown;
+	}
+	if (World->GetNetMode() != NM_Client)
+	{
+		return ERockInventorySyncState::Live;
+	}
+	// A nested inventory that follows its parent is granted with the parent: the entry and its Revision are the root's
+	const URockInventory* Root = GetGatingRoot();
+	if (const URockInventoryManagerComponent* Manager = URockInventoryManagerComponent::FindLocal(World))
+	{
+		if (const FRockObservedInventory* Entry = Manager->FindObserved(Root))
+		{
+			// Wrap-aware: the Revision is a counter that may roll over
+			return static_cast<int32>(Root->Revision - Entry->Revision) >= 0 ? ERockInventorySyncState::Live : ERockInventorySyncState::Syncing;
+		}
+	}
+	if (bEverObserved)
+	{
+		return ERockInventorySyncState::Stale;
+	}
+	// Nothing granted it: it is live only when it is on this machine's own player (NetGroupOwner delivers it)
+	const AActor* OwnerActor = Cast<AActor>(URockInventoryLibrary::GetTopLevelOwner(const_cast<URockInventory*>(this)));
+	if (!OwnerActor)
+	{
+		if (const UActorComponent* Component = Cast<UActorComponent>(URockInventoryLibrary::GetTopLevelOwner(const_cast<URockInventory*>(this))))
+		{
+			OwnerActor = Component->GetOwner();
+		}
+	}
+	return OwnerActor && OwnerActor->HasLocalNetOwner() ? ERockInventorySyncState::Live : ERockInventorySyncState::Unknown;
+}
+
+void URockInventory::RefreshSyncState()
+{
+	const UWorld* World = GetWorld();
+	if (World && World->GetNetMode() == NM_Client)
+	{
+		const URockInventoryManagerComponent* Manager = URockInventoryManagerComponent::FindLocal(World);
+		if (Manager && Manager->FindObserved(GetGatingRoot()))
+		{
+			bEverObserved = true;
+		}
+	}
+	const ERockInventorySyncState State = GetSyncState();
+	if (State != CachedSyncState)
+	{
+		CachedSyncState = State;
+		OnSyncStateChanged.Broadcast(*this, State);
 	}
 }
 

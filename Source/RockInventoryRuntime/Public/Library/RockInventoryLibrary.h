@@ -16,6 +16,7 @@ class URockInventoryComponent;
 class URockInventory;
 struct FRockLootScratch;
 struct FRockInventoryChangeSet;
+struct FRockInventoryData;
 enum class ERockAddRefusal : uint8;
 
 /**
@@ -198,7 +199,7 @@ private:
 	static void DecideMerges(
 		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
 		int32 SkipAbsoluteIndex, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining, FRockLootScratch* Scratch = nullptr);
-	/** Pass 2: the remainder becomes one new stack in the first slot of the plan that fits; marks its footprint in the grid. False when nothing fits. */
+	/** Pass 2: the remainder becomes new stacks of at most the max stack size, each in the first slot of the plan that fits; marks the footprints in the grid. False when nothing was placed. */
 	static bool DecideNewStack(
 		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
 		TArray<bool>& InOutGrid, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining, FRockLootScratch* Scratch = nullptr);
@@ -206,8 +207,8 @@ private:
 	static bool DecideSwap(
 		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, const FRockLootPlan& Plan,
 		const TBitArray<>& PendingSlots, FRockLootResult& OutResult);
-	/** Applies placements of one stack in order. */
-	static void ApplyPlacements(URockInventory* Inventory, const FRockItemStack& ItemStack, const TArray<FRockLootPlacement>& Placements);
+	/** Applies placements of one stack in order on plain data (Layer 0 ApplyAdd); appends the changes. */
+	static void ApplyPlacements(FRockInventoryData& Data, const FRockItemStack& ItemStack, const TArray<FRockLootPlacement>& Placements, FRockInventoryChangeSet& InOutChanges);
 
 	/** Works out where the stack goes without changing the inventory: BuildLootPlan, then merges into partial stacks across the plan, then one new stack in the first slot that fits, then (Equip-only with bAllowSwap, nothing placed) a swap. Fills Placements and Excess. */
 	static void DecideLoot(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootResult& OutResult, FRockLootScratch* Scratch = nullptr);
