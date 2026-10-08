@@ -10,6 +10,7 @@
 #include "Item/State/RockItemState_NestedInventory.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Replication/RockInventoryReplication.h"
 
 
 void URockItemInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -86,7 +87,8 @@ void URockItemInstance::BeginDestroy()
 		// The owning actor may already be gone (or unresolvable) by the time we're destroyed
 		if (AActor* OwningActor = OwningInventory->GetOwningActor())
 		{
-			OwningActor->RemoveReplicatedSubObject(this);
+			// Also drops the net group memberships, which the group manager keys by FObjectKey and would otherwise keep
+			RockInventoryReplication::UnregisterSubObject(OwningActor, this);
 		}
 		OwningInventory = nullptr;
 	}

@@ -8,6 +8,7 @@
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Inventory/RockInventory.h"
+#include "UI/Shared/RockInventoryModelAccess.h"
 #include "Item/RockItemDefinition.h"
 #include "UI/Composite/RockInventory_Leaf_Image.h"
 
@@ -38,7 +39,7 @@ void URockInventory_HoverItem::SetItemSource(URockInventory* Inventory, const FR
 	ItemSlotSourceHandle = SlotHandle;
 	if (Inventory)
 	{
-		SetItemStack(Inventory->GetItemBySlotHandle(SlotHandle));
+		SetItemStack(RockInventoryUI::ModelOf(Inventory)->GetItemBySlotHandle(SlotHandle));
 	}
 }
 

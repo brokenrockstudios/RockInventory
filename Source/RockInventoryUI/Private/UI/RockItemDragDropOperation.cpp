@@ -4,6 +4,7 @@
 
 #include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/RockInventory.h"
+#include "UI/Shared/RockInventoryModelAccess.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/Fragment/RockItemFragment_Sound.h"
 #include "Kismet/GameplayStatics.h"
@@ -27,7 +28,7 @@ void URockItemDragDropOperation::OnBeginCarry_Implementation()
 		// Play Sound
 		if (SourceInventory && SourceSlotHandle.IsValid())
 		{
-			const FRockItemStack& item = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
+			const FRockItemStack& item = RockInventoryUI::ModelOf(SourceInventory)->GetItemBySlotHandle(SourceSlotHandle);
 			if (item.GetDefinition())
 			{
 				TSoftObjectPtr<USoundBase> soundOverride;
@@ -47,7 +48,7 @@ void URockItemDragDropOperation::OnBeginCarry_Implementation()
 				}
 			}
 
-			const FRockInventorySlotEntry SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+			const FRockInventorySlotEntry SourceSlot = RockInventoryUI::ModelOf(SourceInventory)->GetSlotByHandle(SourceSlotHandle);
 			URockInventoryManagerComponent* manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
 			if (SourceSlot.IsValid() && IsValid(manager))
 			{
@@ -62,7 +63,7 @@ void URockItemDragDropOperation::OnCancelCarry_Implementation()
 	// Release the lock on the slot
 	if (SourceInventory && SourceSlotHandle.IsValid())
 	{
-		const FRockInventorySlotEntry SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+		const FRockInventorySlotEntry SourceSlot = RockInventoryUI::ModelOf(SourceInventory)->GetSlotByHandle(SourceSlotHandle);
 		URockInventoryManagerComponent* Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
 		if (SourceSlot.IsValid() && Manager)
 		{
@@ -77,7 +78,7 @@ void URockItemDragDropOperation::OnFinishedCarry_Implementation()
 	// Release the lock on the slot
 	if (SourceInventory && SourceSlotHandle.IsValid())
 	{
-		const FRockInventorySlotEntry SourceSlot = SourceInventory->GetSlotByHandle(SourceSlotHandle);
+		const FRockInventorySlotEntry SourceSlot = RockInventoryUI::ModelOf(SourceInventory)->GetSlotByHandle(SourceSlotHandle);
 		URockInventoryManagerComponent* Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
 		if (SourceSlot.IsValid() && Manager)
 		{
@@ -133,7 +134,7 @@ void URockItemDragDropOperation::PlayFeedbackForOutcome_Implementation(const FRo
 			if (Outcome.Reason == "item_moved_widget")
 			{
 				// Successful drop sound?
-				const FRockItemStack& item = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
+				const FRockItemStack& item = RockInventoryUI::ModelOf(SourceInventory)->GetItemBySlotHandle(SourceSlotHandle);
 				if (item.GetDefinition())
 				{
 					TSoftObjectPtr<USoundBase> soundOverride;
@@ -160,7 +161,7 @@ void URockItemDragDropOperation::PlayFeedbackForOutcome_Implementation(const FRo
 			else if (Outcome.Reason == "item_moved_world")
 			{
 				// Dropped into world sound?
-				const FRockItemStack& item = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
+				const FRockItemStack& item = RockInventoryUI::ModelOf(SourceInventory)->GetItemBySlotHandle(SourceSlotHandle);
 				if (item.GetDefinition())
 				{
 					// Play a different sound if dropped on ground instead of into another inventory?

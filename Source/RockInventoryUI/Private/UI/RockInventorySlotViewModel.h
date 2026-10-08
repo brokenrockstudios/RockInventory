@@ -4,14 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "MVVMViewModelBase.h"
+#include "Client/RockInventoryClientModel.h"
 #include "Inventory/RockSlotHandle.h"
-#include "Inventory/Events/RockItemDelta.h"
-#include "Inventory/Events/RockSlotDelta.h"
 #include "Item/RockItemStackHandle.h"
 #include "RockInventorySlotViewModel.generated.h"
 
 class URockItemDefinition;
 class URockInventory;
+class URockInventoryClientModel;
+struct FRockInventoryPresentationDiff;
 /**
  * Represents the view model for a single inventory slot which may or may not have an item in it
  * 
@@ -44,15 +45,15 @@ public:
 	
 protected:
 	
-	UFUNCTION()
-	void OnItemChanged(const FRockItemDelta& ItemDelta);
-	UFUNCTION()
-	void OnSlotChanged(const FRockSlotDelta& SlotDelta);
-	
-	
+	void OnModelChanged(URockInventoryClientModel& Changed, const FRockInventoryPresentationDiff& Diff);
+
 protected:
 	UPROPERTY(BlueprintReadOnly, Getter, FieldNotify)
 	TObjectPtr<URockInventory> Inventory;
+
+	/** The client model this view model reads and listens to (T-77). */
+	UPROPERTY(Transient)
+	TObjectPtr<URockInventoryClientModel> Model;
 	
 	UPROPERTY(BlueprintReadOnly, Getter, FieldNotify)
 	FRockInventorySlotHandle SlotHandle;

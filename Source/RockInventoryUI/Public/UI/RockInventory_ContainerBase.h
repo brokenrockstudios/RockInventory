@@ -28,6 +28,8 @@ class UGridPanel;
 class UCanvasPanel;
 class UUniformGridPanel;
 class URockInventory;
+class URockInventoryClientModel;
+struct FRockInventoryPresentationDiff;
 
 namespace RockInventoryUI
 {
@@ -161,11 +163,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	FRockInventorySectionInfo TabInfo;
 
-	UFUNCTION()
-	void OnItemChanged(const FRockItemDelta& ItemDelta);
+	/** What visibly changed in the inventory this container shows (T-77): the widgets follow the client model, not the inventory's own delegates. */
+	void OnModelChanged(URockInventoryClientModel& Changed, const FRockInventoryPresentationDiff& Diff);
+	void HandleSlotChanged(URockInventoryClientModel& Model, const FRockInventorySlotHandle& SlotHandleChanged);
+	void UnbindFromModel();
 
-	UFUNCTION()
-	void OnSlotChanged(const FRockSlotDelta& SlotDelta);
+	UPROPERTY(Transient)
+	TObjectPtr<URockInventoryClientModel> BoundModel;
 
 	void CreateItemsPanel();
 

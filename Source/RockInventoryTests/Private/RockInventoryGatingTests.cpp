@@ -165,6 +165,20 @@ TEST_CLASS(RockInventoryGatingTests, "BRS.RockInventory.Gating")
 		ASSERT_THAT(IsTrue(OwnerOnly(Instance)));
 	}
 
+	TEST_METHOD(DestroyedInstance_LeavesNoGroupMemberships)
+	{
+		URockInventory* Chest = MakeChest();
+		URockItemInstance* Instance = AddInstanced(Chest, MakeInstanced("Lantern"));
+		APlayerController& Viewer = MakePlayerAt(FVector::ZeroVector);
+		ASSERT_THAT(IsNotNull(Instance));
+		ASSERT_THAT(AreEqual(ERockOpenResult::Opened, Access->Open(&Viewer, Chest)));
+		ASSERT_THAT(IsTrue(InGroup(Instance, Viewer)));
+
+		// The group manager keys memberships by FObjectKey; BeginDestroy must remove them, not only the registration (T-166)
+		Instance->ConditionalBeginDestroy();
+		ASSERT_THAT(IsTrue(GroupsOf(Instance).IsEmpty()));
+	}
+
 	TEST_METHOD(ItemAddedWhileOpen_JoinsTheViewerGroup)
 	{
 		URockInventory* Chest = MakeChest();

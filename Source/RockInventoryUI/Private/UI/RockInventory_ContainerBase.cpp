@@ -13,6 +13,7 @@
 #include "Components/RockInventoryManagerComponent.h"
 #include "Core/RockItemDragCarrySubsystem.h"
 #include "Inventory/RockInventory.h"
+#include "UI/Shared/RockInventoryModelAccess.h"
 #include "Item/RockItemDefinition.h"
 #include "Library/RockInventoryManagerLibrary.h"
 #include "Library/RockItemStackLibrary.h"
@@ -119,6 +120,15 @@ void URockInventory_ContainerBase::NativeConstruct()
 }
 
 
+void URockInventory_ContainerBase::UnbindFromModel()
+{
+	if (BoundModel)
+	{
+		BoundModel->OnChanged.RemoveAll(this);
+		BoundModel = nullptr;
+	}
+}
+
 void URockInventory_ContainerBase::NativeDestruct()
 {
 	// If this container is closed, let's cancel any drags originating from it.
@@ -154,6 +164,7 @@ void URockInventory_ContainerBase::NativeDestruct()
 	SlotToItem.Empty();
 	BackgroundGridSlots.Empty();
 
+	UnbindFromModel();
 	Inventory = nullptr;
 	if (ItemsCanvasPanel)
 	{
@@ -296,7 +307,7 @@ FRockInventory_SpaceQueryResult URockInventory_ContainerBase::QueryHoverSpace(FI
 	const URockItemDragDropOperation* dragDrop = Cast<URockItemDragDropOperation>(carrySubsystem->GetDragOperation());
 	ensureMsgf(dragDrop, TEXT("Could not get correct DragDropOperation in QueryHoverSpace!"));
 	ensureMsgf(dragDrop->SourceInventory, TEXT("DragDrop SourceInventory is null!"));
-	const FRockItemStack& copyOfSourceItem = dragDrop->SourceInventory->GetItemBySlotHandle(dragDrop->SourceSlotHandle);
+	const FRockItemStack& copyOfSourceItem = RockInventoryUI::ModelOf(dragDrop->SourceInventory)->GetItemBySlotHandle(dragDrop->SourceSlotHandle);
 
 	for (int32 column = 0; column < Dimensions.Y; ++column)
 	{
@@ -313,7 +324,7 @@ FRockInventory_SpaceQueryResult URockInventory_ContainerBase::QueryHoverSpace(FI
 			}
 
 			const FRockInventorySlotHandle anchorSlotHandle = gridSlot->GetAnchorItemSlotHandle();
-			const FRockItemStack item = Inventory->GetItemBySlotHandle(anchorSlotHandle);
+			const FRockItemStack item = RockInventoryUI::ModelOf(Inventory)->GetItemBySlotHandle(anchorSlotHandle);
 			if (item.IsValid() && item != copyOfSourceItem)
 			{
 				occupiedUpperLeftIndices.Add(anchorSlotHandle.GetAbsoluteIndex());
@@ -332,7 +343,7 @@ FRockInventory_SpaceQueryResult URockInventory_ContainerBase::QueryHoverSpace(FI
 	if (occupiedUpperLeftIndices.Num() == 1) // single item at position - it's valid for swapping/combining
 	{
 		const int32 Index = *occupiedUpperLeftIndices.CreateConstIterator(); // Is there a better way to get the singular element?
-		const FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByAbsoluteIndex(Index);
+		const FRockInventorySlotEntry SlotEntry = RockInventoryUI::ModelOf(Inventory)->GetSlotByAbsoluteIndex(Index);
 		result.UpperLeftIndex = SlotEntry.SlotHandle.GetAbsoluteIndex();
 	}
 
@@ -392,7 +403,7 @@ void URockInventory_ContainerBase::OnTileParametersUpdated(const FRockInventory_
 		return;
 	}
 
-	const FRockItemStack& copyOfItem = dragDrop->SourceInventory->GetItemBySlotHandle(dragDrop->SourceSlotHandle);
+	const FRockItemStack& copyOfItem = RockInventoryUI::ModelOf(dragDrop->SourceInventory)->GetItemBySlotHandle(dragDrop->SourceSlotHandle);
 
 	FIntPoint dimensions = FIntPoint(1, 1);
 	if (copyOfItem.IsValid())
@@ -489,8 +500,8 @@ bool URockInventory_ContainerBase::HasItemAtAbsoluteIndex(int32 AbsoluteIndex) c
 		return false;
 	}
 
-	const FRockInventorySlotEntry slotEntry = Inventory->GetSlotByAbsoluteIndex(AbsoluteIndex);
-	const FRockItemStack itemStack = Inventory->GetItemByHandle(slotEntry.ItemHandle);
+	const FRockInventorySlotEntry slotEntry = RockInventoryUI::ModelOf(Inventory)->GetSlotByAbsoluteIndex(AbsoluteIndex);
+	const FRockItemStack itemStack = RockInventoryUI::ModelOf(Inventory)->GetItemByHandle(slotEntry.ItemHandle);
 	return itemStack.IsValid();
 }
 
@@ -522,11 +533,11 @@ bool URockInventory_ContainerBase::PickUp(URockInventory* InInventory, const FRo
 	rockDragDrop->SourceSlotHandle = InSlotHandle;
 	// Keep the item's current orientation so moving a rotated item doesn't silently un-rotate it.
 	rockDragDrop->MoveItemParams = FRockMoveItemParams();
-	rockDragDrop->MoveItemParams.DesiredOrientation = InInventory->GetSlotByHandle(InSlotHandle).Orientation;
+	rockDragDrop->MoveItemParams.DesiredOrientation = RockInventoryUI::ModelOf(InInventory)->GetSlotByHandle(InSlotHandle).Orientation;
 	rockDragDrop->MoveMode = ERockItemMoveMode::FullStack;
 
-	const FRockInventorySlotEntry SlotEntry = Inventory->GetSlotByHandle(InSlotHandle);
-	FRockItemStack cachedItem = Inventory->GetItemByHandle(SlotEntry.ItemHandle);
+	const FRockInventorySlotEntry SlotEntry = RockInventoryUI::ModelOf(Inventory)->GetSlotByHandle(InSlotHandle);
+	FRockItemStack cachedItem = RockInventoryUI::ModelOf(Inventory)->GetItemByHandle(SlotEntry.ItemHandle);
 
 	rockDragDrop->MoveCount = SlotEntry.ItemHandle.IsValid() ? cachedItem.GetStackCount() : 0;
 
@@ -836,38 +847,36 @@ void URockInventory_ContainerBase::OnItemUnhovered(const FRockGridItemEventData&
 	//UE_LOG(LogRockInventoryUI, Warning, TEXT("OnItemUnhovered: %s"), *InSlotHandle.ToString());
 }
 
-void URockInventory_ContainerBase::OnItemChanged(const FRockItemDelta& ItemDelta)
+void URockInventory_ContainerBase::OnModelChanged(URockInventoryClientModel& Changed, const FRockInventoryPresentationDiff& Diff)
 {
-	TWeakObjectPtr<URockInventory_Slot_ItemBase> weakWidget = ItemViews.FindRef(ItemDelta.ItemHandle).Widget;
-	if (ItemDelta.ChangeType == ERockItemChangeType::Changed)
+	if (!Inventory || Changed.GetInventory() != Inventory)
 	{
-		if (URockInventory_Slot_ItemBase* strongWidget = weakWidget.Get())
+		return;
+	}
+	for (const FRockItemStackHandle& ItemHandle : Diff.StacksModified)
+	{
+		if (URockInventory_Slot_ItemBase* strongWidget = ItemViews.FindRef(ItemHandle).Widget.Get())
 		{
 			strongWidget->Update();
 		}
 	}
-	else if (ItemDelta.ChangeType == ERockItemChangeType::Removed)
+	for (const FRockInventorySlotHandle& SlotHandle : Diff.ChangedSlots)
 	{
-		// The OnSlotChanged should be trigger momentarily and this will go away.
-		// Alternatively we could try and clean up the widget here?  
+		HandleSlotChanged(Changed, SlotHandle);
 	}
 }
 
-void URockInventory_ContainerBase::OnSlotChanged(const FRockSlotDelta& SlotDelta)
+void URockInventory_ContainerBase::HandleSlotChanged(URockInventoryClientModel& Model, const FRockInventorySlotHandle& SlotHandleChanged)
 {
 	// Check if this slot belongs to this section
-	if (!Inventory || SlotDelta.Inventory != Inventory)
-	{
-		return;
-	}
-	if (Inventory->GetSectionInfoBySlotHandle(SlotDelta.SlotHandle).GetSectionIndex() != TabInfo.GetSectionIndex())
+	if (Model.GetSectionInfoBySlotHandle(SlotHandleChanged).GetSectionIndex() != TabInfo.GetSectionIndex())
 	{
 		return;
 	}
 
 	// 2) Current state of the slot
-	const FRockInventorySlotHandle slotHandle = SlotDelta.SlotHandle;
-	const FRockItemStack currentItem = Inventory->GetItemBySlotHandle(slotHandle);
+	const FRockInventorySlotHandle slotHandle = SlotHandleChanged;
+	const FRockItemStack currentItem = Model.GetItemBySlotHandle(slotHandle);
 	const FRockItemStackHandle prevItemHandle = SlotToItem.FindRef(slotHandle);
 
 	//  
@@ -948,14 +957,14 @@ void URockInventory_ContainerBase::DestroyWidgetForItem(const FRockItemStackHand
 	// final check to see if the item still exists in the inventory
 	if (Inventory)
 	{
-		const FRockItemStack itemStack = Inventory->GetItemByHandle(ItemHandle);
+		const FRockItemStack itemStack = RockInventoryUI::ModelOf(Inventory)->GetItemByHandle(ItemHandle);
 		if (itemStack.IsValid())
 		{
 			// This triggers when moving item from one container to another container.
 			// It might still exist in the inventory, but not in this 'section'.
 			// Compare slot entry sections to this container section
-			const FRockInventorySlotEntry slotEntry = Inventory->GetSlotByItemHandle(ItemHandle);
-			FRockInventorySectionInfo slotSection = Inventory->GetSectionInfoBySlotHandle(slotEntry.SlotHandle);
+			const FRockInventorySlotEntry slotEntry = RockInventoryUI::ModelOf(Inventory)->GetSlotByItemHandle(ItemHandle);
+			FRockInventorySectionInfo slotSection = RockInventoryUI::ModelOf(Inventory)->GetSectionInfoBySlotHandle(slotEntry.SlotHandle);
 			if (TabInfo.GetSectionIndex() == slotSection.GetSectionIndex())
 			{
 				ensureMsgf(false, TEXT("DestroyWidgetForItem: Item %s still exists in inventory and this section, not destroying"), *ItemHandle.ToString());
@@ -1037,23 +1046,19 @@ void URockInventory_ContainerBase::BindToInventorySection(URockInventory* NewInv
 	if (NewInventory)
 	{
 		// 1) Unbind from the current inventory (if any)
-		if (Inventory)
-		{
-			Inventory->OnItemChanged.RemoveDynamic(this, &ThisClass::OnItemChanged);
-			Inventory->OnSlotChanged.RemoveDynamic(this, &ThisClass::OnSlotChanged);
-		}
-		// 2) Ensure we won't double-bind to the incoming inventory
-		NewInventory->OnItemChanged.RemoveDynamic(this, &ThisClass::OnItemChanged);
-		NewInventory->OnSlotChanged.RemoveDynamic(this, &ThisClass::OnSlotChanged);
+		UnbindFromModel();
 
 		// 3) Swap to the new inventory and cache section info
 		Inventory = NewInventory;
-		TabInfo = Inventory->GetSectionInfo(InSectionTag);
+		TabInfo = RockInventoryUI::ModelOf(Inventory)->GetSectionInfo(InSectionTag);
 		SizePolicy = TabInfo.GetSlotSizePolicy();
 
 		// 4) Bind
-		Inventory->OnItemChanged.AddDynamic(this, &ThisClass::OnItemChanged);
-		Inventory->OnSlotChanged.AddDynamic(this, &ThisClass::OnSlotChanged);
+		BoundModel = RockInventoryUI::ModelOf(Inventory);
+		if (BoundModel)
+		{
+			BoundModel->OnChanged.AddUObject(this, &ThisClass::OnModelChanged);
+		}
 	}
 	else
 	{
@@ -1113,7 +1118,7 @@ void URockInventory_ContainerBase::GenerateGrid()
 	int32 SectionIndex = INDEX_NONE;
 	if (Inventory)
 	{
-		SectionIndex = Inventory->GetSectionIndex(TabInfo.GetSectionTag());
+		SectionIndex = RockInventoryUI::ModelOf(Inventory)->GetSectionIndex(TabInfo.GetSectionTag());
 	}
 
 	if (!GridSlotWidgetClass)
@@ -1173,7 +1178,7 @@ FIntPoint URockInventory_ContainerBase::GetDisplaySize(const FRockItemStack& Ite
 	{
 		return FIntPoint(1);
 	}
-	const ERockItemOrientation Orientation = Inventory ? Inventory->GetSlotByHandle(SlotHandle).Orientation : ERockItemOrientation::Horizontal;
+	const ERockItemOrientation Orientation = Inventory ? RockInventoryUI::ModelOf(Inventory)->GetSlotByHandle(SlotHandle).Orientation : ERockItemOrientation::Horizontal;
 	return URockItemStackLibrary::GetItemSizeForOrientation(ItemStack, Orientation);
 }
 
@@ -1296,12 +1301,12 @@ void URockInventory_ContainerBase::GenerateItems()
 	{
 		const int32 AbsoluteIndex = TabInfo.GetFirstSlotIndex() + slotIndex;
 
-		FRockInventorySlotEntry slotEntry = Inventory->GetSlotByAbsoluteIndex(AbsoluteIndex);
+		FRockInventorySlotEntry slotEntry = RockInventoryUI::ModelOf(Inventory)->GetSlotByAbsoluteIndex(AbsoluteIndex);
 		if (!slotEntry.SlotHandle.IsValid())
 		{
 			continue;
 		}
-		const FRockItemStack newItemStack = Inventory->GetItemByHandle(slotEntry.ItemHandle);
+		const FRockItemStack newItemStack = RockInventoryUI::ModelOf(Inventory)->GetItemByHandle(slotEntry.ItemHandle);
 		EnsureWidgetForItem(newItemStack, slotEntry.SlotHandle);
 	}
 }

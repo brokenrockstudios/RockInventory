@@ -13,6 +13,7 @@
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "Inventory/RockInventory.h"
+#include "UI/Shared/RockInventoryModelAccess.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemStack.h"
 #include "UI/Shared/RockGridItemEventData.h"
@@ -80,7 +81,7 @@ void URockInventory_Slot_ItemBase::UpdateItemCount()
 	}
 
 	// Get the item at this slot
-	const FRockItemStack& ItemStack = Inventory->GetItemBySlotHandle(SlotHandle);
+	const FRockItemStack& ItemStack = RockInventoryUI::ModelOf(Inventory)->GetItemBySlotHandle(SlotHandle);
 	if (ItemStack.IsValid())
 	{
 		// Update the count text if stack size is greater than 1
@@ -149,7 +150,7 @@ void URockInventory_Slot_ItemBase::NativeOnMouseEnter(const FGeometry& InGeometr
 	ItemHovered.Broadcast(EventData);
 
 
-	const FRockItemStack& ItemStack = Inventory ? Inventory->GetItemBySlotHandle(SlotHandle) : FRockItemStack();
+	const FRockItemStack& ItemStack = Inventory ? RockInventoryUI::ModelOf(Inventory)->GetItemBySlotHandle(SlotHandle) : FRockItemStack();
 	URockInventoryUIStaticsLibrary::ItemHovered(GetOwningPlayer(), ItemStack);
 
 	// 1. Get mouse position in absolute screen space
@@ -316,10 +317,10 @@ void URockInventory_Slot_ItemBase::Update()
 		return;
 	}
 
-	const FRockInventorySlotEntry slot = Inventory->GetSlotByHandle(SlotHandle);
+	const FRockInventorySlotEntry slot = RockInventoryUI::ModelOf(Inventory)->GetSlotByHandle(SlotHandle);
 	ItemHandle = slot.ItemHandle;
 
-	const FRockItemStack LocalCopyOfItem = Inventory->GetItemByHandle(ItemHandle);
+	const FRockItemStack LocalCopyOfItem = RockInventoryUI::ModelOf(Inventory)->GetItemByHandle(ItemHandle);
 
 	if (!LocalCopyOfItem.IsValid() || !LocalCopyOfItem.GetDefinition())
 	{
@@ -327,7 +328,7 @@ void URockInventory_Slot_ItemBase::Update()
 		return;
 	}
 	// Get SectionInfo
-	FRockInventorySectionInfo sectionInfo = Inventory->GetSectionInfoBySlotHandle(SlotHandle);
+	FRockInventorySectionInfo sectionInfo = RockInventoryUI::ModelOf(Inventory)->GetSectionInfoBySlotHandle(SlotHandle);
 	bool bRespectSize = sectionInfo.GetSlotSizePolicy() == ERockItemSizePolicy::RespectSize;
 	auto itemTileSize = bRespectSize ? LocalCopyOfItem.GetDefinition()->GridSize : FIntPoint(1, 1);
 
@@ -414,7 +415,7 @@ void URockInventory_Slot_ItemBase::ShowTooltipNow()
 		return;
 	}
 
-	const FRockItemStack& ItemStack = Inventory ? Inventory->GetItemBySlotHandle(SlotHandle) : FRockItemStack();
+	const FRockItemStack& ItemStack = Inventory ? RockInventoryUI::ModelOf(Inventory)->GetItemBySlotHandle(SlotHandle) : FRockItemStack();
 
 	if (!ItemStack.IsValid())
 	{

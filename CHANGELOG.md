@@ -2,6 +2,13 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.0802
+- Added (T-77): client model. `URockInventoryClientModel` (`Client/RockInventoryClientModel.h`) mirrors one `URockInventory` as plain `FRockInventoryData` plus revision and sync state, rebuilt from `OnChangeBatch` and `OnSyncStateChanged`, and announces only what visibly changed as an `FRockInventoryPresentationDiff` (changed slots, created/removed/modified stacks, layout, sync state; pure `FRockInventoryPresentationDiff::Between`). `SetState` is the pure core T-78 prediction layers on. `URockInventoryClientModelSubsystem::GetModel` shares one model per inventory. Tests `BRS.RockInventory.ClientModel` (diff, bound model, subsystem).
+- Changed (T-77): RockInventoryUI reads inventory state through the model (`RockInventoryUI::ModelOf`) and listens to `OnChanged`: the container, item and hover widgets, the drag operation and `URockInventorySlotViewModel` no longer call `URockInventory` getters or bind its delegates. Checked by hand in PIE (see DevNotes "Client model (T-77)").
+
+## 2610.0801
+- Fixed (T-166): `URockItemInstance::BeginDestroy` also removes the instance's net group memberships (the group manager keeps them by `FObjectKey`), not only the replicated-subobject registration. Test `DestroyedInstance_LeavesNoGroupMemberships`.
+
 ## 2610.0702
 - Added (T-76): gated replication. Inventories and item instances register with `COND_NetGroup` (`RockInventoryReplication::RegisterSubObject`) in `NetGroupOwner` plus the private viewer group (`RockViewer_<id>`) of every player with View rights; `URockInventoryAccessSubsystem` recomputes viewers on every open, close, grant, policy change and reach re-check (proximity too) and moves the inventory and its instances in and out of the groups (`RefreshReplication`). A nested inventory is its own unit; the backpack item follows the inventory it is in. Console variable `RockInventory.GatedReplication` (default 1; 0 = COND_None as before).
 - Changed (T-76): `RegisterReplicationWithOwner` of inventories and instances no longer publishes to everyone first. Chests, bodies and other players' inventories now reach a client only through an open (`Server_OpenInventory`), proximity or a shared grant: until T-131 calls the open from gameplay they do not appear on other clients.
