@@ -12,6 +12,7 @@
 
 class URockInventory;
 class URockInventoryClientModel;
+class URockInventoryManagerComponent;
 struct FRockInventoryChangeBatch;
 
 /**
@@ -51,7 +52,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInventoryClientModelChanged, URockInvent
  * batch or a new sync state, diffs the old copy against the new one and tells its listeners only what visibly changed.
  *
  * Widgets and view models read the model and listen to `OnChanged`; they never call the inventory's getters. Prediction (T-78)
- * layers on top: the model becomes replicated data plus pending commands, applied through `SetState`, and the UI does not change.
+ * layers on top: every rebuild takes the replicated data and lets the player's manager component re-apply its pending commands on
+ * it (`URockInventoryClientModelSubsystem::ApplyPrediction`), so the model is replicated data plus pending commands and the UI does
+ * not change.
  *
  * `SetState` is the pure core (no inventory needed), so tests and the prediction code drive it directly.
  */
@@ -103,6 +106,9 @@ private:
 	int32 Revision = 0;
 	ERockInventorySyncState SyncState = ERockInventorySyncState::Unknown;
 	FDelegateHandle SyncStateHandle;
+
+	/** The inventory's replicated state with the player's pending commands applied on it. */
+	FRockInventoryData TakeState(const URockInventory& Source) const;
 };
 
 /**
@@ -119,8 +125,18 @@ public:
 	static URockInventoryClientModel* GetModel(URockInventory* Inventory);
 
 	URockInventoryClientModel* FindOrCreateModel(URockInventory* Inventory);
+	/** The model for the inventory if one exists. Never creates. */
+	URockInventoryClientModel* FindModel(const URockInventory* Inventory) const;
+
+	/** The manager component whose pending commands every model applies on top of replicated data (the local player's), or null. */
+	void SetPredictionSource(URockInventoryManagerComponent* Source) { PredictionSource = Source; }
+	URockInventoryManagerComponent* GetPredictionSource() const { return PredictionSource.Get(); }
+	/** Lets the prediction source apply its pending commands to Data, the replicated state of Inventory. No source: nothing changes. */
+	void ApplyPrediction(const URockInventory& Inventory, FRockInventoryData& Data) const;
 
 private:
+	TWeakObjectPtr<URockInventoryManagerComponent> PredictionSource;
+
 	UPROPERTY(Transient)
 	TMap<TObjectPtr<URockInventory>, TObjectPtr<URockInventoryClientModel>> Models;
 };

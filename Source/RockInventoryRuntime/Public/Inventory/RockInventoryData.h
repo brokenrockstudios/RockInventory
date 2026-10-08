@@ -211,8 +211,7 @@ struct ROCKINVENTORYRUNTIME_API FRockInventoryData
 private:
 	/** Shared by CanAdd and ApplyAdd. Amount is what would be added. */
 	ERockAddRefusal PlanAdd(const FRockInventorySlotHandle& Slot, const FRockItemStack& Stack, ERockItemOrientation Orientation, bool& bOutMerge, int32& OutAmount) const;
+	/** Stores a copy of Copy at the lowest free stack index (the end of the array if none is free) and returns its handle. */
 	FRockItemStackHandle AllocateStack(const FRockItemStack& Copy);
 	void FreeStack(const FRockItemStackHandle& StackHandle);
-
-	TArray<int32> FreeStackIndices;
 };

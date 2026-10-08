@@ -7,6 +7,7 @@
 #include "Item/RockItemStack.h"
 #include "Library/RockInventoryLibrary.h"
 #include "Transactions/Core/RockInventoryTransaction.h"
+#include "Transactions/Core/RockSlotExpectation.h"
 #include "RockMoveItemTransaction.generated.h"
 
 USTRUCT(BlueprintType)
@@ -81,8 +82,16 @@ struct ROCKINVENTORYRUNTIME_API FRockMoveItemTransaction : public FRockItemTrans
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockMoveItemParams MoveParams;
 
+	/**
+	 * What the client saw in the two slots when it made the move (T-78). The manager component fills them when it sends the command;
+	 * the server refuses the move if a slot holds something else now. Unset (bCheck false) means no check.
+	 */
+	UPROPERTY()
+	FRockSlotExpectation ExpectedSource;
+	UPROPERTY()
+	FRockSlotExpectation ExpectedTarget;
 
 	FRockMoveItemUndoTransaction Execute() const;
+	/** Valid inventories and slots, a source item, no slot claimed by someone else, and the preconditions still hold. */
 	bool CanExecute() const;
-	bool AttemptPredict() const;
 };

@@ -172,13 +172,6 @@ FRockInventoryData FRockInventoryData::FromInventory(const URockInventory* Inven
 	Data.Sections = Inventory->SlotSections;
 	Data.Slots = Inventory->SlotData.AllSlots;
 	Data.Stacks = Inventory->ItemData.AllSlots;
-	for (int32 Index = 0; Index < Data.Stacks.Num(); ++Index)
-	{
-		if (!Data.Stacks[Index].IsValid())
-		{
-			Data.FreeStackIndices.Add(Index);
-		}
-	}
 	return Data;
 }
 
@@ -187,7 +180,6 @@ void FRockInventoryData::Init(const TArray<FRockInventorySectionInfo>& InSection
 	Sections.Reset();
 	Slots.Reset();
 	Stacks.Reset();
-	FreeStackIndices.Reset();
 
 	int32 TotalSlots = 0;
 	for (int32 SectionIndex = 0; SectionIndex < InSections.Num(); ++SectionIndex)
@@ -237,12 +229,10 @@ const FRockInventorySectionInfo* FRockInventoryData::FindSection(const FRockInve
 
 FRockItemStackHandle FRockInventoryData::AllocateStack(const FRockItemStack& Copy)
 {
-	int32 Index;
-	if (FreeStackIndices.Num() > 0)
-	{
-		Index = FreeStackIndices.Pop(EAllowShrinking::No);
-	}
-	else
+	// The lowest free index, derived from the data alone: the server's inventory does the same, so a client that predicts a
+	// move on a copy of the replicated data picks the handle the server will.
+	int32 Index = Stacks.IndexOfByPredicate([](const FRockItemStack& Stack) { return !Stack.IsValid(); });
+	if (Index == INDEX_NONE)
 	{
 		Index = Stacks.AddDefaulted();
 		Stacks[Index].Generation = 0;
@@ -265,7 +255,6 @@ void FRockInventoryData::FreeStack(const FRockItemStackHandle& StackHandle)
 	Stack.Generation = static_cast<uint16>(FRockItemStackHandle::NextGeneration(Stack.Generation));
 	Stack.ItemHandle = FRockItemStackHandle::Create(Index, Stack.Generation);
 	Stack.Reset();
-	FreeStackIndices.Add(Index);
 }
 
 FRockItemStackHandle FRockInventoryData::PlaceStack(const FRockItemStack& Stack, const FRockInventorySlotHandle& SlotHandle, ERockItemOrientation Orientation)

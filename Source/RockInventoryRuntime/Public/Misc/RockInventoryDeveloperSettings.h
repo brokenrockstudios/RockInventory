@@ -36,6 +36,29 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "Thumbnail")
 	ERockThumbnailMode ItemDefinitionThumbnailMode = ERockThumbnailMode::Default;
 
+	/** Clients show a move at once and let the server confirm it (T-78). Off: the item moves when the server's answer replicates. */
+	UPROPERTY(EditAnywhere, Config, Category = "Prediction")
+	bool bPredictMoves = true;
+
+	/** Moves a client may have sent without an answer. At the cap input is held until an answer arrives. */
+	UPROPERTY(EditAnywhere, Config, Category = "Prediction", meta = (ClampMin = "1", ClampMax = "32"))
+	int32 PredictionMaxInFlight = 4;
+
+	/**
+	 * Seconds the oldest unanswered move may wait before the client stops predicting, shows a pending indicator and holds input
+	 * (a slow or lost connection). Tune by feel.
+	 */
+	UPROPERTY(EditAnywhere, Config, Category = "Prediction", meta = (ClampMin = "0.05", ForceUnits = "s"))
+	float PredictionPendingThresholdSeconds = 0.5f;
+
+	/**
+	 * Recovery: a predicted move that is still pending this long after it was sent (no answer) or answered (the replicated state never
+	 * reached it) is abandoned and the client shows the replicated data again. Keeps a lost answer or a stopped replication from
+	 * leaving input held for good.
+	 */
+	UPROPERTY(EditAnywhere, Config, Category = "Prediction", meta = (ClampMin = "1", ForceUnits = "s"))
+	float PredictionAbandonSeconds = 5.0f;
+
 #if WITH_EDITOR
 	// data validator
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

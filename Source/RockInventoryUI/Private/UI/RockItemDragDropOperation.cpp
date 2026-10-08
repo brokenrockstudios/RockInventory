@@ -48,43 +48,20 @@ void URockItemDragDropOperation::OnBeginCarry_Implementation()
 				}
 			}
 
-			const FRockInventorySlotEntry SourceSlot = RockInventoryUI::ModelOf(SourceInventory)->GetSlotByHandle(SourceSlotHandle);
-			URockInventoryManagerComponent* manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
-			if (SourceSlot.IsValid() && IsValid(manager))
-			{
-				manager->Server_RegisterSlotStatus(SourceInventory, SourceSlotHandle, ERockSlotStatus::Pending);
-			}
+			// No slot lock while carrying (T-78): a move is validated by the preconditions it carries. Shared containers get a light claim in T-109.
 		}
 	}
 }
 
 void URockItemDragDropOperation::OnCancelCarry_Implementation()
 {
-	// Release the lock on the slot
-	if (SourceInventory && SourceSlotHandle.IsValid())
-	{
-		const FRockInventorySlotEntry SourceSlot = RockInventoryUI::ModelOf(SourceInventory)->GetSlotByHandle(SourceSlotHandle);
-		URockInventoryManagerComponent* Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
-		if (SourceSlot.IsValid() && Manager)
-		{
-			Manager->Server_ReleaseSlotStatus(SourceInventory, SourceSlotHandle);
-		}
-	}
+	// Nothing to release: carrying takes no slot lock (T-78)
 }
 
 // OnFinishedCarry is called after a successful drop
 void URockItemDragDropOperation::OnFinishedCarry_Implementation()
 {
-	// Release the lock on the slot
-	if (SourceInventory && SourceSlotHandle.IsValid())
-	{
-		const FRockInventorySlotEntry SourceSlot = RockInventoryUI::ModelOf(SourceInventory)->GetSlotByHandle(SourceSlotHandle);
-		URockInventoryManagerComponent* Manager = URockInventoryManagerLibrary::GetInventoryManager(Instigator);
-		if (SourceSlot.IsValid() && Manager)
-		{
-			Manager->Server_ReleaseSlotStatus(SourceInventory, SourceSlotHandle);
-		}
-	}
+	// Nothing to release: carrying takes no slot lock (T-78)
 }
 
 FRockDropOutcome URockItemDragDropOperation::OnUnhandledDrop_Implementation()

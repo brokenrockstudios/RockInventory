@@ -842,12 +842,16 @@ FString URockInventory::GetDebugString() const
 
 uint32 URockInventory::AcquireAvailableItemIndex()
 {
-	if (FreeIndices.Num() > 0)
+	// The lowest free index, derived from the data alone (see FRockInventoryData::AllocateStack): a client predicting on a copy
+	// of the replicated data picks the same handle. The item already has its handle and generation set.
+	for (int32 Index = 0; Index < ItemData.Num(); ++Index)
 	{
-		// The item should already have its handle and generation set
-		return FreeIndices.Pop(EAllowShrinking::No);
+		if (!ItemData[Index].IsValid())
+		{
+			return Index;
+		}
 	}
-	else if (ItemData.Num() <= SlotData.Num())
+	if (ItemData.Num() <= SlotData.Num())
 	{
 		// Generate a new item index
 		// Generation gets incremented during the 'release' of an item.
@@ -1032,7 +1036,6 @@ void URockInventory::RemoveItemFromInventory(const FRockItemStackHandle& InItemS
 		ItemData[InIndex].RuntimeInstance->UnregisterReplicationWithOwner();
 	}
 	const FRockItemStackHandle OldHandle = ItemData[InIndex].ItemHandle;
-	FreeIndices.Add(InIndex);
 	// Update the ItemHandle with new Generation
 	ItemData[InIndex].Generation = static_cast<uint16>(FRockItemStackHandle::NextGeneration(ItemData[InIndex].Generation));
 	ItemData[InIndex].ItemHandle = FRockItemStackHandle::Create(InIndex, ItemData[InIndex].Generation);

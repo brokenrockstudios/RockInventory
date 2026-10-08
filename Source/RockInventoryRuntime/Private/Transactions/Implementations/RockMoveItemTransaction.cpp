@@ -70,7 +70,6 @@ bool FRockMoveItemUndoTransaction::Undo() const
 
 FRockMoveItemTransaction::FRockMoveItemTransaction()
 {
-	GenerateNewHandle();
 }
 
 FRockMoveItemTransaction::FRockMoveItemTransaction(AController* Instigator, 
@@ -80,7 +79,6 @@ FRockMoveItemTransaction::FRockMoveItemTransaction(AController* Instigator,
 	  TargetInventory(InTargetInventory), TargetSlotHandle(InTargetSlotHandle),
 	  MoveParams(InMoveParam)
 {
-	GenerateNewHandle();
 }
 
 
@@ -117,6 +115,12 @@ bool FRockMoveItemTransaction::CanExecute() const
 	if (TargetPendingSlot.IsClaimedByOther(Instigator.Get()))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("MoveItemTransaction::CanApply - Target slot is locked by other"));
+		return false;
+	}
+	// Not an error: someone else changed the slot, or the client's picture was stale. The refusal is the point of the check.
+	if (!ExpectedSource.Matches(*SourceInventory, SourceSlotHandle) || !ExpectedTarget.Matches(*TargetInventory, TargetSlotHandle))
+	{
+		UE_LOG(LogRockInventory, Log, TEXT("MoveItemTransaction::CanApply - a slot does not hold what the command expected"));
 		return false;
 	}
 
@@ -172,9 +176,4 @@ FRockMoveItemUndoTransaction FRockMoveItemTransaction::Execute() const
 	}
 
 	return UndoTransaction;
-}
-
-bool FRockMoveItemTransaction::AttemptPredict() const
-{
-	return true;
 }

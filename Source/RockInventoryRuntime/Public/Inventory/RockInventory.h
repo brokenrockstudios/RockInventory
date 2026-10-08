@@ -56,10 +56,6 @@ private:
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FRockInventoryItemContainer ItemData;
 
-	/** Stack of available slot indices for reuse */
-	UPROPERTY()
-	TArray<uint32> FreeIndices;
-
 	/** The grid slot data */
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FRockInventorySlotContainer SlotData;

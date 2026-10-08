@@ -4,6 +4,7 @@
 
 #include "Engine/World.h"
 #include "Inventory/Events/RockInventoryChangeBatch.h"
+#include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/RockInventory.h"
 
 namespace
@@ -90,7 +91,7 @@ void URockInventoryClientModel::Bind(URockInventory* InInventory)
 	SyncStateHandle = InInventory->OnSyncStateChanged.AddUObject(this, &ThisClass::HandleSyncState);
 
 	// Take the current state silently: a listener that attaches after Bind reads it with the getters.
-	Data = FRockInventoryData::FromInventory(InInventory);
+	Data = TakeState(*InInventory);
 	Revision = static_cast<int32>(InInventory->GetRevision());
 	SyncState = InInventory->GetSyncState();
 }
@@ -113,7 +114,17 @@ FRockInventoryPresentationDiff URockInventoryClientModel::Rebuild()
 	{
 		return FRockInventoryPresentationDiff();
 	}
-	return SetState(FRockInventoryData::FromInventory(Source), static_cast<int32>(Source->GetRevision()), Source->GetSyncState());
+	return SetState(TakeState(*Source), static_cast<int32>(Source->GetRevision()), Source->GetSyncState());
+}
+
+FRockInventoryData URockInventoryClientModel::TakeState(const URockInventory& Source) const
+{
+	FRockInventoryData Replicated = FRockInventoryData::FromInventory(&Source);
+	if (const URockInventoryClientModelSubsystem* Subsystem = Cast<URockInventoryClientModelSubsystem>(GetOuter()))
+	{
+		Subsystem->ApplyPrediction(Source, Replicated);
+	}
+	return Replicated;
 }
 
 FRockInventoryPresentationDiff URockInventoryClientModel::SetState(FRockInventoryData&& NewData, int32 NewRevision, ERockInventorySyncState NewSyncState)
@@ -211,6 +222,20 @@ URockInventoryClientModel* URockInventoryClientModelSubsystem::GetModel(URockInv
 	const UWorld* World = Inventory ? Inventory->GetWorld() : nullptr;
 	URockInventoryClientModelSubsystem* Subsystem = World ? World->GetSubsystem<URockInventoryClientModelSubsystem>() : nullptr;
 	return Subsystem ? Subsystem->FindOrCreateModel(Inventory) : nullptr;
+}
+
+void URockInventoryClientModelSubsystem::ApplyPrediction(const URockInventory& Inventory, FRockInventoryData& Data) const
+{
+	if (URockInventoryManagerComponent* Source = PredictionSource.Get())
+	{
+		Source->ApplyPrediction(Inventory, Data);
+	}
+}
+
+URockInventoryClientModel* URockInventoryClientModelSubsystem::FindModel(const URockInventory* Inventory) const
+{
+	const TObjectPtr<URockInventoryClientModel>* Found = Inventory ? Models.Find(const_cast<URockInventory*>(Inventory)) : nullptr;
+	return Found ? Found->Get() : nullptr;
 }
 
 URockInventoryClientModel* URockInventoryClientModelSubsystem::FindOrCreateModel(URockInventory* Inventory)
