@@ -6,68 +6,6 @@
 #include "Inventory/RockInventory.h"
 #include "Library/RockInventoryLibrary.h"
 
-bool FRockMoveItemUndoTransaction::CanUndo() const
-{
-	// If move failed, we definitely can't undo it
-	if (!bSuccess)
-	{
-		return false;
-	}
-
-	// Verify inventories are still valid
-	if (!SourceInventory || !TargetInventory)
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("MoveItemTransaction::CanUndo - Source or Target inventory is no longer valid"));
-		return false;
-	}
-
-	// Check that current states match what we expect after the move
-	const FRockItemStack& CurrentSourceItem = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
-	const FRockItemStack& CurrentTargetItem = TargetInventory->GetItemBySlotHandle(TargetSlotHandle);
-
-	// If the items have been modified since our operation, we can't safely undo
-	if (CurrentSourceItem != PostMoveSourceItem || CurrentTargetItem != PostMoveTargetItem)
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("MoveItemTransaction::CanUndo - Item states have changed since the move was performed"));
-		return false;
-	}
-
-	return true;
-}
-
-bool FRockMoveItemUndoTransaction::Undo() const
-{
-	// Skip undo if execute didn't succeed
-
-	// CanUndo should have been called first. Don't need to check again.
-	checkf(bSuccess, TEXT("MoveItemTransaction::Undo - Original move failed, nothing to undo"));
-	checkf(SourceInventory && TargetInventory, TEXT("MoveItemTransaction::Undo - Source or Target inventory is null"));
-
-	// Only try to undo if we can verify the state is still valid
-	if (!CanUndo())
-	{
-		UE_LOG(LogRockInventory, Warning, TEXT("MoveItemTransaction::Undo - CanUndo returned false, state may have changed"));
-		return false;
-	}
-
-	// Perform the reverse move operation
-	bool undoSucceeded = URockInventoryLibrary::MoveItem(
-		TargetInventory, TargetSlotHandle,
-		SourceInventory, SourceSlotHandle,
-		{
-			OriginalOrientation,
-			ERockItemMoveMode::CustomAmount,
-			MoveCount,
-		});
-
-	if (!undoSucceeded)
-	{
-		UE_LOG(LogRockInventory, Error, TEXT("MoveItemTransaction::Undo - Failed to undo move operation"));
-	}
-
-	return undoSucceeded;
-}
-
 FRockMoveItemTransaction::FRockMoveItemTransaction()
 {
 }
@@ -98,6 +36,14 @@ bool FRockMoveItemTransaction::CanExecute() const
 		return false;
 	}
 
+	// Not an error: someone else changed the slot, or the client's picture was stale. The refusal is the point of the check, and it
+	// comes first so a raced command (an undo whose item another player took) does not warn about an empty source.
+	if (!ExpectedSource.Matches(*SourceInventory, SourceSlotHandle) || !ExpectedTarget.Matches(*TargetInventory, TargetSlotHandle))
+	{
+		UE_LOG(LogRockInventory, Log, TEXT("MoveItemTransaction::CanApply - a slot does not hold what the command expected"));
+		return false;
+	}
+
 	// Check source has an item
 	const FRockItemStack SourceItem = SourceInventory->GetItemBySlotHandle(SourceSlotHandle);
 	if (!SourceItem.IsValid())
@@ -115,12 +61,6 @@ bool FRockMoveItemTransaction::CanExecute() const
 	if (TargetPendingSlot.IsClaimedByOther(Instigator.Get()))
 	{
 		UE_LOG(LogRockInventory, Warning, TEXT("MoveItemTransaction::CanApply - Target slot is locked by other"));
-		return false;
-	}
-	// Not an error: someone else changed the slot, or the client's picture was stale. The refusal is the point of the check.
-	if (!ExpectedSource.Matches(*SourceInventory, SourceSlotHandle) || !ExpectedTarget.Matches(*TargetInventory, TargetSlotHandle))
-	{
-		UE_LOG(LogRockInventory, Log, TEXT("MoveItemTransaction::CanApply - a slot does not hold what the command expected"));
 		return false;
 	}
 

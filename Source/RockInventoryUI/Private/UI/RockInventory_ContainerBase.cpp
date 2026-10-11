@@ -120,6 +120,26 @@ void URockInventory_ContainerBase::NativeConstruct()
 }
 
 
+void URockInventory_ContainerBase::SetViewedInventory(URockInventory* NewInventory)
+{
+	if (ViewedInventory == NewInventory)
+	{
+		return;
+	}
+	// The new view first: an inventory this widget shows before and after never counts as closed in between
+	URockInventoryManagerComponent* Manager = NewInventory ? URockInventoryManagerComponent::FindFor(GetOwningPlayer()) : nullptr;
+	if (Manager)
+	{
+		Manager->AddInventoryView(NewInventory);
+	}
+	if (URockInventoryManagerComponent* OldManager = ViewManager.Get(); OldManager && ViewedInventory)
+	{
+		OldManager->RemoveInventoryView(ViewedInventory);
+	}
+	ViewedInventory = Manager ? NewInventory : nullptr;
+	ViewManager = Manager;
+}
+
 void URockInventory_ContainerBase::UnbindFromModel()
 {
 	if (BoundModel)
@@ -165,6 +185,7 @@ void URockInventory_ContainerBase::NativeDestruct()
 	BackgroundGridSlots.Empty();
 
 	UnbindFromModel();
+	SetViewedInventory(nullptr);
 	Inventory = nullptr;
 	if (ItemsCanvasPanel)
 	{
@@ -1050,6 +1071,7 @@ void URockInventory_ContainerBase::BindToInventorySection(URockInventory* NewInv
 
 		// 3) Swap to the new inventory and cache section info
 		Inventory = NewInventory;
+		SetViewedInventory(NewInventory);
 		TabInfo = RockInventoryUI::ModelOf(Inventory)->GetSectionInfo(InSectionTag);
 		SizePolicy = TabInfo.GetSlotSizePolicy();
 

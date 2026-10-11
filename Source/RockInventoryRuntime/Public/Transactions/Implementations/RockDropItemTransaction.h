@@ -31,9 +31,6 @@ struct FRockDropItemUndoTransaction
 	// with this orientation
 	UPROPERTY()
 	ERockItemOrientation ExistingOrientation = ERockItemOrientation::Horizontal;
-
-	bool CanUndo();
-	bool Undo();
 };
 
 

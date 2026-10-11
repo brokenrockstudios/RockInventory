@@ -10,6 +10,7 @@
 #include "Transactions/Core/RockSlotExpectation.h"
 #include "RockMoveItemTransaction.generated.h"
 
+/** What a move did on the server (FRockMoveItemTransaction::Execute). The server keeps no history: undo is the client's (T-80, URockInventoryManagerComponent::Undo). */
 USTRUCT(BlueprintType)
 struct ROCKINVENTORYRUNTIME_API FRockMoveItemUndoTransaction : public FRockItemTransactionBase
 {
@@ -52,9 +53,6 @@ struct ROCKINVENTORYRUNTIME_API FRockMoveItemUndoTransaction : public FRockItemT
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ERockItemOrientation OriginalOrientation = ERockItemOrientation::Horizontal;
-
-	bool CanUndo() const;
-	bool Undo() const;
 };
 
 

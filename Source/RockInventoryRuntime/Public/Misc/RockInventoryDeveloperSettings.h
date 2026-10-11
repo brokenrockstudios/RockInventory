@@ -59,6 +59,10 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "Prediction", meta = (ClampMin = "1", ForceUnits = "s"))
 	float PredictionAbandonSeconds = 5.0f;
 
+	/** Undo entries a client keeps (T-80); the oldest go first. 0 turns undo off. */
+	UPROPERTY(EditAnywhere, Config, Category = "Undo", meta = (ClampMin = "0", ClampMax = "200"))
+	int32 UndoHistoryDepth = 25;
+
 #if WITH_EDITOR
 	// data validator
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;

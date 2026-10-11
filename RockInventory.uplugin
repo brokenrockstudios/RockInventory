@@ -31,7 +31,7 @@
 		},
 		{
 			"Name": "RockInventoryTests",
-			"Type": "DeveloperTool",
+			"Type": "UncookedOnly",
 			"LoadingPhase": "Default"
 		}
 	],

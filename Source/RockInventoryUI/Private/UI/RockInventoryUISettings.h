@@ -4,16 +4,27 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "Framework/Commands/InputChord.h"
 #include "RockInventoryUISettings.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS(Config=Game, DefaultConfig, meta=(DisplayName="Rock Inventory: UI"))
 class ROCKINVENTORYUI_API URockInventoryUISettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 public:
+	URockInventoryUISettings();
+
+	/** Keys that undo the last inventory move while the inventory screen is open (T-80). Default Ctrl+Z. */
+	UPROPERTY(config, EditDefaultsOnly, Category="Undo")
+	TArray<FInputChord> UndoChords;
+
+	/** Keys that redo while the inventory screen is open. Default Ctrl+Y and Ctrl+Shift+Z. */
+	UPROPERTY(config, EditDefaultsOnly, Category="Undo")
+	TArray<FInputChord> RedoChords;
+
 	// Project Settings → “Rock Inventory: Tooltip”
 	UPROPERTY(config, EditDefaultsOnly, Category="UI")
 	TSoftClassPtr<UUserWidget> TooltipLayerClass;

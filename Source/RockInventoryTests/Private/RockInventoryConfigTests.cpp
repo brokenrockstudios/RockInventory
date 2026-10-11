@@ -153,6 +153,7 @@ TEST_CLASS(RockInventoryConfigTests, "BRS.RockInventory.Config")
 		ASSERT_THAT(AreEqual(0, CountOf(Check({Section}), ERockConfigIssue::UnreachableLootPreference)));
 	}
 
+#if WITH_EDITOR // URockInventoryConfig::IsDataValid is editor-only
 	TEST_METHOD(IsDataValid_ReportsEachIssueAsAWarningAndStaysValid)
 	{
 		URockInventoryConfig* Config = NewObject<URockInventoryConfig>(GetTransientPackage());
@@ -174,5 +175,6 @@ TEST_CLASS(RockInventoryConfigTests, "BRS.RockInventory.Config")
 		ASSERT_THAT(IsTrue(Config->IsDataValid(Context) == EDataValidationResult::Valid));
 		ASSERT_THAT(AreEqual(0u, static_cast<uint32>(Context.GetNumWarnings())));
 	}
+#endif // WITH_EDITOR
 };
 #endif // WITH_DEV_AUTOMATION_TESTS

@@ -29,6 +29,7 @@ class UCanvasPanel;
 class UUniformGridPanel;
 class URockInventory;
 class URockInventoryClientModel;
+class URockInventoryManagerComponent;
 struct FRockInventoryPresentationDiff;
 
 namespace RockInventoryUI
@@ -224,6 +225,15 @@ private:
 	// Cached Information regarding this container
 	// Updates during InitializeInventory
 	ERockItemSizePolicy SizePolicy = ERockItemSizePolicy::RespectSize;
+
+	/**
+	 * Tells the player's manager component which inventory this widget shows (T-80): the inventory screen is open while any is shown,
+	 * and the undo history is severed or cleared when the last view of an inventory, or of all, goes.
+	 */
+	void SetViewedInventory(URockInventory* NewInventory);
+	UPROPERTY(Transient)
+	TObjectPtr<URockInventory> ViewedInventory;
+	TWeakObjectPtr<URockInventoryManagerComponent> ViewManager;
 
 
 	void CancelPendingDestroy(const FRockItemStackHandle& ItemHandle);

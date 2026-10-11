@@ -2,6 +2,20 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.0901
+
+- Tests module is `UncookedOnly` instead of `DeveloperTool`, so the staged game target no longer links it (T-220).
+
+## 2610.0806
+- Fixed (T-218): `RockInventoryConfigTests` guards the two `IsDataValid` tests with `WITH_EDITOR` (the method is editor-only; the non-editor build failed C2039). No assertion changed.
+
+## 2610.0805
+- Added (T-80): client undo/redo on `URockInventoryManagerComponent` (`Undo`, `Redo`, `CanUndo`, `CanRedo`). Every plain move sent through `MoveItem` (move, split, merge, rotate, equip and unequip, across open inventories) is recorded with its inverse and preconditions both ways; undo sends the inverse as an ordinary predicted move, redo the original. An entry whose items moved since, or that the server refuses, is dropped (`OnUndoEntryDropped`); `OnUndoHistoryChanged` for buttons. Plain-data core `FRockUndoStep`/`FRockUndoHistory` (`Client/RockInventoryUndo.h`), depth `UndoHistoryDepth` (25) in the developer settings.
+- Added (T-80): barriers (`AddUndoBarrier`, called by `DropItem` and `LootWorldItem`), batches (`BeginUndoBatch`/`EndUndoBatch`, one entry), `SeverUndoHistory` (a closed container cuts the history at the newest entry touching it; also when the server ends a grant), `ClearUndoHistory`, and `AddInventoryView`/`RemoveInventoryView`/`IsInventoryScreenOpen`: the container widgets report what they show, so closing the last view of an inventory severs it and closing the screen clears the history.
+- Added (T-80): RockInventoryUI undo keys while the inventory screen is open (`URockInventoryUndoInputSubsystem`, a Slate input preprocessor per local player; `UndoChords` Ctrl+Z, `RedoChords` Ctrl+Y and Ctrl+Shift+Z in the UI settings).
+- Changed (T-80): `MoveItem` checks the move on the shown state without prediction too, and always sends preconditions (also on the authority). `SendDrop`/`SendLoot` test seams like `SendMove`. Removed the dead server-side `CanUndo`/`Undo` of the move, drop and loot transactions (the server keeps no history).
+- Added (T-80): tests `BRS.RockInventory.Undo.Step`, `.History` and `.Manager`.
+
 ## 2610.0804
 - Changed (T-79): a new item stack takes the lowest free index, derived from the data (`URockInventory::AcquireAvailableItemIndex`, `FRockInventoryData::AllocateStack`), so a client's predicted cross-inventory move gets the handle the server allocates when nothing else changed. The `FreeIndices` and `FreeStackIndices` free lists are gone.
 - Added (T-79): tests `BRS.RockInventory.ItemIndex` (plain data, live inventory, predicted versus server handle). Widgets keyed by inventory and anchor slot moved to T-193.

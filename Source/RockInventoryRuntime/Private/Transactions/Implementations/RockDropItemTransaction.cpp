@@ -136,21 +136,3 @@ FVector FRockDropItemTransaction::FindSafeDropLocation(const AController* Contro
 		       ? Hit.Location - (DesiredDropLocation - EyeLocation).GetSafeNormal() * PullbackDistance
 		       : DesiredDropLocation;
 }
-
-bool FRockDropItemUndoTransaction::CanUndo()
-{
-	// If the original command wasn't successful, we can't undo it
-	if (!bSuccess)
-	{
-		return false;
-	}
-	// check if item is still valid, and the target slot is still valid
-	// TODO
-
-	return false;
-}
-
-bool FRockDropItemUndoTransaction::Undo()
-{
-	return false;
-}

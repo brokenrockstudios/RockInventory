@@ -18,6 +18,9 @@
 #include "Transactions/Core/RockInventoryTransaction.h"
 #include "Transactions/Implementations/RockMoveItemTransaction.h"
 
+using RockInventoryManager::EMoveOrigin;
+using RockInventoryManager::ESendResult;
+
 URockInventoryManagerComponent::URockInventoryManagerComponent(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -103,6 +106,8 @@ void URockInventoryManagerComponent::OnRep_Observed(const TArray<FRockObservedIn
 		if (Old.Inventory && !FindObserved(Old.Inventory))
 		{
 			Old.Inventory->RefreshSyncStateWithFollowers();
+			// The server closed it (closed, out of reach): undo cannot reach into it any more
+			SeverUndoHistory(Old.Inventory);
 		}
 	}
 	for (const FRockObservedInventory& Entry : Observed)
@@ -123,6 +128,8 @@ bool URockInventoryManagerComponent::CanAccess(const URockInventory* Inventory, 
 void URockInventoryManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	UnbindPredictionFromModels();
+	InventoryViews.Reset();
+	ClearUndoHistory();
 	if (GetOwnerRole() == ROLE_Authority)
 	{
 		if (URockInventoryAccessSubsystem* Access = URockInventoryAccessSubsystem::Get(this))
@@ -216,6 +223,16 @@ double URockInventoryManagerComponent::GetPredictionTime() const
 void URockInventoryManagerComponent::SendMove(const FRockMoveItemTransaction& Command)
 {
 	Server_MoveItem(Command);
+}
+
+void URockInventoryManagerComponent::SendDrop(const FRockDropItemTransaction& Command)
+{
+	Server_DropItem(Command);
+}
+
+void URockInventoryManagerComponent::SendLoot(const FRockLootWorldItemTransaction& Command)
+{
+	Server_LootWorldItem(Command);
 }
 
 void URockInventoryManagerComponent::ConfigureQueue()
@@ -424,6 +441,7 @@ void URockInventoryManagerComponent::SendResult(int32 Sequence, bool bSuccess, T
 
 void URockInventoryManagerComponent::Client_TransactionResult_Implementation(int32 Sequence, bool bSuccess, const TArray<FRockInventoryRevision>& Touched)
 {
+	HandleHistoryAnswer(Sequence, bSuccess);
 	if (PredictionQueue.IsEmpty())
 	{
 		return;
@@ -462,7 +480,8 @@ void URockInventoryManagerComponent::LootWorldItem(const FRockLootWorldItemTrans
 	// The client never writes replicated inventory state: the server executes and the result replicates back.
 	FRockLootWorldItemTransaction Command = ItemTransaction;
 	Command.TransactionID = NextSequence();
-	Server_LootWorldItem(Command);
+	SendLoot(Command);
+	AddUndoBarrier();
 }
 
 void URockInventoryManagerComponent::Server_LootWorldItem_Implementation(FRockLootWorldItemTransaction ItemTransaction)
@@ -483,78 +502,424 @@ void URockInventoryManagerComponent::Server_LootWorldItem_Implementation(FRockLo
 
 bool URockInventoryManagerComponent::MoveItem(const FRockMoveItemTransaction& ItemTransaction)
 {
-	FRockMoveItemTransaction Command = ItemTransaction;
-	if (!ShouldPredict())
+	TArray<FRockMoveItemTransaction> Commands;
+	FRockMoveItemTransaction& Command = Commands.Add_GetRef(ItemTransaction);
+	// A player's move takes its preconditions from what the player sees
+	Command.ExpectedSource = FRockSlotExpectation();
+	Command.ExpectedTarget = FRockSlotExpectation();
+	return SendMoves(Commands, EMoveOrigin::Player) == ESendResult::Sent;
+}
+
+ESendResult URockInventoryManagerComponent::SendMoves(TArray<FRockMoveItemTransaction>& Commands, EMoveOrigin Origin)
+{
+	if (Commands.IsEmpty())
 	{
-		if (!ItemTransaction.CanExecute())
+		return ESendResult::Refused;
+	}
+	const bool bPredict = ShouldPredict();
+	if (!bPredict && Origin == EMoveOrigin::Player && !Commands[0].CanExecute())
+	{
+		// Not predicting, the inventory itself is what the player sees: refuse here, with the reason logged
+		return ESendResult::Refused;
+	}
+	for (const FRockMoveItemTransaction& Command : Commands)
+	{
+		if (!Command.SourceInventory || !Command.TargetInventory || !Command.SourceSlotHandle.IsValid() || !Command.TargetSlotHandle.IsValid())
 		{
-			return false;
+			return ESendResult::Refused;
 		}
-		Command.TransactionID = NextSequence();
-		if (GetOwnerRole() != ROLE_Authority)
+	}
+	if (bPredict)
+	{
+		ConfigureQueue();
+		SettlePending();
+		ExpirePending();
+		if (!PredictionQueue.CanPredict(GetPredictionTime()))
 		{
-			// Predicting is off, the preconditions still hold the server to what this client saw
-			Command.ExpectedSource = FRockSlotExpectation::Capture(*Command.SourceInventory, Command.SourceSlotHandle);
-			Command.ExpectedTarget = FRockSlotExpectation::Capture(*Command.TargetInventory, Command.TargetSlotHandle);
+			UpdateInputHold();
+			return ESendResult::Held;
 		}
-		SendMove(Command);
-		return true;
+		BindPredictionToModels();
 	}
 
-	// Predicting: the shown state, pending commands included, decides, not the replicated inventory (an item a pending command
-	// moved is not yet where the replicated inventory has it).
-	if (!Command.SourceInventory || !Command.TargetInventory || !Command.SourceSlotHandle.IsValid() || !Command.TargetSlotHandle.IsValid())
-	{
-		return false;
-	}
-	ConfigureQueue();
-	SettlePending();
-	ExpirePending();
-	if (!PredictionQueue.CanPredict(GetPredictionTime()))
-	{
-		UpdateInputHold();
-		return false;
-	}
-	BindPredictionToModels();
-
-	PredictionInventories.FindOrAdd(Command.SourceInventory->GetUniqueID()) = Command.SourceInventory;
-	PredictionInventories.FindOrAdd(Command.TargetInventory->GetUniqueID()) = Command.TargetInventory;
+	// The shown state decides, pending commands included, not the replicated inventory (an item a pending command moved is not yet
+	// where the replicated inventory has it).
+	TMap<uint32, URockInventory*> Involved;
 	TArray<uint32> Keys;
 	PredictionQueue.GetTouchedKeys(Keys);
-	Keys.AddUnique(Command.SourceInventory->GetUniqueID());
-	Keys.AddUnique(Command.TargetInventory->GetUniqueID());
-	FRockPredictionState State;
 	for (const uint32 Key : Keys)
 	{
-		if (const URockInventory* Inventory = FindInventory(Key))
+		Involved.Add(Key, FindInventory(Key));
+	}
+	for (const FRockMoveItemTransaction& Command : Commands)
+	{
+		Involved.Add(Command.SourceInventory->GetUniqueID(), Command.SourceInventory);
+		Involved.Add(Command.TargetInventory->GetUniqueID(), Command.TargetInventory);
+	}
+	Involved.GenerateKeyArray(Keys);
+	FRockPredictionState State;
+	for (const TPair<uint32, URockInventory*>& Pair : Involved)
+	{
+		if (Pair.Value)
 		{
-			State.Add(Key, FRockInventoryData::FromInventory(Inventory));
+			State.Add(Pair.Key, FRockInventoryData::FromInventory(Pair.Value));
 		}
 	}
 	PredictionQueue.Rebase(State);
 
-	FRockPredictedMove Move;
-	Move.Sequence = NextSequence();
-	Move.SourceKey = Command.SourceInventory->GetUniqueID();
-	Move.SourceSlot = Command.SourceSlotHandle;
-	Move.TargetKey = Command.TargetInventory->GetUniqueID();
-	Move.TargetSlot = Command.TargetSlotHandle;
-	Move.Params = Command.MoveParams;
-	if (PredictionQueue.Predict(State, Move, GetPredictionTime()) != ERockMoveRefusal::None)
+	// The whole action is checked on a copy first: it goes out complete or not at all. Each move's undo step comes with it.
+	FRockPredictionState Scratch = State;
+	TArray<FRockUndoStep> Steps;
+	TArray<ERockUndoStepResult> Results;
+	for (FRockMoveItemTransaction& Command : Commands)
+	{
+		FRockUndoMove Move;
+		Move.SourceKey = Command.SourceInventory->GetUniqueID();
+		Move.SourceSlot = Command.SourceSlotHandle;
+		Move.TargetKey = Command.TargetInventory->GetUniqueID();
+		Move.TargetSlot = Command.TargetSlotHandle;
+		Move.Params = Command.MoveParams;
+		Move.ExpectedSource = Command.ExpectedSource;
+		Move.ExpectedTarget = Command.ExpectedTarget;
+		const ERockUndoStepResult Result = FRockUndoStep::Make(Scratch, Move, Steps.AddDefaulted_GetRef());
+		if (Result == ERockUndoStepResult::Stale)
+		{
+			return ESendResult::Stale;
+		}
+		if (Result == ERockUndoStepResult::Refused)
+		{
+			return ESendResult::Refused;
+		}
+		Results.Add(Result);
+		// The preconditions hold the server to what this client saw, predicting or not
+		Command.ExpectedSource = Steps.Last().Forward.ExpectedSource;
+		Command.ExpectedTarget = Steps.Last().Forward.ExpectedTarget;
+	}
+
+	TArray<int32> Sequences;
+	bool bComplete = true;
+	for (FRockMoveItemTransaction& Command : Commands)
+	{
+		if (bPredict)
+		{
+			PredictionInventories.FindOrAdd(Command.SourceInventory->GetUniqueID()) = Command.SourceInventory;
+			PredictionInventories.FindOrAdd(Command.TargetInventory->GetUniqueID()) = Command.TargetInventory;
+			FRockPredictedMove Move;
+			Move.Sequence = NextSequence();
+			Move.SourceKey = Command.SourceInventory->GetUniqueID();
+			Move.SourceSlot = Command.SourceSlotHandle;
+			Move.TargetKey = Command.TargetInventory->GetUniqueID();
+			Move.TargetSlot = Command.TargetSlotHandle;
+			Move.Params = Command.MoveParams;
+			// Same rules on the same state as the check above, so this cannot refuse
+			if (!ensureMsgf(PredictionQueue.Predict(State, Move, GetPredictionTime()) == ERockMoveRefusal::None, TEXT("A move checked on the shown state was refused when predicted")))
+			{
+				bComplete = false;
+				break;
+			}
+			Command.TransactionID = Move.Sequence;
+		}
+		else
+		{
+			Command.TransactionID = NextSequence();
+		}
+		Sequences.Add(Command.TransactionID);
+		HistoryInventories.FindOrAdd(Command.SourceInventory->GetUniqueID()) = Command.SourceInventory;
+		HistoryInventories.FindOrAdd(Command.TargetInventory->GetUniqueID()) = Command.TargetInventory;
+	}
+	Commands.SetNum(Sequences.Num());
+
+	// The history first: an authority executes and answers inside SendMove
+	if (Origin == EMoveOrigin::Player)
+	{
+		if (bComplete)
+		{
+			RecordPlayerSteps(MoveTemp(Steps), Results, Sequences);
+		}
+		else
+		{
+			AddUndoBarrier();
+		}
+	}
+	else
+	{
+		const bool bUndo = Origin == EMoveOrigin::Undo;
+		if (bComplete && bUndo)
+		{
+			UndoHistory.MarkUndone(Sequences);
+		}
+		else if (bComplete)
+		{
+			UndoHistory.MarkRedone(Sequences);
+		}
+		else
+		{
+			UndoHistory.DropTop(bUndo);
+		}
+		HistoryCommandSequences.Append(Sequences);
+		UndoHistoryChanged();
+	}
+
+	if (bPredict)
+	{
+		// Show it before sending: an answer that comes back at once (a listen server, a test) finds the move queued
+		RefreshModels(Keys);
+		SetComponentTickEnabled(true);
+		UpdateInputHold();
+	}
+	for (const FRockMoveItemTransaction& Command : Commands)
+	{
+		SendMove(Command);
+	}
+	return Commands.IsEmpty() ? ESendResult::Refused : ESendResult::Sent;
+}
+
+// Undo and redo ---------------------------------------------------------------------------------------------------------------
+
+bool URockInventoryManagerComponent::Undo()
+{
+	return StepHistory(true);
+}
+
+bool URockInventoryManagerComponent::Redo()
+{
+	return StepHistory(false);
+}
+
+bool URockInventoryManagerComponent::StepHistory(bool bUndo)
+{
+	const FRockUndoEntry* Entry = bUndo ? UndoHistory.PeekUndo() : UndoHistory.PeekRedo();
+	if (!Entry || BatchDepth > 0)
 	{
 		return false;
 	}
-	const FRockPredictedMove& Queued = PredictionQueue.GetPending().Last();
-	Command.TransactionID = Queued.Sequence;
-	Command.ExpectedSource = Queued.ExpectedSource;
-	Command.ExpectedTarget = Queued.ExpectedTarget;
+	TArray<FRockUndoMove> Moves;
+	Entry->GetMoves(bUndo, Moves);
+	TArray<FRockMoveItemTransaction> Commands;
+	for (const FRockUndoMove& Move : Moves)
+	{
+		URockInventory* Source = FindHistoryInventory(Move.SourceKey);
+		URockInventory* Target = FindHistoryInventory(Move.TargetKey);
+		if (!Source || !Target)
+		{
+			DropUndoEntry(bUndo, TEXT("an inventory it touched is gone"));
+			return false;
+		}
+		FRockMoveItemTransaction& Command = Commands.Emplace_GetRef(GetOwningController(), Source, Move.SourceSlot, Target, Move.TargetSlot, Move.Params);
+		Command.ExpectedSource = Move.ExpectedSource;
+		Command.ExpectedTarget = Move.ExpectedTarget;
+	}
+	switch (SendMoves(Commands, bUndo ? EMoveOrigin::Undo : EMoveOrigin::Redo))
+	{
+	case ESendResult::Sent:
+		return true;
+	case ESendResult::Held:
+		// Try again once the server has caught up; the entry stays
+		return false;
+	case ESendResult::Stale:
+		DropUndoEntry(bUndo, TEXT("its items moved since"));
+		return false;
+	case ESendResult::Refused:
+	default:
+		DropUndoEntry(bUndo, TEXT("the inventory refuses the move now"));
+		return false;
+	}
+}
 
-	// Show it before sending: an answer that comes back at once (a listen server, a test) finds the move queued
-	RefreshModels(Keys);
-	SetComponentTickEnabled(true);
-	UpdateInputHold();
-	SendMove(Command);
-	return true;
+void URockInventoryManagerComponent::RecordPlayerSteps(TArray<FRockUndoStep>&& Steps, TConstArrayView<ERockUndoStepResult> Results, TConstArrayView<int32> Sequences)
+{
+	FRockUndoEntry Entry;
+	for (int32 Index = 0; Index < Steps.Num(); ++Index)
+	{
+		if (Results[Index] == ERockUndoStepResult::NotInvertible)
+		{
+			// Undo could not take it back, so undo stops here
+			AddUndoBarrier();
+			return;
+		}
+		if (Results[Index] == ERockUndoStepResult::Undoable)
+		{
+			Entry.Steps.Add(MoveTemp(Steps[Index]));
+		}
+	}
+	if (Entry.Steps.IsEmpty())
+	{
+		return;
+	}
+	Entry.PendingSequences.Append(Sequences.GetData(), Sequences.Num());
+	if (BatchDepth > 0)
+	{
+		OpenBatch.Steps.Append(MoveTemp(Entry.Steps));
+		OpenBatch.PendingSequences.Append(Entry.PendingSequences);
+		return;
+	}
+	UndoHistory.MaxEntries = GetDefault<URockInventoryDeveloperSettings>()->UndoHistoryDepth;
+	UndoHistory.Record(MoveTemp(Entry));
+	UndoHistoryChanged();
+}
+
+void URockInventoryManagerComponent::HandleHistoryAnswer(int32 Sequence, bool bSuccess)
+{
+	const bool bUndoOrRedo = HistoryCommandSequences.Remove(Sequence) > 0;
+	if (bSuccess)
+	{
+		UndoHistory.Confirm(Sequence);
+		OpenBatch.PendingSequences.Remove(Sequence);
+		return;
+	}
+	if (BatchDepth > 0 && OpenBatch.PendingSequences.Contains(Sequence))
+	{
+		// Part of the batch did not happen, so it cannot be undone as one
+		bDiscardBatch = true;
+	}
+	if (UndoHistory.DropBySequence(Sequence))
+	{
+		if (bUndoOrRedo)
+		{
+			UE_LOG(LogRockInventory, Log, TEXT("The server refused an undo or redo of %s; the entry was dropped"), *GetNameSafe(GetOwner()));
+			OnUndoEntryDropped.Broadcast();
+		}
+		UndoHistoryChanged();
+	}
+}
+
+void URockInventoryManagerComponent::DropUndoEntry(bool bUndo, const TCHAR* Why)
+{
+	// Not an error: another player or the server moved the items, which is what the preconditions are for
+	UE_LOG(LogRockInventory, Log, TEXT("%s of %s not possible, %s; the entry was dropped"), bUndo ? TEXT("Undo") : TEXT("Redo"), *GetNameSafe(GetOwner()), Why);
+	UndoHistory.DropTop(bUndo);
+	OnUndoEntryDropped.Broadcast();
+	UndoHistoryChanged();
+}
+
+void URockInventoryManagerComponent::AddUndoBarrier()
+{
+	ClearUndoHistory();
+}
+
+void URockInventoryManagerComponent::ClearUndoHistory()
+{
+	if (BatchDepth > 0)
+	{
+		bDiscardBatch = true;
+	}
+	HistoryCommandSequences.Reset();
+	if (UndoHistory.IsEmpty())
+	{
+		return;
+	}
+	UndoHistory.Clear();
+	UndoHistoryChanged();
+}
+
+void URockInventoryManagerComponent::SeverUndoHistory(URockInventory* Inventory)
+{
+	if (!Inventory)
+	{
+		return;
+	}
+	const uint32 Key = Inventory->GetUniqueID();
+	if (BatchDepth > 0 && OpenBatch.Touches(Key))
+	{
+		bDiscardBatch = true;
+	}
+	int32 Dropped = UndoHistory.Sever(Key);
+	// A weapon's attachments (FollowsParent) close with it
+	for (const TPair<uint32, TWeakObjectPtr<URockInventory>>& Pair : HistoryInventories)
+	{
+		const URockInventory* Other = Pair.Value.Get();
+		if (Other && Other != Inventory && Other->GetGatingRoot() == Inventory)
+		{
+			Dropped += UndoHistory.Sever(Pair.Key);
+		}
+	}
+	if (Dropped > 0)
+	{
+		UndoHistoryChanged();
+	}
+}
+
+void URockInventoryManagerComponent::BeginUndoBatch()
+{
+	if (BatchDepth++ == 0)
+	{
+		OpenBatch = FRockUndoEntry();
+		bDiscardBatch = false;
+	}
+}
+
+void URockInventoryManagerComponent::EndUndoBatch()
+{
+	if (!ensureMsgf(BatchDepth > 0, TEXT("EndUndoBatch without a BeginUndoBatch")) || --BatchDepth > 0)
+	{
+		return;
+	}
+	FRockUndoEntry Entry = MoveTemp(OpenBatch);
+	OpenBatch = FRockUndoEntry();
+	if (!bDiscardBatch && !Entry.Steps.IsEmpty())
+	{
+		UndoHistory.MaxEntries = GetDefault<URockInventoryDeveloperSettings>()->UndoHistoryDepth;
+		UndoHistory.Record(MoveTemp(Entry));
+		UndoHistoryChanged();
+	}
+	bDiscardBatch = false;
+}
+
+void URockInventoryManagerComponent::AddInventoryView(const URockInventory* Inventory)
+{
+	if (Inventory)
+	{
+		++InventoryViews.FindOrAdd(Inventory->GetUniqueID());
+	}
+}
+
+void URockInventoryManagerComponent::RemoveInventoryView(URockInventory* Inventory)
+{
+	if (!Inventory)
+	{
+		return;
+	}
+	const uint32 Key = Inventory->GetUniqueID();
+	int32* Count = InventoryViews.Find(Key);
+	if (!Count || --*Count > 0)
+	{
+		return;
+	}
+	InventoryViews.Remove(Key);
+	if (InventoryViews.IsEmpty())
+	{
+		// The last inventory widget went: the inventory screen closed
+		ClearUndoHistory();
+	}
+	else
+	{
+		SeverUndoHistory(Inventory);
+	}
+}
+
+URockInventory* URockInventoryManagerComponent::FindHistoryInventory(uint32 Key) const
+{
+	const TWeakObjectPtr<URockInventory>* Found = HistoryInventories.Find(Key);
+	return Found ? Found->Get() : nullptr;
+}
+
+void URockInventoryManagerComponent::UndoHistoryChanged()
+{
+	TArray<uint32> Keys;
+	UndoHistory.GetKeys(Keys);
+	for (const FRockUndoStep& Step : OpenBatch.Steps)
+	{
+		Keys.AddUnique(Step.Forward.SourceKey);
+		Keys.AddUnique(Step.Forward.TargetKey);
+	}
+	for (auto It = HistoryInventories.CreateIterator(); It; ++It)
+	{
+		if (!Keys.Contains(It.Key()))
+		{
+			It.RemoveCurrent();
+		}
+	}
+	OnUndoHistoryChanged.Broadcast();
 }
 
 void URockInventoryManagerComponent::Server_MoveItem_Implementation(FRockMoveItemTransaction ItemTransaction)
@@ -585,7 +950,8 @@ void URockInventoryManagerComponent::DropItem(const FRockDropItemTransaction& It
 	// The client never writes replicated inventory state: the server executes and the result replicates back.
 	FRockDropItemTransaction Command = ItemTransaction;
 	Command.TransactionID = NextSequence();
-	Server_DropItem(Command);
+	SendDrop(Command);
+	AddUndoBarrier();
 }
 
 void URockInventoryManagerComponent::Server_DropItem_Implementation(FRockDropItemTransaction ItemTransaction)

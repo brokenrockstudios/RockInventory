@@ -10,17 +10,21 @@
 // TODO: Move this into more game specific module.
 // WARN: This type of code really shouldn't be here in this plugin. MOVE IT!
 
+#define TAG_EXTERN(Name) ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Name)
+
 namespace RockInventoryTags
 {
 	// Declare all the custom native tags that Rock Modular GameplayAbilities will use
-	ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Rarity_Common);
-	ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Rarity_Uncommon);
-	ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Rarity_Rare);
-	ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Rarity_Epic);
-	ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Rarity_Legendary);
+	TAG_EXTERN(Item_Rarity_Common);
+	TAG_EXTERN(Item_Rarity_Uncommon);
+	TAG_EXTERN(Item_Rarity_Rare);
+	TAG_EXTERN(Item_Rarity_Epic);
+	TAG_EXTERN(Item_Rarity_Legendary);
 
 	// General sections. Game-specific sections (Equipment.*, Process.*, ...) live in the game module.
-	ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Inventory_Section_Backpack);
-	ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Inventory_Section_Pockets);
-	ROCKINVENTORYRUNTIME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Inventory_Section_Storage);
+	TAG_EXTERN(Inventory_Section_Backpack);
+	TAG_EXTERN(Inventory_Section_Pockets);
+	TAG_EXTERN(Inventory_Section_Storage);
 }
+
+#undef TAG_EXTERN

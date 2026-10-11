@@ -8,23 +8,6 @@
 #include "World/RockLootableInterface.h"
 
 
-bool FRockLootWorldItemUndoTransaction::CanUndo()
-{
-	// no undo of looting world items.
-	return false;
-}
-
-bool FRockLootWorldItemUndoTransaction::Undo()
-{
-	if (!bSuccess)
-	{
-		return false;
-	}
-
-	// We can't a 'world loot' at this time.
-	return false;
-}
-
 bool FRockLootWorldItemTransaction::CanExecute() const
 {
 	if (!Instigator.IsValid())

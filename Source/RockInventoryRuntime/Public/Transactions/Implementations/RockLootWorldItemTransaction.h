@@ -24,9 +24,6 @@ struct FRockLootWorldItemUndoTransaction : public FRockItemTransactionBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRockLootResult Result;
 	bool bSuccess;
-
-	bool CanUndo();
-	bool Undo();
 };
 
 USTRUCT(BlueprintType)
