@@ -1,10 +1,10 @@
-﻿{
+{
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "0.1",
 	"FriendlyName": "RockInventory",
 	"Description": "Inventory system for BRS games. Supports multi-sized items in UI",
-	"Category": "Inventory",
+	"Category": "Rock",
 	"CreatedBy": "Broken Rock Studios",
 	"CreatedByURL": "https://brokenrockstudios.com",
 	"DocsURL": "",
