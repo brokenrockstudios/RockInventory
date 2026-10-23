@@ -3,8 +3,20 @@
 #include "RockInventoryTestFixture.h"
 
 #include "Inventory/RockInventoryConfig.h"
+#include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
 #include "Library/RockInventoryLibrary.h"
 #include "UObject/Package.h"
+
+FRockInventoryFixture::~FRockInventoryFixture()
+{
+	if (URockItemRegistrySubsystem* Registry = URockItemRegistrySubsystem::GetInstance())
+	{
+		for (const TWeakObjectPtr<URockItemDefinition>& Definition : RegisteredDefinitions)
+		{
+			Registry->UnregisterForTest(Definition.Get());
+		}
+	}
+}
 
 void FRockInventoryFixture::Init(const TArray<FRockInventorySectionInfo>& Sections)
 {
@@ -33,6 +45,11 @@ URockItemDefinition* FRockInventoryFixture::MakeDefinition(FName ItemId, int32 M
 	Definition->MaxStackCount = MaxStack;
 	Definition->GridSize = GridSize;
 	KeepAlive.Emplace(Definition);
+	if (URockItemRegistrySubsystem* Registry = URockItemRegistrySubsystem::GetInstance())
+	{
+		Registry->RegisterForTest(Definition);
+		RegisteredDefinitions.Add(Definition);
+	}
 	return Definition;
 }
 

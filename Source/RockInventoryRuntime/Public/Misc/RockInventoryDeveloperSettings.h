@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "Item/RockItemDefinition.h"
 #include "RockInventoryDeveloperSettings.generated.h"
 
 
@@ -32,6 +33,13 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Config, Category = "RockInventory|Visuals")
 	TSoftObjectPtr<UStaticMesh> FallbackWorldItemMesh;
+
+	/**
+	 * What a stack shows when the item registry does not know its ItemId (a removed mod, a content mismatch): 1x1, never stacks.
+	 * Give it a "?" icon. It is kept out of the registry scan. Unset uses a code default with no icon.
+	 */
+	UPROPERTY(EditAnywhere, Config, Category = "RockInventory|Unknown Items")
+	TSoftObjectPtr<URockItemDefinition> UnknownItemDefinition;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Thumbnail")
 	ERockThumbnailMode ItemDefinitionThumbnailMode = ERockThumbnailMode::Default;

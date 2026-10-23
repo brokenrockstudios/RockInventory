@@ -84,6 +84,10 @@ private:
 	/** Replicated array callbacks recorded changes; PostNetReceive flushes them once every array has been applied. */
 	bool bAwaitingNetReceive = false;
 
+	/** The item registry refreshed or gained a definition: stacks showing the unknown-item placeholder look their ItemId up again. */
+	void OnItemRegistryRefreshed();
+	FDelegateHandle ItemRegistryRefreshedHandle;
+
 	ERockInventorySyncState CachedSyncState = ERockInventorySyncState::Unknown;
 	/** A grant for this inventory was seen on this client at some point: without one now, the state is Stale rather than Unknown. */
 	bool bEverObserved = false;
@@ -123,6 +127,14 @@ public:
 	UPROPERTY(Replicated)
 	ERockNestedVisibility NestedVisibility = ERockNestedVisibility::Separate;
 
+	/** Nested inventories only: may a loot call into the inventory holding the item place items here (T-54). Copied from URockInventoryConfig::bAcceptsNestedLoot by Init. */
+	UPROPERTY(Replicated)
+	bool bAcceptsNestedLoot = false;
+
+	/** Copied from URockInventoryConfig::NestedLootPriority by Init; lower is tried first. */
+	UPROPERTY(Replicated)
+	int32 NestedLootPriority = 0;
+
 	/** The inventory whose viewers, access and Observed entry apply to this one: itself, or the first ancestor that does not follow its parent. */
 	const URockInventory* GetGatingRoot() const;
 	URockInventory* GetGatingRoot() { return const_cast<URockInventory*>(static_cast<const URockInventory*>(this)->GetGatingRoot()); }
@@ -161,6 +173,7 @@ public:
 	virtual void PostNetReceive() override;
 	/** Points the slot and item arrays at this inventory, so a client copy that arrives as a plain replicated subobject routes its array callbacks here. */
 	virtual void PostInitProperties() override;
+	virtual void BeginDestroy() override;
 
 	/* The owner of this inventory, most likely the InventoryComponent */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)

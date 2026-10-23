@@ -19,8 +19,18 @@ struct FRockInventoryChangeSet;
 struct FRockInventoryData;
 enum class ERockAddRefusal : uint8;
 
+/** One opted-in nested inventory found under a root (T-54). */
+struct FRockNestedLootTarget
+{
+	const URockInventory* Inventory = nullptr;
+	/** 1 for an inventory held by an item directly in the root, 2 for one held by an item inside that, and so on. */
+	int32 Depth = 0;
+	/** URockInventory::NestedLootPriority; lower is tried first. */
+	int32 Priority = 0;
+};
+
 /**
- * 
+ *
  */
 UCLASS()
 class ROCKINVENTORYRUNTIME_API URockInventoryLibrary : public UBlueprintFunctionLibrary
@@ -59,6 +69,17 @@ public:
 	 * matches the item first, then LootPriority (lower first), then config order. Entries are root-inventory sections only.
 	 */
 	static void BuildLootPlan(const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, FRockLootPlan& OutPlan);
+
+	static constexpr int32 MaxNestedLootDepth = 3;
+
+	/**
+	 * Read-only: the nested inventories under Root that opted in to loot (bAcceptsNestedLoot), ordered by NestedLootPriority (lower first), then depth
+	 * (shallower first), then discovery order (root slot order). Root itself is never listed. A nested inventory is reached through the item stacks of an
+	 * inventory that is the root or itself opted in: a container that did not opt in (a weapon's attachments) is not searched, so what sits inside it
+	 * is never found either. Only inventories at most MaxDepth levels down are looked at (default 3), and an inventory reached twice is listed once,
+	 * which also ends a cycle. Runs on plain item data and needs no authority.
+	 */
+	static void FindNestedLootInventories(const URockInventory* Root, TArray<FRockNestedLootTarget>& OutTargets, int32 MaxDepth = MaxNestedLootDepth);
 
 	/** Debug text for designers: every section of the inventory, in the order the call would try them, or why it is skipped. */
 	UFUNCTION(BlueprintPure, Category = "Rock Inventory")

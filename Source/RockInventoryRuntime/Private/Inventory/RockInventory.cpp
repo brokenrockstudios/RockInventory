@@ -9,6 +9,7 @@
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
+#include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
 #include "Components/RockInventoryManagerComponent.h"
 #include "Engine/World.h"
 #include "Library/RockInventoryLibrary.h"
@@ -77,6 +78,8 @@ void URockInventory::Init(const URockInventoryConfig* config)
 	bItemSlotIndexDirty = true;
 	// Before the registration: the gating root and the groups depend on it
 	NestedVisibility = config->Visibility;
+	bAcceptsNestedLoot = config->bAcceptsNestedLoot;
+	NestedLootPriority = config->NestedLootPriority;
 	RegisterReplicationWithOwner();
 	// Set owner references for containers
 	ItemData.SetOwningInventory(this);
@@ -401,6 +404,8 @@ void URockInventory::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(URockInventory, PendingSlotOperations);
 	DOREPLIFETIME(URockInventory, Revision);
 	DOREPLIFETIME_CONDITION(URockInventory, NestedVisibility, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(URockInventory, bAcceptsNestedLoot, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(URockInventory, NestedLootPriority, COND_InitialOnly);
 }
 
 bool URockInventory::IsSupportedForNetworking() const
@@ -512,6 +517,45 @@ void URockInventory::PostInitProperties()
 		// (nested inventories, inventories gated per viewer), so the arrays would drop every change callback without this.
 		ItemData.SetOwningInventory(this);
 		SlotData.SetOwningInventory(this);
+		// A stack replicated before the registry could resolve its ItemId shows the unknown-item placeholder until the registry refreshes.
+		if (URockItemRegistrySubsystem* Registry = URockItemRegistrySubsystem::GetInstance())
+		{
+			ItemRegistryRefreshedHandle = Registry->OnRefreshed.AddUObject(this, &URockInventory::OnItemRegistryRefreshed);
+		}
+	}
+}
+
+void URockInventory::BeginDestroy()
+{
+	if (ItemRegistryRefreshedHandle.IsValid())
+	{
+		if (URockItemRegistrySubsystem* Registry = URockItemRegistrySubsystem::GetInstance())
+		{
+			Registry->OnRefreshed.Remove(ItemRegistryRefreshedHandle);
+		}
+		ItemRegistryRefreshedHandle.Reset();
+	}
+	Super::BeginDestroy();
+}
+
+void URockInventory::OnItemRegistryRefreshed()
+{
+	FRockInventoryOperationScope Scope(this);
+	for (FRockItemStack& Item : ItemData)
+	{
+		if (Item.GetItemId().IsNone() || (Item.GetDefinition() && !Item.IsUnknownItem()))
+		{
+			continue;
+		}
+		if (Item.ResolveDefinition())
+		{
+			if (URockItemInstance* Instance = Item.GetRuntimeInstance())
+			{
+				Instance->CachedDefinition = Item.GetDefinition();
+			}
+			// The footprint may have grown; BroadcastItemChanged lets the UI redraw. No reconcile of overlaps (see T-1010).
+			BroadcastItemChanged(Item.ItemHandle, ERockItemChangeType::Changed);
+		}
 	}
 }
 
@@ -940,6 +984,7 @@ FRockItemStackHandle URockInventory::AddItemToInventory(const FRockItemStack& In
 	// Modify a reference
 	FRockItemStack& NewItemStack = ItemData[Index];
 	// Generation is reconciled in the AcquireAvailableItemData
+	NewItemStack.ItemId = InItemStack.ItemId;
 	NewItemStack.Definition = InItemStack.Definition;
 	NewItemStack.RuntimeInstance = InItemStack.RuntimeInstance;
 	NewItemStack.StackCount = InItemStack.StackCount;

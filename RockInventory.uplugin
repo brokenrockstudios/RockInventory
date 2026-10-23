@@ -20,6 +20,11 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "RockInventoryData",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "RockInventoryEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default"
@@ -38,6 +43,10 @@
 	"Plugins": [
 		{
 			"Name": "Iris",
+			"Enabled": true
+		},
+		{
+			"Name": "RockData",
 			"Enabled": true
 		},
 		{

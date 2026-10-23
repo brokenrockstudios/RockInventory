@@ -226,6 +226,10 @@ private:
 	// If it did, we could simply set the StatTags and avoid all of this. But since it doesn't, we need to manually copy the values over.
 	void RebuildStatTags();
 public:
+
+	/** Sets the soft asset pointers from resolved paths (a null path clears the pointer). The two class paths are class paths (`..._C`). */
+	void SetAssets(const FSoftObjectPath& Icon, const FSoftObjectPath& Mesh, const FSoftObjectPath& SkeletalMesh, const FSoftObjectPath& ActorClassPath, const FSoftObjectPath& RuntimeInstanceClassPath);
+
 	/** Refreshes GetAllTags() from ItemType and ItemTags. Runs on PostLoad and on editing those properties; call it after setting them in code (tests). */
 	void RebuildCachedTags();
 	void SortFragments();

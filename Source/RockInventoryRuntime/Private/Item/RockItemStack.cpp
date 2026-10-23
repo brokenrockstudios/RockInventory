@@ -6,9 +6,11 @@
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemFragment.h"
 #include "Item/RockItemInstance.h"
+#include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
 
 FRockItemStack::FRockItemStack(URockItemDefinition* InDefinition, int32 InStackCount)
-	: Definition(InDefinition),
+	: ItemId(InDefinition ? InDefinition->ItemId : NAME_None),
+	  Definition(InDefinition),
 	  StackCount(InStackCount)
 {
 	const bool bValidItem = ::IsValid(InDefinition) && InStackCount > 0;
@@ -22,18 +24,60 @@ const FRockItemStack& FRockItemStack::Invalid()
 	return InvalidRockItemStack;
 }
 
+FRockItemStack FRockItemStack::FromItemId(FName InItemId, int32 InStackCount)
+{
+	FRockItemStack Stack;
+	Stack.ItemId = InItemId;
+	Stack.StackCount = InStackCount;
+	Stack.ResolveDefinition();
+	return Stack;
+}
+
 FName FRockItemStack::GetItemId() const
 {
-	if (Definition)
-	{
-		return Definition->ItemId;
-	}
-	return NAME_None;
+	return ItemId;
 }
 
 URockItemDefinition* FRockItemStack::GetDefinition() const
 {
 	return Definition;
+}
+
+bool FRockItemStack::IsUnknownItem() const
+{
+	const URockItemRegistrySubsystem* Registry = Definition ? URockItemRegistrySubsystem::GetInstance() : nullptr;
+	return Registry && Registry->IsUnknownItemDefinition(Definition);
+}
+
+bool FRockItemStack::ResolveDefinition()
+{
+	URockItemDefinition* const Before = Definition;
+	if (ItemId.IsNone())
+	{
+		Definition = nullptr;
+		return Definition != Before;
+	}
+	if (Definition && Definition->ItemId == ItemId)
+	{
+		return false;
+	}
+	const URockItemRegistrySubsystem* Registry = URockItemRegistrySubsystem::GetInstance();
+	if (!Registry)
+	{
+		return false;
+	}
+	URockItemDefinition* Found = Registry->TryFindDefinition(ItemId);
+	if (!Found)
+	{
+		// Only the first fall-back logs: a registry refresh looks the id up again and must not repeat it.
+		if (!Registry->IsUnknownItemDefinition(Before))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("FRockItemStack: no item definition for ItemId '%s'; the stack shows the unknown-item placeholder."), *ItemId.ToString());
+		}
+		Found = Registry->GetUnknownItemDefinition();
+	}
+	Definition = Found;
+	return Definition != Before;
 }
 
 int32 FRockItemStack::GetStackCount() const
@@ -43,9 +87,9 @@ int32 FRockItemStack::GetStackCount() const
 
 int32 FRockItemStack::GetMaxStackCount() const
 {
-	if (Definition)
+	if (const URockItemDefinition* Def = GetDefinition())
 	{
-		return Definition->MaxStackCount;
+		return Def->MaxStackCount;
 	}
 	// No definition, no max stack size because this is an Invalid stack
 	return 0;
@@ -63,7 +107,7 @@ FString FRockItemStack::GetDebugString() const
 
 bool FRockItemStack::IsValid() const
 {
-	return (StackCount > 0) && Definition;
+	return (StackCount > 0) && GetDefinition();
 }
 
 bool FRockItemStack::IsInitialized() const
@@ -78,6 +122,7 @@ int32 FRockItemStack::GetGeneration() const
 
 void FRockItemStack::Reset()
 {
+	ItemId = NAME_None;
 	Definition = nullptr;
 	RuntimeInstance = nullptr;
 	StackCount = 0;
@@ -92,7 +137,12 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 	{
 		return false;
 	}
-	if (Definition != Other.Definition)
+	if (ItemId != Other.ItemId || GetDefinition() != Other.GetDefinition())
+	{
+		return false;
+	}
+	// The placeholder stands for content this build does not know: it never merges, not even with another stack of the same id.
+	if (IsUnknownItem() || Other.IsUnknownItem())
 	{
 		return false;
 	}
@@ -113,11 +163,12 @@ bool FRockItemStack::CanStackWith(const FRockItemStack& Other) const
 	}
 
 	// Any fragment can veto
-	if (!Definition)
+	const URockItemDefinition* Def = GetDefinition();
+	if (!Def)
 	{
 		return true;
 	}
-	for (const FInstancedStruct& Fragment : Definition->GetAllFragments())
+	for (const FInstancedStruct& Fragment : Def->GetAllFragments())
 	{
 		const FRockItemFragment* ItemFragment = Fragment.GetPtr<FRockItemFragment>();
 		if (ItemFragment && !ItemFragment->CanCombineItemStack(*this, Other))
@@ -177,7 +228,8 @@ void FRockItemStack::TransferOwnership(UObject* NewOuter, URockInventory* InOwni
 
 bool FRockItemStack::operator==(const FRockItemStack& Other) const
 {
-	return Definition == Other.Definition &&
+	return ItemId == Other.ItemId &&
+		Definition == Other.Definition &&
 		StackCount == Other.StackCount &&
 		RuntimeInstance == Other.RuntimeInstance &&
 		CustomValue1 == Other.CustomValue1 &&
@@ -202,6 +254,7 @@ void FRockItemStack::CopyDataFrom(const FRockItemStack& InItemStack)
 	// caller passing a fresh stack must not reset the init state and make AddItemToInventory re-run
 	// OnItemCreated or replace the RuntimeInstance.
 	ItemHandle = InItemStack.ItemHandle;
+	ItemId = InItemStack.ItemId;
 	Definition = InItemStack.Definition;
 	StackCount = InItemStack.StackCount;
 	CustomValue1 = InItemStack.CustomValue1;
@@ -251,7 +304,9 @@ void FRockInventoryItemContainer::PostReplicatedChange(const TArrayView<int32> C
 		// I don't think this should ever be the case but just in case, we should be defensive about array bounds here
 		if (!AllSlots.IsValidIndex(Index)) continue;
 
-		const FRockItemStack& CurrentItem = AllSlots[Index];
+		FRockItemStack& CurrentItem = AllSlots[Index];
+		// ItemId replicated, the definition did not: look it up now (an unknown id takes the placeholder and logs once).
+		CurrentItem.ResolveDefinition();
 		const FRockItemStackHandle PrevHandle = PreviousItemHandles.IsValidIndex(Index) ? PreviousItemHandles[Index] : FRockItemStackHandle::Invalid();
 
 		const bool bIsCurrentlyValid = CurrentItem.IsValid();

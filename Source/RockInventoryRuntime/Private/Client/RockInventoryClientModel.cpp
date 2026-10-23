@@ -7,7 +7,7 @@
 #include "Components/RockInventoryManagerComponent.h"
 #include "Inventory/RockInventory.h"
 
-namespace
+namespace RockInventoryClientModelPrivate
 {
 	/** Two sections that lay out and filter the same way. The filter is a function of the section's tags and size, so those are what is compared. */
 	bool SameSection(const FRockInventorySectionInfo& A, const FRockInventorySectionInfo& B)
@@ -24,6 +24,8 @@ namespace
 		return Data.Stacks.IsValidIndex(Index) && Data.Stacks[Index].IsValid() ? &Data.Stacks[Index] : nullptr;
 	}
 }
+
+using namespace RockInventoryClientModelPrivate;
 
 FRockInventoryPresentationDiff FRockInventoryPresentationDiff::Between(const FRockInventoryData& Old, ERockInventorySyncState OldState, const FRockInventoryData& New, ERockInventorySyncState NewState)
 {
@@ -260,4 +262,9 @@ URockInventoryClientModel* URockInventoryClientModelSubsystem::FindOrCreateModel
 		Model->Bind(Inventory);
 	}
 	return Model;
+}
+
+void URockInventoryClientModelSubsystem::SetPredictionSource(URockInventoryManagerComponent* Source)
+{
+	PredictionSource = Source;
 }

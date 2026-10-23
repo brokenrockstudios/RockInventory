@@ -2,6 +2,30 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.2301
+
+- Item records (T-988): new runtime module `RockInventoryData` (depends on RockData; `RockInventoryRuntime` stays free of it) registers the `Item` record type (folder `Items`, text fields `Name`, `DisplayName`, `Description`, struct `FRockItemRecord`) and `FRockItemRecordProvider` builds one `URockItemDefinition` per concrete record (outer: the item registry, name `Item_<ID>`), rewrites it in place and drops it with the record; `URockItemRecordSubsystem` registers it with the registry and follows RockData reloads. `URockItemDefinition` gains `SetAssets`. The record has no stat tag field: the definition's `StatTagDefaults` stays for assets, and a named fragment can carry static values if a reader appears. Tests in `BRS.RockInventory.Data.Records`.
+
+## 2610.2003
+
+- Unknown-item placeholder (T-1010): a stack whose `ItemId` the registry does not know now holds a fallback definition (`URockItemRegistrySubsystem::GetUnknownItemDefinition`, from `URockInventoryDeveloperSettings::UnknownItemDefinition` or a transient 1x1 default) instead of reading as invalid. It never stacks (`CanStackWith`), cannot be split (`ERockMoveRefusal::PartialMoveOfUnknownItem`), keeps its real `ItemId` and count, and re-resolves when the registry refreshes (`OnRefreshed`; inventories listen). `bDefinitionUnresolved` and the lazy lookup in `GetDefinition()` are gone (it is a plain getter; `ResolveDefinition()` is non-const). Added `TryFindDefinition` (no warning), `FRockItemStack::FromItemId`, `IsUnknownItem`. Tests in `BRS.RockInventory.UnknownItem`.
+
+## 2610.2002
+
+- Item registry definition providers (T-987): `IRockItemDefinitionProvider` plus `URockItemRegistrySubsystem::RegisterProvider` / `UnregisterProvider` / `NotifyProviderChanged`. Providers are read after the asset scan; a duplicate `ItemId` logs an error naming both sources and the earlier one wins (asset beats provider); a provider can edit a definition in place and the ItemId map is rebuilt. Tests in `BRS.RockInventory.ItemRegistry.Providers`.
+
+## 2610.2001
+
+- Item stacks replicate `ItemId` instead of the definition pointer (T-986): `Definition` is `NotReplicated` and resolved through `URockItemRegistrySubsystem::FindDefinition` on replication and lazily in `GetDefinition()`; an unknown id logs once and leaves an invalid stack. Registry test seam `RegisterForTest` / `UnregisterForTest` (the test fixture registers its definitions). New `Network.RockInventory.NetGroupSpike` test with a transient definition. `FRockItemStack` stays within 64 bytes (`static_assert`). `URockInventoryClientModelSubsystem::SetPredictionSource` moved into the .cpp (the inline body did not compile in a TU without the manager component header).
+
+## 2610.1801
+
+- Nested loot opt-in (T-54): `URockInventoryConfig::bAcceptsNestedLoot` / `NestedLootPriority` (copied to `URockInventory`, replicated initial-only) and `URockInventoryLibrary::FindNestedLootInventories` (depth cap 3, cycle safe). Nothing uses it for placement yet (T-55). Tests in `BRS.RockInventory.Nested`.
+
+## 2610.1701
+
+- Tests (T-128): `BRS.RockInventory.SnapshotCost` times `FromInventory`, `MoveItem`, `AddItemToSlot` and `RemoveMatching` at 100, 400 and 1,600 slots (logged, not asserted). No runtime change.
+
 ## 2610.0901
 
 - Tests module is `UncookedOnly` instead of `DeveloperTool`, so the staged game target no longer links it (T-220).

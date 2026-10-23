@@ -39,8 +39,16 @@ private:
 	friend class URockInventoryLibrary;
 	friend struct FRockInventoryData;
 	
-	/** Unique identifier for the item */
-	UPROPERTY(EditAnywhere)
+	/** What replicates: the definition's ItemId. Clients resolve it through URockItemRegistrySubsystem (see GetDefinition). */
+	UPROPERTY(VisibleAnywhere)
+	FName ItemId = NAME_None;
+
+	/**
+	 * Resolved from ItemId on a client (in PostReplicatedChange, and when the registry refreshes). Set directly on the server.
+	 * An ItemId the registry does not know resolves to the unknown-item placeholder (URockItemRegistrySubsystem::GetUnknownItemDefinition),
+	 * so the stack stays valid; ItemId keeps the real id.
+	 */
+	UPROPERTY(NotReplicated)
 	TObjectPtr<URockItemDefinition> Definition = nullptr;
 
 	/** Runtime instance of the item, if required by the definition, likely often null */
@@ -70,7 +78,8 @@ private:
 	// may modify the item only on first creation.
 	UPROPERTY(VisibleAnywhere)
 	uint8 bInitialized:1 = 0;
-	
+
+
 public:
 	FRockItemStack() = default;
 	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackCount = 1);
@@ -100,6 +109,14 @@ public:
 	bool IsInitialized() const;
 	int32 GetGeneration() const;
 	
+	/**
+	 * Looks ItemId up again (after it replicated, or when the registry refreshed). An id the registry does not know takes the
+	 * unknown-item placeholder (logs once when the stack first falls back). Returns true when Definition changed.
+	 */
+	bool ResolveDefinition();
+	/** True when the stack shows the unknown-item placeholder: it never stacks, and a part of it cannot be split off. */
+	bool IsUnknownItem() const;
+
 	void Reset();
 	void TransferOwnership(UObject* NewOuter, URockInventory* InOwningInventory);
 
@@ -116,12 +133,18 @@ public:
 
 	// create invalid stack
 	static const FRockItemStack& Invalid();
+	/** A stack the way a client holds it after replication: only the id and count are known, the definition comes from the registry (the placeholder for an unknown id). */
+	static FRockItemStack FromItemId(FName InItemId, int32 InStackCount);
 	
 	// Do they need to match exactly? Or can generation bits be lower than the item stack generation
 	// FRockItemStack::Generation is bounded to uint8 or uint16. But generation bits can be anything. So realistically
 	// we could have a uint16 here, but have generation bits be 12 bits. Which would free up more 'index' range
 	static_assert(FRockItemStackHandle::GENERATION_BITS <= sizeof(decltype(FRockItemStack::Generation)) * 8, "Handle widths can be lower than and item's storage generation");
 };
+
+// Inside the struct the type is incomplete, so the size check sits after it.
+// The 64-byte budget is for shipping. Editor builds carry a larger, case-preserving FName; they get the difference as slack.
+static_assert(sizeof(FRockItemStack) <= 64 + (sizeof(FName) - 8), "FRockItemStack is kept within one cache line in shipping; check field order before adding members");
 
 template <>
 struct TStructOpsTypeTraits<FRockItemStack> : public TStructOpsTypeTraitsBase2<FRockItemStack>

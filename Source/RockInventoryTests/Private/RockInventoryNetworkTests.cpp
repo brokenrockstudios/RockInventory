@@ -124,6 +124,64 @@ NETWORK_TEST_CLASS(RockInventoryNetGroupSpike, "Network.RockInventory.NetGroupSp
 		return nullptr;
 	}
 
+	// T-986: a stack replicates its ItemId, not a pointer to the definition, so a transient definition (no stable name, not net-addressable)
+	// still arrives as long as the registry knows the id. The clients run in this process and share the engine-wide registry.
+	TStrongObjectPtr<URockItemDefinition> TransientDefinition;
+
+	AFTER_EACH()
+	{
+		if (URockItemRegistrySubsystem* Registry = URockItemRegistrySubsystem::GetInstance())
+		{
+			Registry->UnregisterForTest(TransientDefinition.Get());
+		}
+	}
+
+	TEST_METHOD(StackWithATransientDefinition_ReplicatesItsItemId_AndResolvesOnTheClient)
+	{
+		Network.SpawnAndReplicate<ARockInventoryNetTestActor, &FState::Actor>();
+
+		Network.ThenServer(TEXT("Create an inventory holding a stack of a transient definition"), [this](FState& ServerState)
+		{
+			APlayerController* OwnerController = ServerController(ServerState, OwnerClient);
+			ASSERT_THAT(IsNotNull(OwnerController));
+			ARockInventoryNetTestActor* Actor = ServerState.Actor;
+			ASSERT_THAT(IsNotNull(Actor));
+			Actor->SetOwner(OwnerController);
+
+			URockInventoryConfig* Config = NewObject<URockInventoryConfig>(GetTransientPackage());
+			Config->InventoryTabs = {FRockInventorySectionInfo(RockInventoryTags::Inventory_Section_Backpack, 0, 4, 4)};
+			URockInventory* Inventory = NewObject<URockInventory>(Actor);
+			Inventory->Owner = Actor;
+			Actor->ServerInventory = Inventory;
+			Inventory->Init(Config);
+
+			TransientDefinition.Reset(NewObject<URockItemDefinition>(GetTransientPackage()));
+			TransientDefinition->ItemId = TEXT("T986_TransientItem");
+			ASSERT_THAT(IsFalse(TransientDefinition->IsNameStableForNetworking()));
+			URockItemRegistrySubsystem::GetInstance()->RegisterForTest(TransientDefinition.Get());
+
+			const FRockItemStackHandle Handle = Inventory->AddItemToInventory(FRockItemStack(TransientDefinition.Get(), 3));
+			FRockInventorySlotEntry Entry = Inventory->GetSlotByHandle(StartSlot);
+			Entry.ItemHandle = Handle;
+			Inventory->SetSlotByHandle(StartSlot, Entry);
+			Actor->ForceNetUpdate();
+		});
+
+		Network.UntilClient(TEXT("The client sees the stack"), OwnerClient, [this](FState& ClientState)
+		{
+			return SlotHoldsItem(ClientState.Actor ? ClientState.Actor->FindInventory() : nullptr, StartSlot);
+		});
+		Network.ThenClient(TEXT("The client resolved the transient definition from the ItemId"), OwnerClient, [this](FState& ClientState)
+		{
+			const URockInventory* Inventory = ClientState.Actor->FindInventory();
+			const FRockItemStack Stack = Inventory->GetItemBySlotHandle(StartSlot);
+			ASSERT_THAT(IsTrue(Stack.IsValid()));
+			ASSERT_THAT(AreEqual(FName(TEXT("T986_TransientItem")), Stack.GetItemId()));
+			ASSERT_THAT(AreEqual(3, Stack.GetStackCount()));
+			ASSERT_THAT(IsTrue(Stack.GetDefinition() == TransientDefinition.Get()));
+		});
+	}
+
 	TEST_METHOD(OwnerSeesInventory_UngrantedClientDoesNot_GrantAndRevokeBehave)
 	{
 		// 1. Replicate the actor to everyone. It is always relevant, so both clients get it.

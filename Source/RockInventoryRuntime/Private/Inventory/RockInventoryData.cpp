@@ -7,7 +7,7 @@
 #include "Library/RockInventoryLibrary.h"
 #include "Library/RockItemStackLibrary.h"
 
-namespace
+namespace RockInventoryDataPrivate
 {
 	enum class EMoveKind : uint8
 	{
@@ -99,6 +99,10 @@ namespace
 			}
 			else
 			{
+				if (SourceStack->IsUnknownItem())
+				{
+					return ERockMoveRefusal::PartialMoveOfUnknownItem;
+				}
 				if (!SourceStack->GetDefinition()->RuntimeInstanceClass.IsNull())
 				{
 					return ERockMoveRefusal::PartialMoveOfInstancedItem;
@@ -145,6 +149,8 @@ namespace
 		Change.StackAfter = After;
 	}
 }
+
+using namespace RockInventoryDataPrivate;
 
 const FRockInventoryChange* FRockInventoryChangeSet::FindSlotChange(ERockInventorySide Side, FRockInventorySlotHandle Slot) const
 {
@@ -238,6 +244,7 @@ FRockItemStackHandle FRockInventoryData::AllocateStack(const FRockItemStack& Cop
 		Stacks[Index].Generation = 0;
 	}
 	FRockItemStack& Stack = Stacks[Index];
+	Stack.ItemId = Copy.ItemId;
 	Stack.Definition = Copy.Definition;
 	Stack.RuntimeInstance = Copy.RuntimeInstance;
 	Stack.StackCount = Copy.StackCount;

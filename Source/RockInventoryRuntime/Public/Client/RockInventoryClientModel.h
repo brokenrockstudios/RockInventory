@@ -129,7 +129,8 @@ public:
 	URockInventoryClientModel* FindModel(const URockInventory* Inventory) const;
 
 	/** The manager component whose pending commands every model applies on top of replicated data (the local player's), or null. */
-	void SetPredictionSource(URockInventoryManagerComponent* Source) { PredictionSource = Source; }
+	/** Defined in the .cpp: the weak pointer assignment needs the full component type, which this header only forward-declares. */
+	void SetPredictionSource(URockInventoryManagerComponent* Source);
 	URockInventoryManagerComponent* GetPredictionSource() const { return PredictionSource.Get(); }
 	/** Lets the prediction source apply its pending commands to Data, the replicated state of Inventory. No source: nothing changes. */
 	void ApplyPrediction(const URockInventory& Inventory, FRockInventoryData& Data) const;

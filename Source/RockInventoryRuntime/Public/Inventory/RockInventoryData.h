@@ -33,6 +33,8 @@ enum class ERockMoveRefusal : uint8
 	InvalidAmount,
 	/** A part of a stack whose item needs a runtime instance cannot be split off yet. */
 	PartialMoveOfInstancedItem,
+	/** A part of an unknown-item placeholder stack cannot be split off; it moves whole. */
+	PartialMoveOfUnknownItem,
 	/** The target holds a stack of the same item that is already full. */
 	NothingToMerge,
 	/** The footprint does not fit at the target and the target stack cannot take the items. */

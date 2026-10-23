@@ -56,8 +56,12 @@ public:
 	/** The real placement path (merge into partial stacks, then first slot that fits). */
 	bool Loot(URockItemDefinition* Definition, int32 Count, FRockInventorySlotHandle& OutSlot, int32& OutExcess);
 
+	~FRockInventoryFixture();
+
 private:
 	TArray<TStrongObjectPtr<UObject>> KeepAlive;
+	/** Definitions MakeDefinition registered with the item registry, so a replicated ItemId resolves to them; removed in the destructor. */
+	TArray<TWeakObjectPtr<URockItemDefinition>> RegisteredDefinitions;
 };
 
 /** A pawn with a root component, so it has a location. Shared by tests (unity builds merge their anonymous namespaces). */

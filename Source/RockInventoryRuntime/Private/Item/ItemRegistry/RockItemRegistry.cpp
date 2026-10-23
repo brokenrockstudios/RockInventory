@@ -6,10 +6,17 @@
 #include "Engine/StreamableManager.h"
 #include "Item/RockItemDefinition.h"
 #include "Item/ItemRegistry/RockItemDefinitionRegistry.h"
+#include "Misc/RockInventoryDeveloperSettings.h"
 #include "ProfilingDebugging/ScopedTimers.h"
+#include "UObject/Package.h"
 
 // Define a log category for easier debugging
 DEFINE_LOG_CATEGORY_STATIC(LogRockItemRegistry, Log, All);
+
+FString IRockItemDefinitionProvider::DescribeItemSource(const URockItemDefinition* Definition) const
+{
+	return GetPathNameSafe(Definition);
+}
 
 URockItemRegistrySubsystem* URockItemRegistrySubsystem::GetInstance()
 {
@@ -26,14 +33,56 @@ void URockItemRegistrySubsystem::Initialize(FSubsystemCollectionBase& Collection
 void URockItemRegistrySubsystem::Deinitialize()
 {
 	LoadedById.Empty();
+	TestDefinitions.Empty();
 	ItemDefinitionMap.Empty();
+	Providers.Empty();
+	ProviderDefinitions.Empty();
 	bDirty = true;
 	Super::Deinitialize();
+}
+
+void URockItemRegistrySubsystem::RegisterForTest(URockItemDefinition* Definition)
+{
+	if (Definition && !Definition->ItemId.IsNone())
+	{
+		TestDefinitions.Add(Definition->ItemId, Definition);
+		OnRefreshed.Broadcast();
+	}
+}
+
+void URockItemRegistrySubsystem::UnregisterForTest(const URockItemDefinition* Definition)
+{
+	if (!Definition)
+	{
+		return;
+	}
+	const TObjectPtr<URockItemDefinition>* Found = TestDefinitions.Find(Definition->ItemId);
+	if (Found && Found->Get() == Definition)
+	{
+		TestDefinitions.Remove(Definition->ItemId);
+	}
 }
 
 void URockItemRegistrySubsystem::MarkDirty()
 {
 	bDirty = true;
+}
+
+void URockItemRegistrySubsystem::RegisterProvider(IRockItemDefinitionProvider* Provider)
+{
+	if (Provider && !Providers.Contains(Provider))
+	{
+		Providers.Add(Provider);
+		MarkDirty();
+	}
+}
+
+void URockItemRegistrySubsystem::UnregisterProvider(IRockItemDefinitionProvider* Provider)
+{
+	if (Providers.Remove(Provider) > 0)
+	{
+		MarkDirty();
+	}
 }
 
 bool URockItemRegistrySubsystem::EnsureUpToDate() const
@@ -116,29 +165,52 @@ void URockItemRegistrySubsystem::Refresh()
 		}
 
 		// Rebuild the lookup. This also picks up an ItemId that was changed on an already loaded definition.
+		// Sources are consulted in order (assets, then providers); the first definition for an ItemId wins.
 		ItemDefinitionMap.Reset();
-		for (const FPrimaryAssetId& AssetId : CurrentIds)
+		ProviderDefinitions.Reset();
+		TMap<FName, FString> SourceById;
+		auto AddDefinition = [this, &SourceById](URockItemDefinition* ItemDef, const FString& Source)
 		{
-			const TObjectPtr<URockItemDefinition>* Found = LoadedById.Find(AssetId);
-			URockItemDefinition* ItemDef = Found ? Found->Get() : nullptr;
-			if (!ItemDef)
+			if (IsUnknownItemDefinition(ItemDef))
 			{
-				continue;
+				// The placeholder is not an item: it stays out of the lookup (and out of its None ItemId warning).
 			}
-			if (ItemDef->ItemId.IsNone())
+			else if (ItemDef->ItemId.IsNone())
 			{
-				UE_LOG(LogRockItemRegistry, Warning, TEXT("Item Definition asset '%s' has a None ItemId. Skipping."), *GetPathNameSafe(ItemDef));
+				UE_LOG(LogRockItemRegistry, Warning, TEXT("Item Definition '%s' has a None ItemId. Skipping."), *Source);
 			}
 			else if (const TObjectPtr<URockItemDefinition>* Existing = ItemDefinitionMap.Find(ItemDef->ItemId))
 			{
 				// Duplicate ItemId found! This is usually an error in data setup.
 				UE_LOG(LogRockItemRegistry, Error,
-					TEXT("Duplicate ItemId '%s' found! Asset '%s' conflicts with existing asset '%s'. Ignoring the new one."),
-					*ItemDef->ItemId.ToString(), *GetPathNameSafe(ItemDef), *GetPathNameSafe(Existing->Get()));
+					TEXT("Duplicate ItemId '%s' found! '%s' conflicts with existing '%s'. Ignoring the new one."),
+					*ItemDef->ItemId.ToString(), *Source, *SourceById.FindRef(ItemDef->ItemId));
 			}
 			else
 			{
 				ItemDefinitionMap.Add(ItemDef->ItemId, ItemDef);
+				SourceById.Add(ItemDef->ItemId, Source);
+			}
+		};
+		for (const FPrimaryAssetId& AssetId : CurrentIds)
+		{
+			const TObjectPtr<URockItemDefinition>* Found = LoadedById.Find(AssetId);
+			if (URockItemDefinition* ItemDef = Found ? Found->Get() : nullptr)
+			{
+				AddDefinition(ItemDef, GetPathNameSafe(ItemDef));
+			}
+		}
+		for (const IRockItemDefinitionProvider* Provider : Providers)
+		{
+			TArray<URockItemDefinition*> Offered;
+			Provider->EnumerateItemDefinitions(Offered);
+			for (URockItemDefinition* ItemDef : Offered)
+			{
+				if (ItemDef)
+				{
+					ProviderDefinitions.AddUnique(ItemDef);
+					AddDefinition(ItemDef, Provider->DescribeItemSource(ItemDef));
+				}
 			}
 		}
 	}
@@ -146,6 +218,7 @@ void URockItemRegistrySubsystem::Refresh()
 	bDirty = false;
 	UE_LOG(LogRockItemRegistry, Display, TEXT("Item registry refreshed in %.3f seconds: %d loaded, %d removed, %d definitions in total."),
 		TimeRefreshing, NumLoaded, NumRemoved, ItemDefinitionMap.Num());
+	OnRefreshed.Broadcast();
 }
 
 URockItemDefinition* URockItemRegistrySubsystem::FindDefinition(FName ItemID) const
@@ -155,6 +228,24 @@ URockItemDefinition* URockItemRegistrySubsystem::FindDefinition(FName ItemID) co
 		UE_LOG(LogRockItemRegistry, Warning, TEXT("Attempted to FindDefinition with None ItemID."));
 		return nullptr;
 	}
+	URockItemDefinition* Found = TryFindDefinition(ItemID);
+	if (!Found && !bDirty)
+	{
+		UE_LOG(LogRockItemRegistry, Warning, TEXT("Could not find Item Definition with ID '%s'."), *ItemID.ToString());
+	}
+	return Found;
+}
+
+URockItemDefinition* URockItemRegistrySubsystem::TryFindDefinition(FName ItemID) const
+{
+	if (ItemID.IsNone())
+	{
+		return nullptr;
+	}
+	if (const TObjectPtr<URockItemDefinition>* TestDef = TestDefinitions.Find(ItemID))
+	{
+		return *TestDef;
+	}
 	if (!EnsureUpToDate())
 	{
 		return nullptr;
@@ -163,9 +254,35 @@ URockItemDefinition* URockItemRegistrySubsystem::FindDefinition(FName ItemID) co
 	{
 		return *FoundDefPtr;
 	}
-
-	UE_LOG(LogRockItemRegistry, Warning, TEXT("Could not find Item Definition with ID '%s'."), *ItemID.ToString());
 	return nullptr;
+}
+
+URockItemDefinition* URockItemRegistrySubsystem::GetUnknownItemDefinition() const
+{
+	if (const URockInventoryDeveloperSettings* Settings = GetDefault<URockInventoryDeveloperSettings>())
+	{
+		if (URockItemDefinition* Configured = Settings->UnknownItemDefinition.LoadSynchronous())
+		{
+			return Configured;
+		}
+	}
+	if (!TransientUnknownDefinition)
+	{
+		URockItemDefinition* Default = NewObject<URockItemDefinition>(GetTransientPackage(), TEXT("UnknownItemDefinition"), RF_Transient);
+		Default->ItemId = TEXT("Unknown");
+		Default->Name = NSLOCTEXT("RockInventory", "UnknownItemName", "Unknown item");
+		Default->DisplayName = Default->Name;
+		Default->Description = NSLOCTEXT("RockInventory", "UnknownItemDescription", "This item is not known to this version of the game.");
+		Default->MaxStackCount = 1;
+		Default->GridSize = FIntPoint(1, 1);
+		TransientUnknownDefinition = Default;
+	}
+	return TransientUnknownDefinition;
+}
+
+bool URockItemRegistrySubsystem::IsUnknownItemDefinition(const URockItemDefinition* Definition) const
+{
+	return Definition && Definition == GetUnknownItemDefinition();
 }
 
 void URockItemRegistrySubsystem::GetAllDefinitions(TArray<URockItemDefinition*>& OutDefinitions) const

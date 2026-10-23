@@ -23,6 +23,9 @@ public class RockInventoryTests : ModuleRules
 				"GameplayTags",
 				"CQTest",
 				"RockInventoryRuntime",
+				"RockInventoryData",
+				"RockData",
+				"RockGameplayTags",
 			}
 		);
 

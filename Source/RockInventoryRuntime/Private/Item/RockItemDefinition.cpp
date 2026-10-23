@@ -5,6 +5,10 @@
 
 #include "RockInventoryLogging.h"
 #include "Engine/AssetManager.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
+#include "Item/RockItemInstance.h"
 #include "Misc/RockInventoryDeveloperSettings.h"
 #include "StructUtils/InstancedStruct.h"
 #include "UObject/AssetRegistryTagsContext.h"
@@ -85,6 +89,16 @@ void URockItemDefinition::RebuildStatTags()
 	}
 }
 
+
+void URockItemDefinition::SetAssets(const FSoftObjectPath& Icon, const FSoftObjectPath& Mesh, const FSoftObjectPath& SkeletalMesh, const FSoftObjectPath& ActorClassPath, const FSoftObjectPath& RuntimeInstanceClassPath)
+{
+	IconData.Icon = TSoftObjectPtr<UTexture2D>(Icon);
+	ItemMesh = TSoftObjectPtr<UStaticMesh>(Mesh);
+	ItemSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(SkeletalMesh);
+	ActorClass = TSoftClassPtr<AActor>(ActorClassPath);
+	RuntimeInstanceClass = TSoftClassPtr<URockItemInstance>(RuntimeInstanceClassPath);
+}
+
 void URockItemDefinition::RebuildCachedTags()
 {
 	CachedAllTags.Reset();;
@@ -105,14 +119,17 @@ void URockItemDefinition::SortFragments()
 		});
 }
 
-static FString StripBeforeFirstUnderscore(FString FragmentName)
+namespace RockItemDefinitionPrivate
 {
-	int32 UnderscoreIdx;
-	if (FragmentName.FindChar(TEXT('_'), UnderscoreIdx))
+	FString StripBeforeFirstUnderscore(FString FragmentName)
 	{
-		FragmentName = FragmentName.RightChop(UnderscoreIdx + 1);
+		int32 UnderscoreIdx;
+		if (FragmentName.FindChar(TEXT('_'), UnderscoreIdx))
+		{
+			FragmentName = FragmentName.RightChop(UnderscoreIdx + 1);
+		}
+		return FragmentName;
 	}
-	return FragmentName;
 }
 
 void URockItemDefinition::GetAssetRegistryTags(FAssetRegistryTagsContext Context) const
@@ -126,7 +143,7 @@ void URockItemDefinition::GetAssetRegistryTags(FAssetRegistryTagsContext Context
 	{
 		if (const FRockItemFragment* Fragment = FragmentInstance.GetPtr<FRockItemFragment>())
 		{
-			FragmentTypes.Append(StripBeforeFirstUnderscore(FragmentInstance.GetScriptStruct()->GetName()));
+			FragmentTypes.Append(RockItemDefinitionPrivate::StripBeforeFirstUnderscore(FragmentInstance.GetScriptStruct()->GetName()));
 			FragmentTypes.Append(TEXT(","));
 			Fragment->GetAssetRegistryTags(Context);
 		}

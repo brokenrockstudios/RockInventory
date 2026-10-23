@@ -11,6 +11,7 @@
 #include "Item/RockItemDefinition.h"
 #include "Item/RockItemInstance.h"
 #include "Library/RockItemStackLibrary.h"
+#include "Algo/StableSort.h"
 
 
 /** State a batch preview carries from one stack to the next: what the earlier stacks would have changed in the live inventory. */
@@ -88,6 +89,52 @@ namespace
 	{
 		return (static_cast<int64>(Entry.Tier) << 48) | ((static_cast<int64>(Entry.Priority) + 0x80000000LL) << 16) | static_cast<int64>(Entry.SectionIndex & 0xFFFF);
 	}
+}
+
+void URockInventoryLibrary::FindNestedLootInventories(const URockInventory* Root, TArray<FRockNestedLootTarget>& OutTargets, int32 MaxDepth)
+{
+	OutTargets.Reset();
+	if (!Root)
+	{
+		return;
+	}
+
+	// Breadth first, so targets come out shallow to deep and in slot order within a depth. Only opted-in inventories are searched further.
+	TArray<const URockInventory*, TInlineAllocator<8>> Seen;
+	Seen.Add(Root);
+	TArray<FRockNestedLootTarget> Frontier;
+	Frontier.Add({Root, 0, 0});
+	for (int32 Next = 0; Next < Frontier.Num(); ++Next)
+	{
+		const URockInventory* Parent = Frontier[Next].Inventory;
+		const int32 Depth = Frontier[Next].Depth + 1;
+		if (Depth > MaxDepth)
+		{
+			continue;
+		}
+		Parent->ForEachItemStack([&](const FRockItemStack& Stack)
+		{
+			const URockItemInstance* Instance = Stack.GetRuntimeInstance();
+			const URockInventory* Nested = Instance ? Instance->GetNestedInventory() : nullptr;
+			if (!Nested || Seen.Contains(Nested))
+			{
+				return true;
+			}
+			Seen.Add(Nested);
+			if (Nested->bAcceptsNestedLoot)
+			{
+				const FRockNestedLootTarget Target{Nested, Depth, Nested->NestedLootPriority};
+				OutTargets.Add(Target);
+				Frontier.Add(Target);
+			}
+			return true;
+		});
+	}
+
+	Algo::StableSort(OutTargets, [](const FRockNestedLootTarget& A, const FRockNestedLootTarget& B)
+	{
+		return A.Priority != B.Priority ? A.Priority < B.Priority : A.Depth < B.Depth;
+	});
 }
 
 void URockInventoryLibrary::BuildLootPlan(

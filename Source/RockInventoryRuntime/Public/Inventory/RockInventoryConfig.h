@@ -54,6 +54,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	ERockNestedVisibility Visibility = ERockNestedVisibility::Separate;
 
+	/**
+	 * Nested inventories only: whether a loot call may place items into this inventory when it sits (directly or deeper) inside the inventory being looted.
+	 * Off by default, so a weapon's attachment inventory or any container that does not ask for loot never receives it. Copied to
+	 * URockInventory::bAcceptsNestedLoot by Init; URockInventoryLibrary::FindNestedLootInventories lists the opted-in ones.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Nested Loot")
+	bool bAcceptsNestedLoot = false;
+
+	/** Order among opted-in nested inventories: lower is tried first, ties go to the shallower one, then discovery order. Copied to URockInventory::NestedLootPriority. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Nested Loot", meta = (EditCondition = "bAcceptsNestedLoot"))
+	int32 NestedLootPriority = 0;
+
 	// TODO:
 	// Consider having a 'parent' config' or even an 'array' of composable configs?
 
