@@ -7,13 +7,14 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
+namespace RockInventoryMoveTestsPrivate
 {
 	bool IsSlotEmpty(const FRockInventoryFixture& Fixture, const FRockInventorySlotHandle& Slot)
 	{
 		return !Fixture.Inventory->GetSlotByHandle(Slot).ItemHandle.IsValid();
 	}
 }
+using namespace RockInventoryMoveTestsPrivate;
 
 // URockInventoryLibrary::MoveItem: relocation, merging and partial moves.
 TEST_CLASS(RockInventoryMoveTests, "BRS.RockInventory.Move")

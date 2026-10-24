@@ -7,7 +7,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
+namespace RockInventoryGridTestsPrivate
 {
 	FRockInventorySectionInfo MakeSection(int32 Columns, int32 Rows, ERockItemSizePolicy Policy = ERockItemSizePolicy::RespectSize)
 	{
@@ -23,6 +23,7 @@ namespace
 		return Grid;
 	}
 }
+using namespace RockInventoryGridTestsPrivate;
 
 // The occupancy math behind every placement decision. Pure functions: no world needed.
 TEST_CLASS(RockInventoryGridTests, "BRS.RockInventory.Grid")

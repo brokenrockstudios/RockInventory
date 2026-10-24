@@ -2,6 +2,10 @@
 
 Version format `YYMM.DDRR` (year, month, day, revision of that day). Newest first. Keep entries to one line where possible.
 
+## 2610.2302
+
+- Nested loot placement (T-55): `BuildLootPlan` adds the sections of opted-in nested inventories (T-54) to the plan, ordered by tier, `NestedLootPriority` (root 0), section priority, then root before nested; merge and new-stack passes span all inventories (per-inventory grid and pending state in `FRockLootScratch`), `CommitLoot` applies one batch per inventory, and placements name the nested inventory. `FRockLootPlanEntry` gains `GroupPriority` and `GroupRank`; `DescribeLootPlan` lists nested sections. Swap stays root-only (T-1152). Tests in `BRS.RockInventory.Loot.Nested`.
+
 ## 2610.2301
 
 - Item records (T-988): new runtime module `RockInventoryData` (depends on RockData; `RockInventoryRuntime` stays free of it) registers the `Item` record type (folder `Items`, text fields `Name`, `DisplayName`, `Description`, struct `FRockItemRecord`) and `FRockItemRecordProvider` builds one `URockItemDefinition` per concrete record (outer: the item registry, name `Item_<ID>`), rewrites it in place and drops it with the record; `URockItemRecordSubsystem` registers it with the registry and follows RockData reloads. `URockItemDefinition` gains `SetAssets`. The record has no stat tag field: the definition's `StatTagDefaults` stays for assets, and a named fragment can carry static values if a reader appears. Tests in `BRS.RockInventory.Data.Records`.

@@ -10,13 +10,14 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
+namespace RockInventoryItemIndexTestsPrivate
 {
 	FRockInventorySlotHandle ItemIndexSlot(const FRockInventoryData& Data, int32 Column)
 	{
 		return FRockInventorySlotHandle(Data.Sections[0].GetFirstSlotIndex() + Column);
 	}
 }
+using namespace RockInventoryItemIndexTestsPrivate;
 
 // Item index allocation (T-79): a new stack takes the lowest free index, so the client's plain-data prediction and the server's
 // inventory pick the same handle from the same data, whatever order stacks were freed in.

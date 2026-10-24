@@ -147,8 +147,8 @@ struct ROCKINVENTORYRUNTIME_API FRockLootPlacement
 };
 
 /**
- * One section a loot call may use, in the order it is tried. Entries name an inventory as well as a section so nested inventories can join later;
- * the planner only emits entries of the inventory it was given today.
+ * One section a loot call may use, in the order it is tried. Entries name an inventory as well as a section: the root and its opted-in nested
+ * inventories (T-55).
  */
 struct FRockLootPlanEntry
 {
@@ -157,6 +157,10 @@ struct FRockLootPlanEntry
 	/** 0: the section's LootPreference matches the item, 1: merely allowed. */
 	int32 Tier = 1;
 	int32 Priority = 0;
+	/** URockInventory::NestedLootPriority of the nested inventory holding the section (0 for the root); orders inventories before section priority. */
+	int32 GroupPriority = 0;
+	/** 0 for the root, 1 + discovery order for nested inventories (breaks ties). */
+	int32 GroupRank = 0;
 };
 
 /** Sections in the order a loot call tries them. Inline storage covers any realistic config without an allocation. */

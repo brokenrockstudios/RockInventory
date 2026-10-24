@@ -15,7 +15,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
+namespace RockInventoryPredictionTestsPrivate
 {
 	FRockInventorySlotHandle PredSlot(const FRockInventoryData& Data, int32 Column, int32 Row = 0)
 	{
@@ -33,6 +33,7 @@ namespace
 		return FRockInventoryPresentationDiff::Between(A, ERockInventorySyncState::Live, B, ERockInventorySyncState::Live).IsEmpty();
 	}
 }
+using namespace RockInventoryPredictionTestsPrivate;
 
 // The pure part of prediction (T-78): the queue of pending moves, its preconditions, re-application on fresh replicated data, the
 // settle rule and the in-flight limits. Plain data, no inventory object, no world: what the server runs is the same ApplyMove.

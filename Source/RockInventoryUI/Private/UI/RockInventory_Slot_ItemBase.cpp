@@ -136,13 +136,17 @@ FReply URockInventory_Slot_ItemBase::NativeOnMouseButtonUp(const FGeometry& InGe
 	return FReply::Unhandled();
 }
 
-static FVector2D GetViewportPos(UWorld* World, const FVector2D& AbsolutePos)
+namespace RockInventory_Slot_ItemBasePrivate
+{
+FVector2D GetViewportPos(UWorld* World, const FVector2D& AbsolutePos)
 {
 	FVector2D PixelPos, ViewportPos;
 	// Convert ABSOLUTE → VIEWPORT (returns both)
 	USlateBlueprintLibrary::AbsoluteToViewport(World, AbsolutePos, PixelPos, ViewportPos);
 	return ViewportPos;
 }
+}
+using namespace RockInventory_Slot_ItemBasePrivate;
 
 void URockInventory_Slot_ItemBase::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -167,7 +171,9 @@ void URockInventory_Slot_ItemBase::NativeOnMouseLeave(const FPointerEvent& InMou
 	DisarmHover(true);
 }
 
-static void GetCenterTopBottomViewport(const FGeometry& Geo, UWorld* World, FVector2D& OutTop, FVector2D& OutBottom)
+namespace RockInventory_Slot_ItemBasePrivate
+{
+void GetCenterTopBottomViewport(const FGeometry& Geo, UWorld* World, FVector2D& OutTop, FVector2D& OutBottom)
 {
 	const FVector2D size = Geo.GetLocalSize();
 	const FVector2D lTop = FVector2D(size.X * 0.5f, 0.f);
@@ -182,6 +188,8 @@ static void GetCenterTopBottomViewport(const FGeometry& Geo, UWorld* World, FVec
 	USlateBlueprintLibrary::AbsoluteToViewport(World, absTop, dummyPixels, OutTop);
 	USlateBlueprintLibrary::AbsoluteToViewport(World, absBot, dummyPixels, OutBottom);
 }
+}
+using namespace RockInventory_Slot_ItemBasePrivate;
 
 FReply URockInventory_Slot_ItemBase::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {

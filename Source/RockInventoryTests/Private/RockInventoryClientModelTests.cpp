@@ -10,7 +10,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
+namespace RockInventoryClientModelTestsPrivate
 {
 	FRockInventorySlotHandle ModelSlotAt(const FRockInventoryData& Data, int32 Column, int32 Row)
 	{
@@ -23,6 +23,7 @@ namespace
 		return FRockInventorySectionInfo(RockInventoryTags::Inventory_Section_Backpack, 0, Columns, Rows, ERockItemSizePolicy::RespectSize);
 	}
 }
+using namespace RockInventoryClientModelTestsPrivate;
 
 // The pure part of the client model: what visibly changed between two states. Plain data, no inventory object, no world.
 TEST_CLASS(RockInventoryPresentationDiffTests, "BRS.RockInventory.ClientModel.Diff")

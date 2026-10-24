@@ -15,6 +15,7 @@
 class URockInventoryComponent;
 class URockInventory;
 struct FRockLootScratch;
+struct FRockLootInventoryState;
 struct FRockInventoryChangeSet;
 struct FRockInventoryData;
 enum class ERockAddRefusal : uint8;
@@ -216,14 +217,15 @@ public:
 private:
 	/** Slots another operation holds (first listed operation per slot counts). Empty when nothing is pending. */
 	static TBitArray<> BuildPendingSlots(const URockInventory* Inventory);
-	/** Pass 1: top up partial stacks across the plan. SkipAbsoluteIndex names a stack that is leaving (INDEX_NONE for none). Scratch (batch preview) adds what earlier stacks would have put there. */
+	/** The state of one plan inventory in a loot call (occupancy grid, pending slots, batch simulation), created on first use. */
+	static FRockLootInventoryState& InventoryState(FRockLootScratch& Scratch, const URockInventory* Inventory);
+	/** Pass 1: top up partial stacks across the plan, in any of its inventories. SkipAbsoluteIndex in SkipInventory names a stack that is leaving. Scratch holds what earlier stacks of a batch would have put there. */
 	static void DecideMerges(
-		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
-		int32 SkipAbsoluteIndex, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining, FRockLootScratch* Scratch = nullptr);
-	/** Pass 2: the remainder becomes new stacks of at most the max stack size, each in the first slot of the plan that fits; marks the footprints in the grid. False when nothing was placed. */
+		const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const URockInventory* SkipInventory, int32 SkipAbsoluteIndex,
+		TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining, FRockLootScratch& Scratch);
+	/** Pass 2: the remainder becomes new stacks of at most the max stack size, each in the first slot of the plan that fits; marks the footprints in the scratch grids. False when nothing was placed. */
 	static bool DecideNewStack(
-		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootPlan& Plan, const TBitArray<>& PendingSlots,
-		TArray<bool>& InOutGrid, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining, FRockLootScratch* Scratch = nullptr);
+		const FRockItemStack& ItemStack, const FRockLootPlan& Plan, TArray<FRockLootPlacement>& OutPlacements, int32& InOutRemaining, FRockLootScratch& Scratch);
 	/** Equip with swap (FRockLootParams::CanSwap). Fills OutResult and returns true only when the displaced stack is fully stored too; otherwise OutResult is untouched. */
 	static bool DecideSwap(
 		const URockInventory* Inventory, const FRockItemStack& ItemStack, const FRockLootParams& Params, const FRockLootPlan& Plan,

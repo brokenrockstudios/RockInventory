@@ -10,7 +10,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
+namespace RockInventoryDataTestsPrivate
 {
 	/** A plain-data inventory and a second one for cross-inventory moves. No world, no URockInventory. */
 	struct FDataScenario
@@ -62,6 +62,7 @@ namespace
 		}
 	};
 }
+using namespace RockInventoryDataTestsPrivate;
 
 // The Move scenarios of BRS.RockInventory.Move, on FRockInventoryData: CanMove / ApplyMove with no inventory object, events or world.
 TEST_CLASS(RockInventoryDataMoveTests, "BRS.RockInventory.Data")

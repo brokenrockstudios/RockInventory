@@ -16,7 +16,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
+namespace RockInventoryUndoTestsPrivate
 {
 	FRockInventorySectionInfo UndoGrid(int32 Columns, int32 Rows)
 	{
@@ -52,6 +52,7 @@ namespace
 		return Stack ? Stack->GetStackCount() : 0;
 	}
 }
+using namespace RockInventoryUndoTestsPrivate;
 
 // One move and its inverse on plain data (T-80): the inverse puts back what both slots held, for every kind of move, and the
 // preconditions both ways are the ones an undo and a redo check before they are sent.

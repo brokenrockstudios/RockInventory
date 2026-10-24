@@ -8,7 +8,7 @@
 
 namespace MenuExtension_RockItemDefinition
 {
-	static void ExecuteSortFragments(const FToolMenuContext& InContext)
+	void ExecuteSortFragments(const FToolMenuContext& InContext)
 	{
 		if (const UAssetEditorToolkitMenuContext* AssetContext = InContext.FindContext<UAssetEditorToolkitMenuContext>())
 		{
@@ -27,7 +27,7 @@ namespace MenuExtension_RockItemDefinition
 		}
 	}
 
-	static void ExecuteValidateItem(const FToolMenuContext& InContext)
+	void ExecuteValidateItem(const FToolMenuContext& InContext)
 	{
 		const UAssetEditorToolkitMenuContext* AssetContext = InContext.FindContext<UAssetEditorToolkitMenuContext>();
 		if (!AssetContext) { return; }
@@ -82,7 +82,7 @@ namespace MenuExtension_RockItemDefinition
 
 	// This is 100% used. Even if something says otherwise. 
 	[[maybe_unused]]
-	static FDelayedAutoRegisterHelper DelayedAutoRegister(
+	FDelayedAutoRegisterHelper DelayedAutoRegister(
 		EDelayedRegisterRunPhase::EndOfEngineInit, []
 		{
 			UToolMenus::RegisterStartupCallback(

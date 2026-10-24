@@ -10,7 +10,7 @@
 
 #define LOCTEXT_NAMESPACE "RockInventoryConfig"
 
-namespace
+namespace RockInventoryConfigPrivate
 {
 	/** True when some set of item tags satisfies both the filter (when set) and the preference. Exact for up to MaxTagsForPreferenceCheck tags; true (no complaint) beyond that. */
 	bool PreferenceCanMatchFilter(const FGameplayTagQuery& Filter, const FGameplayTagQuery& Preference)
@@ -49,6 +49,7 @@ namespace
 		return false;
 	}
 }
+using namespace RockInventoryConfigPrivate;
 
 void URockInventoryConfig::CollectLootIssues(const TArray<FRockInventorySectionInfo>& Sections, TArray<FRockConfigIssue>& OutIssues)
 {

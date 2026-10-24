@@ -16,7 +16,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "CQTest.h"
 
-namespace
+namespace RockInventoryAddRemoveTestsPrivate
 {
 	/** One plain-data inventory with a single grid section. No world, no URockInventory. */
 	struct FAddRemoveScenario
@@ -76,6 +76,7 @@ namespace
 		return [Id](const FRockItemStack& Stack) { return Stack.GetItemId() == Id; };
 	}
 }
+using namespace RockInventoryAddRemoveTestsPrivate;
 
 // FRockInventoryData::CanAdd / ApplyAdd / CanRemove / ApplyRemove / CountMatching / RemoveMatching with no inventory object, events or world.
 TEST_CLASS(RockInventoryDataAddRemoveTests, "BRS.RockInventory.Data")

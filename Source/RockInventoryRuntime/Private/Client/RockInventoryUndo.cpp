@@ -2,7 +2,7 @@
 
 #include "Client/RockInventoryUndo.h"
 
-namespace
+namespace RockInventoryUndoPrivate
 {
 	/** Removes the entry nearest the top (the end) that touches Key and everything below it. Returns how many went. */
 	int32 CutAt(TArray<FRockUndoEntry>& Stack, uint32 Key)
@@ -30,6 +30,7 @@ namespace
 		}
 	}
 }
+using namespace RockInventoryUndoPrivate;
 
 ERockUndoStepResult FRockUndoStep::Make(FRockPredictionState& State, const FRockUndoMove& Move, FRockUndoStep& OutStep, ERockMoveRefusal* OutRefusal)
 {
