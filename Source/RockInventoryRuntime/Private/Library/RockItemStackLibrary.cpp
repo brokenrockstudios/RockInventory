@@ -32,10 +32,10 @@ URockItemInstance* URockItemStackLibrary::GetRuntimeInstance(const FRockItemStac
 
 int32 URockItemStackLibrary::GetStackSize(const FRockItemStack& ItemStack)
 {
-	return ItemStack.StackSize;
+	return ItemStack.StackCount;
 }
 
-FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
+FIntPoint URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 {
 	// We shouldn't have ItemStacks without valid definitions
 	ensureMsgf(ItemStack.IsValid(), TEXT("ItemStack is invalid!"));
@@ -44,11 +44,11 @@ FVector2D URockItemStackLibrary::GetItemSize(const FRockItemStack& ItemStack)
 		// TODO: Should we consider the size of the runtime instance?
 		// e.g. A weapon with/without a suppressor might have different sizes.
 		
-		const FVector2D Size = ItemStack.GetDefinition()->SlotDimensions;
+		const FIntPoint Size = ItemStack.GetDefinition()->GridSize;
 		checkf(Size.X > 0 && Size.Y > 0, TEXT("ItemStack %s has invalid size!"), *ItemStack.GetDebugString());
 		return Size;
 	}
-	return FVector2D(1, 1);
+	return FIntPoint(1, 1);
 }
 
 bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const FRockItemStack& SecondItem)
@@ -68,7 +68,7 @@ bool URockItemStackLibrary::CanStackWith(const FRockItemStack& FirstItem, const 
 	{
 		return false;
 	}
-	return (FirstItem.StackSize + SecondItem.StackSize) <= MaxStackSize;
+	return (FirstItem.GetStackCount() + SecondItem.GetStackCount()) <= MaxStackSize;
 }
 
 int32 URockItemStackLibrary::GetMaxStackSize(const FRockItemStack& ItemStack)
@@ -78,7 +78,7 @@ int32 URockItemStackLibrary::GetMaxStackSize(const FRockItemStack& ItemStack)
 
 bool URockItemStackLibrary::IsFull(const FRockItemStack& ItemStack)
 {
-	return ItemStack.StackSize >= GetMaxStackSize(ItemStack);
+	return ItemStack.GetStackCount() >= GetMaxStackSize(ItemStack);
 }
 
 int32 URockItemStackLibrary::CalculateMoveAmount(const FRockItemStack& ItemStack, const ERockItemMoveMode& MoveMode, int32 MoveCount)
@@ -88,7 +88,7 @@ int32 URockItemStackLibrary::CalculateMoveAmount(const FRockItemStack& ItemStack
 		return 0;
 	}
 
-	const int32 CurrentStackSize = ItemStack.GetStackSize();
+	const int32 CurrentStackSize = ItemStack.GetStackCount();
 	if (CurrentStackSize <= 0)
 	{
 		return 0;

@@ -9,7 +9,6 @@
 #include "Inventory/RockSlotHandle.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagStack.h"
-#include "GameplayTagStack.h"
 #include "UObject/Object.h"
 #include "RockItemInstance.generated.h"
 
@@ -55,6 +54,7 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	FGameplayTagContainer Tags;
 
+	/** Stat tags associated with this item instance */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RockInventory|Stats")
 	FGameplayTagStackContainer StatTags;
 	

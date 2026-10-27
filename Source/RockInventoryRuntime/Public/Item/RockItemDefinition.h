@@ -24,10 +24,14 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
 	TSoftObjectPtr<UTexture2D> Icon;
+
+	// TBD
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|UI", meta = (AssetBundles= "UI"))
+	// FVector2D IconSize = FVector2D(44.0f, 44.0f);
 };
 
 /**
- * 
+ * Note: No Derived Blueprint classes and overriden values don't always work. Might need to re-force some indexing. But still might not work.
  */
 UCLASS(BlueprintType, Blueprintable)
 class ROCKINVENTORYRUNTIME_API URockItemDefinition : public UPrimaryDataAsset
@@ -37,7 +41,7 @@ class ROCKINVENTORYRUNTIME_API URockItemDefinition : public UPrimaryDataAsset
 public:
 	//////////////////////////////////////////////////////////////////////////	
 	// Item ID
-	// "RedApple"
+	// The internal ItemID. e.g. /spawn RedApple. This is not the DisplayName or Name.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FName ItemId;
 	//////////////////////////////////////////////////////////////////////////
@@ -49,15 +53,17 @@ public:
 	// "A delicious red apple." as opposed to a short name(Name) such as "Apple"
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText DisplayName;
-	// "A crisp apple, perfect for a quick snack. Restores a small amount of health.
+	// "A crisp apple, perfect for a quick snack. Restores a small amount of health."
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Display")
 	FText Description;
 	//////////////////////////////////////////////////////////////////////////
 	// Core (Inventory)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	int32 MaxStackSize = 1;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
-	FVector2D SlotDimensions = FVector2D(1.0f, 1.0f);
+	FIntPoint GridSize = FIntPoint(1, 1);
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Inventory")
 	FRockItemUIData IconData;
 	//////////////////////////////////////////////////////////////////////////
@@ -74,7 +80,7 @@ public:
 	// It is encouraged to only use certain tags in certain containers (e.g. Item.Type.* in ItemType, Tags.* in Tag, and Item.SubType.* in ItemSubType).
 	// Because if you start using Tag in ItemType, it could lead to inconsistencies.
 	// Consider limiting to meta=(Categories="Item.Type")
-	
+
 	// An item can be 'multiple types' (e.g. a 'battery' can be a 'tool' and a 'battery')
 	// Item.Type.Weapon, Item.Type.Tool, Item.Type.Consumable
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Information")
@@ -146,10 +152,6 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////
 	/// Fragments
-	UE_DEPRECATED(5.5, "ItemFragments is deprecated, use Fragments instead.")
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100))
-	TArray<FRockItemFragmentInstance> ItemFragments;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Fragments", meta=(DisplayPriority = 100))
 	TArray<FRockItemFragmentInstance> Fragments;
 
@@ -213,6 +215,8 @@ public:
 
 	template <typename T> requires std::derived_from<T, FRockItemFragment>
 	const T* GetFragmentOfType() const;
+
+	const TArray<FRockItemFragmentInstance>& GetAllFragments() const;
 
 
 	// Destroy

@@ -10,7 +10,7 @@ class URockInventory;
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
-class URockInventoryInterface : public UInterface
+class URockInventoryOwnerInterface : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -18,13 +18,10 @@ class URockInventoryInterface : public UInterface
 /**
  * 
  */
-class ROCKINVENTORYRUNTIME_API IRockInventoryInterface
+class ROCKINVENTORYRUNTIME_API IRockInventoryOwnerInterface
 {
 	GENERATED_BODY()
 
 public:
 	virtual URockInventory* GetInventory() const = 0;
-	
 };
-
-

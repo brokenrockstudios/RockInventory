@@ -266,6 +266,7 @@ void URockInventoryManagerComponent::Server_RegisterSlotStatus_Implementation(
 	URockInventory* Inventory, AController* Instigator,
 	const FRockInventorySlotHandle& InSlotHandle, ERockSlotStatus InStatus)
 {
+	ensureMsgf(Inventory, TEXT("Server_RegisterSlotStatus_Implementation: Inventory is null"));
 	Inventory->RegisterSlotStatus(Instigator, InSlotHandle, InStatus);
 }
 

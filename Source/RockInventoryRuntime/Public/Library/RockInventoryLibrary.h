@@ -103,7 +103,9 @@ public:
 	// This needs to point to where the inventory is registered for replication
 	static UObject* GetTopLevelOwner(UObject* Instance);
 
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Components")
 	static URockInventory* GetInventory(AActor* Actor, bool bFindComponentByClass = false);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory|Components")
+	static int32 GetSlotIndex(const FRockInventorySlotHandle& SlotHandle);
 };

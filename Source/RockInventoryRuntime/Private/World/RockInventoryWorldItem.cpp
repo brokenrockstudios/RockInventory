@@ -19,21 +19,14 @@ ARockInventoryWorldItemBase::ARockInventoryWorldItemBase(const FObjectInitialize
 	bReplicateUsingRegisteredSubObjectList = true;
 
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
-	// By default, we will leave physics false, but we can set it to true if we want to simulate physics
-	// perhaps when an item is dropped or thrown.
 	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
 	StaticMeshComponent->SetSimulatePhysics(false);
 	StaticMeshComponent->CanCharacterStepUpOn = ECanBeCharacterBase::ECB_No;
-	//StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
 	RootComponent = StaticMeshComponent; // Set the root component to the static mesh component
 
 	ItemStack = FRockItemStack();
-
-	// Default stack size for world items
-	// NOTE: Generally we shouldn't be setting values like this, but this is a rare exception where we want to ensure that the item stack is initialized with a sensible default.
-	// Generally, we probably want an 'item generator' and not to be placing items directly, where that'd set it appropriately.
-	ItemStack.StackSize = 1;
+	ItemStack.StackCount = 1;
 }
 
 void ARockInventoryWorldItemBase::BeginPlay()
@@ -112,7 +105,7 @@ void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)
 	URockInventoryComponent* InventoryComp = Cast<URockInventoryComponent>(InInstigator->GetComponentByClass(URockInventoryComponent::StaticClass()));
 	if (InventoryComp)
 	{
-		int32 outExcess = ItemStack.StackSize;
+		int32 outExcess = ItemStack.StackCount;
 		FRockInventorySlotHandle outHandle;
 
 		if (URockInventoryLibrary::LootItemToInventory(InventoryComp->Inventory, ItemStack, outHandle, outExcess))
@@ -133,8 +126,8 @@ void ARockInventoryWorldItemBase::OnPickedUp(AActor* InInstigator)
 
 void ARockInventoryWorldItemBase::OnLooted(AActor* InstigatorPawn, const FRockItemStack& LootedItem, int32 Excess)
 {
-	ItemStack.StackSize = Excess;
-	if (ItemStack.StackSize <= 0)
+	ItemStack.StackCount = Excess;
+	if (ItemStack.StackCount <= 0)
 	{
 		this->Destroy();
 	}

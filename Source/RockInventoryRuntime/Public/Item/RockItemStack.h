@@ -47,7 +47,7 @@ private:
 
 	/** Current number of items in the stack */
 	UPROPERTY(EditAnywhere)
-	int32 StackSize = 0;
+	int32 StackCount = 0;
 
 	/** 
 	 * Generic value that can be used for various purposes (durability, charges, etc.)
@@ -65,12 +65,12 @@ private:
 
 public:
 	FRockItemStack() = default;
-	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackSize = 1);
+	FRockItemStack(URockItemDefinition* InDefinition, int32 InStackCount = 1);
 
 	// Core functionality
 	FName GetItemId() const;
 	URockItemDefinition* GetDefinition() const;
-	int32 GetStackSize() const;
+	int32 GetStackCount() const;
 	int32 GetMaxStackSize() const;
 	URockItemInstance* GetRuntimeInstance() const;
 	bool CanStackWith(const FRockItemStack& Other) const;

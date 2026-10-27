@@ -24,7 +24,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<FRockInventorySectionInfo> InventoryTabs;
 
-
 	// TODO:
 	// Consider having a 'parent' config' or even an 'array' of composable configs?
 };

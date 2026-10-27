@@ -6,6 +6,11 @@
 #include "RockInventoryLogging.h"
 #include "Engine/AssetManager.h"
 
+const TArray<FRockItemFragmentInstance>& URockItemDefinition::GetAllFragments() const
+{
+	return Fragments;
+}
+
 void URockItemDefinition::RegisterItemDefinition(const URockItemDefinition* NewItem)
 {
 	checkf(false, TEXT("RegisterItemDefinition is not tested yet!"));
